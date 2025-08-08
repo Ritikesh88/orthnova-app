@@ -69,6 +69,16 @@ export interface PrescriptionRow {
   created_at: string;
 }
 
+export interface AppointmentRow {
+  id: string; // UUID
+  patient_id: string;
+  doctor_id: string;
+  appointment_datetime: string; // ISO datetime
+  status: 'booked' | 'completed' | 'cancelled';
+  notes: string | null;
+  created_at: string;
+}
+
 export interface SessionUser {
   userId: string;
   role: UserRole;
