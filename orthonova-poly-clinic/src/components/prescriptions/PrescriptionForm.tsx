@@ -4,7 +4,6 @@ import { DoctorRow, PatientRow } from '../../types';
 import Modal from '../common/Modal';
 
 const PrescriptionForm: React.FC = () => {
-  const [patients, setPatients] = useState<PatientRow[]>([]);
   const [doctors, setDoctors] = useState<DoctorRow[]>([]);
 
   const [patientSearch, setPatientSearch] = useState('');
@@ -16,17 +15,13 @@ const PrescriptionForm: React.FC = () => {
   const [doctorQuery, setDoctorQuery] = useState('');
   const [doctorId, setDoctorId] = useState('');
 
-  const [diagnosis, setDiagnosis] = useState('');
-  const [medicines, setMedicines] = useState('');
-  const [advice, setAdvice] = useState('');
-
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       const [p, d] = await Promise.all([listPatients(), listDoctors()]);
-      setPatients(p); setDoctors(d);
+      setDoctors(d);
       const sel = localStorage.getItem('orthonova_selected_patient_id');
       if (sel) {
         const found = p.find(pt => pt.id === sel);
@@ -70,15 +65,13 @@ const PrescriptionForm: React.FC = () => {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setMessage(null);
     if (!patientId || !doctorId) { setMessage('Select patient and doctor'); return; }
-    if (!diagnosis && !medicines && !advice) { setMessage('Enter at least one section'); return; }
     setLoading(true);
     try {
-      const { id } = await createPrescription({ patient_id: patientId, doctor_id: doctorId, diagnosis, medicines, advice });
+      const { id } = await createPrescription({ patient_id: patientId, doctor_id: doctorId, diagnosis: '', medicines: '', advice: '' });
       localStorage.setItem('orthonova_last_prescription_id', id);
       setMessage('Prescription generated');
       const win = window.open(`${window.location.origin}/print/prescription/${id}`, '_blank');
       if (win) win.focus();
-      setDiagnosis(''); setMedicines(''); setAdvice('');
     } catch (e: any) { setMessage(e.message); }
     finally { setLoading(false); }
   };
@@ -124,19 +117,6 @@ const PrescriptionForm: React.FC = () => {
                 </div>
               )}
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">Diagnosis</label>
-            <textarea className="mt-1 w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500" rows={3} value={diagnosis} onChange={e => setDiagnosis(e.target.value)} placeholder="Enter diagnosis" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Medicines</label>
-            <textarea className="mt-1 w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500" rows={6} value={medicines} onChange={e => setMedicines(e.target.value)} placeholder="Name - Dosage - Frequency - Duration" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium">Advice</label>
-            <textarea className="mt-1 w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500" rows={3} value={advice} onChange={e => setAdvice(e.target.value)} placeholder="Advice and instructions" />
           </div>
 
           <div className="flex items-center gap-3">
