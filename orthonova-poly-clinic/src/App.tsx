@@ -17,6 +17,7 @@ import PrintBill from './print/PrintBill';
 import PrintPrescription from './print/PrintPrescription';
 import AppointmentBooking from './components/appointments/AppointmentBooking';
 import AppointmentsList from './components/appointments/AppointmentsList';
+import AppointmentsCalendar from './components/appointments/AppointmentsCalendar';
 
 const DashboardHome: React.FC = () => (
   <div className="card p-6">Welcome to OrthoNova Poly Clinic Management.</div>
@@ -50,6 +51,7 @@ const AppRoutes: React.FC = () => {
         <Route path="patients" element={<ProtectedRoute allowedRoles={["doctor"] as any}><PatientsList /></ProtectedRoute>} />
         {/* All roles can view appointments */}
         <Route path="appointments" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "doctor"] as any}><AppointmentsList /></ProtectedRoute>} />
+        <Route path="appointments/calendar" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "doctor"] as any}><AppointmentsCalendar /></ProtectedRoute>} />
         <Route path="billing/history" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "doctor"] as any}><BillHistory /></ProtectedRoute>} />
         {/* Doctor + Receptionist */}
         <Route path="prescriptions" element={<ProtectedRoute allowedRoles={["doctor", "receptionist", "admin"] as any}><PrescriptionForm /></ProtectedRoute>} />
