@@ -53,7 +53,7 @@ const PrintPrescription: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-6 text-sm border-2 border-gray-700 rounded-md p-4">
+        <div className="mt-2 text-sm border-2 border-gray-700 rounded-md p-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="font-medium w-14">Weight:</span>
