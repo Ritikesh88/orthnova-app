@@ -54,18 +54,18 @@ const PrintPrescription: React.FC = () => {
         </div>
 
         <div className="mt-6 text-sm border-2 border-gray-700 rounded-md p-4">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="font-medium w-16">Weight:</span>
-              <div className="w-28 border-b border-gray-400 h-5" />
+              <span className="font-medium w-14">Weight:</span>
+              <div className="w-20 border-b border-gray-400 h-5" />
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-medium w-16">Height:</span>
-              <div className="w-28 border-b border-gray-400 h-5" />
+              <span className="font-medium w-14">Height:</span>
+              <div className="w-20 border-b border-gray-400 h-5" />
             </div>
             <div className="flex items-center gap-2">
               <span className="font-medium w-10">BP:</span>
-              <div className="w-36 border-b border-gray-400 h-5" />
+              <div className="w-24 border-b border-gray-400 h-5" />
             </div>
             <div className="flex items-center gap-2 flex-1">
               <span className="font-medium w-16">Others:</span>
