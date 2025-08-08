@@ -15,6 +15,8 @@ import PrescriptionsList from './components/prescriptions/PrescriptionsList';
 import PatientsList from './components/patients/PatientsList';
 import PrintBill from './print/PrintBill';
 import PrintPrescription from './print/PrintPrescription';
+import AppointmentBooking from './components/appointments/AppointmentBooking';
+import AppointmentsList from './components/appointments/AppointmentsList';
 
 const DashboardHome: React.FC = () => (
   <div className="card p-6">Welcome to OrthoNova Poly Clinic Management.</div>
@@ -42,9 +44,12 @@ const AppRoutes: React.FC = () => {
         <Route path="admin/services" element={<ProtectedRoute allowedRoles={["admin"] as any}><ServicesCatalog /></ProtectedRoute>} />
         {/* Receptionist/Admin */}
         <Route path="patients/register" element={<ProtectedRoute allowedRoles={["receptionist", "admin"] as any}><PatientRegistration /></ProtectedRoute>} />
+        <Route path="billing" element={<ProtectedRoute allowedRoles={["receptionist", "admin"] as any}><BillingSystem /></ProtectedRoute>} />
+        <Route path="appointments/book" element={<ProtectedRoute allowedRoles={["receptionist", "admin"] as any}><AppointmentBooking /></ProtectedRoute>} />
         {/* Doctor */}
         <Route path="patients" element={<ProtectedRoute allowedRoles={["doctor"] as any}><PatientsList /></ProtectedRoute>} />
-        <Route path="billing" element={<ProtectedRoute allowedRoles={["receptionist", "admin"] as any}><BillingSystem /></ProtectedRoute>} />
+        {/* All roles can view appointments */}
+        <Route path="appointments" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "doctor"] as any}><AppointmentsList /></ProtectedRoute>} />
         <Route path="billing/history" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "doctor"] as any}><BillHistory /></ProtectedRoute>} />
         {/* Doctor + Receptionist */}
         <Route path="prescriptions" element={<ProtectedRoute allowedRoles={["doctor", "receptionist", "admin"] as any}><PrescriptionForm /></ProtectedRoute>} />

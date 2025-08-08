@@ -7,6 +7,7 @@ import {
   PrescriptionRow,
   ServiceRow,
   UserRow,
+  AppointmentRow,
 } from '../types';
 
 async function throwIfError<T>(res: { data: T | null; error: any }) {
@@ -51,7 +52,6 @@ export async function getPatientById(id: string): Promise<PatientRow | null> {
   if (res.error) throw new Error(res.error.message);
   return res.data as any;
 }
-
 export async function searchPatientsByContact(contact: string): Promise<PatientRow[]> {
   const clean = (contact || '').replace(/\D/g, '');
   if (!clean) return [];
@@ -107,10 +107,8 @@ export async function createBill(
   bill: Omit<BillRow, 'id' | 'created_at'>,
   items: Array<Omit<BillItemRow, 'id'>>
 ): Promise<BillRow> {
-  // Insert bill first
   const billRes = await supabase.from('bills').insert(bill).select('*').single();
   const insertedBill = await throwIfError<BillRow>(billRes);
-  // Insert items, omitting id so Supabase generates UUIDs
   if (items.length > 0) {
     const itemsToInsert = items.map((it) => ({ ...it, bill_id: insertedBill.id }));
     const itemsRes = await supabase.from('bill_items').insert(itemsToInsert).select('*');
@@ -148,4 +146,17 @@ export async function getPrescriptionById(id: string): Promise<PrescriptionRow |
 export async function listPrescriptions(): Promise<PrescriptionRow[]> {
   const res = await supabase.from('prescriptions').select('*').order('created_at', { ascending: false });
   return throwIfError<PrescriptionRow[]>(res);
+}
+
+// Appointments
+export async function createAppointment(row: Omit<AppointmentRow, 'id' | 'created_at'>): Promise<AppointmentRow> {
+  const res = await supabase.from('appointments').insert(row).select('*').single();
+  return throwIfError<AppointmentRow>(res);
+}
+export async function listAppointments(filters?: { doctor_id?: string; patient_id?: string }): Promise<AppointmentRow[]> {
+  let q = supabase.from('appointments').select('*').order('appointment_datetime', { ascending: true });
+  if (filters?.doctor_id) q = q.eq('doctor_id', filters.doctor_id);
+  if (filters?.patient_id) q = q.eq('patient_id', filters.patient_id);
+  const res = await q;
+  return throwIfError<AppointmentRow[]>(res);
 }
