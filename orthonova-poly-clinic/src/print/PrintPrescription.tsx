@@ -52,24 +52,22 @@ const PrintPrescription: React.FC = () => {
         </div>
 
         <div className="mt-8 text-sm">
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <span className="w-24 font-medium">Weight:</span>
-                <div className="flex-1 border-b border-gray-400 h-5" />
-              </div>
-              <div className="flex items-center">
-                <span className="w-24 font-medium">Height:</span>
-                <div className="flex-1 border-b border-gray-400 h-5" />
-              </div>
-              <div className="flex items-center">
-                <span className="w-24 font-medium">BP:</span>
-                <div className="flex-1 border-b border-gray-400 h-5" />
-              </div>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <span className="font-medium w-16">Weight:</span>
+              <div className="w-28 border-b border-gray-400 h-5" />
             </div>
-            <div className="space-y-2">
-              <div className="font-medium">Others:</div>
-              <div className="h-24 border border-gray-400 rounded" />
+            <div className="flex items-center gap-2">
+              <span className="font-medium w-16">Height:</span>
+              <div className="w-28 border-b border-gray-400 h-5" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium w-10">BP:</span>
+              <div className="w-36 border-b border-gray-400 h-5" />
+            </div>
+            <div className="flex items-center gap-2 flex-1">
+              <span className="font-medium w-16">Others:</span>
+              <div className="flex-1 border-b border-gray-400 h-5" />
             </div>
           </div>
         </div>
