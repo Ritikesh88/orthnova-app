@@ -37,7 +37,7 @@ export async function createPatient(row: Omit<PatientRow, 'created_at'>): Promis
   const res = await supabase.from('patients').insert(row).select('*').single();
   return throwIfError<PatientRow>(res);
 }
-export async function listPatients(query?: string): Promise<PatientRow[]> {
+export async function listPatients(query?: string): Promise<PatientRow[]> {/** keep name search */
   let q = supabase.from('patients').select('*').order('created_at', { ascending: false });
   if (query && query.trim()) {
     const like = `%${query.trim()}%`;
@@ -50,6 +50,13 @@ export async function getPatientById(id: string): Promise<PatientRow | null> {
   const res = await supabase.from('patients').select('*').eq('id', id).maybeSingle();
   if (res.error) throw new Error(res.error.message);
   return res.data as any;
+}
+
+export async function searchPatientsByContact(contact: string): Promise<PatientRow[]> {
+  const clean = (contact || '').replace(/\D/g, '');
+  if (!clean) return [];
+  const res = await supabase.from('patients').select('*').ilike('contact', `%${clean}%`).order('created_at', { ascending: false });
+  return throwIfError<PatientRow[]>(res);
 }
 
 // Doctors
