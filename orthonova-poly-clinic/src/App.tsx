@@ -11,6 +11,8 @@ import PatientRegistration from './components/patients/PatientRegistration';
 import BillingSystem from './components/billing/BillingSystem';
 import BillHistory from './components/billing/BillHistory';
 import PrescriptionForm from './components/prescriptions/PrescriptionForm';
+import PrescriptionsList from './components/prescriptions/PrescriptionsList';
+import PatientsList from './components/patients/PatientsList';
 import PrintBill from './print/PrintBill';
 import PrintPrescription from './print/PrintPrescription';
 
@@ -40,10 +42,13 @@ const AppRoutes: React.FC = () => {
         <Route path="admin/services" element={<ProtectedRoute allowedRoles={["admin"] as any}><ServicesCatalog /></ProtectedRoute>} />
         {/* Receptionist/Admin */}
         <Route path="patients/register" element={<ProtectedRoute allowedRoles={["receptionist", "admin"] as any}><PatientRegistration /></ProtectedRoute>} />
+        {/* Doctor */}
+        <Route path="patients" element={<ProtectedRoute allowedRoles={["doctor"] as any}><PatientsList /></ProtectedRoute>} />
         <Route path="billing" element={<ProtectedRoute allowedRoles={["receptionist", "admin"] as any}><BillingSystem /></ProtectedRoute>} />
         <Route path="billing/history" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "doctor"] as any}><BillHistory /></ProtectedRoute>} />
         {/* Doctor + Receptionist */}
         <Route path="prescriptions" element={<ProtectedRoute allowedRoles={["doctor", "receptionist", "admin"] as any}><PrescriptionForm /></ProtectedRoute>} />
+        <Route path="prescriptions/list" element={<ProtectedRoute allowedRoles={["doctor", "receptionist", "admin"] as any}><PrescriptionsList /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

@@ -30,7 +30,8 @@ const DashboardLayout: React.FC = () => {
               <div className="mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Reception</div>
               <NavLink to="/patients/register" className={navItemClass}>Register Patient</NavLink>
               <NavLink to="/billing" className={navItemClass}>Generate Bill</NavLink>
-              <NavLink to="/prescriptions" className={navItemClass}>Prescriptions</NavLink>
+              <NavLink to="/prescriptions" className={navItemClass}>Generate Prescription</NavLink>
+              <NavLink to="/prescriptions/list" className={navItemClass}>Manage Prescriptions</NavLink>
               <NavLink to="/billing/history" className={navItemClass}>Bill History</NavLink>
             </>
           )}
@@ -39,6 +40,7 @@ const DashboardLayout: React.FC = () => {
               <div className="mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Doctor</div>
               <NavLink to="/patients" className={navItemClass}>Patients</NavLink>
               <NavLink to="/prescriptions" className={navItemClass}>Generate Prescription</NavLink>
+              <NavLink to="/prescriptions/list" className={navItemClass}>Manage Prescriptions</NavLink>
               <NavLink to="/billing/history" className={navItemClass}>Billing History</NavLink>
             </>
           )}

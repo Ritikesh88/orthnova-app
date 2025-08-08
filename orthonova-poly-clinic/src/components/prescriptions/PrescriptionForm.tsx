@@ -19,6 +19,11 @@ const PrescriptionForm: React.FC = () => {
     (async () => {
       const [p, d] = await Promise.all([listPatients(), listDoctors()]);
       setPatients(p); setDoctors(d);
+      const sel = localStorage.getItem('orthonova_selected_patient_id');
+      if (sel && p.some(pt => pt.id === sel)) {
+        setPatientId(sel);
+        localStorage.removeItem('orthonova_selected_patient_id');
+      }
     })();
   }, []);
 
