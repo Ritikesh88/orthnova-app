@@ -16,6 +16,7 @@ const BillingSystem: React.FC = () => {
 
   const [patientSearch, setPatientSearch] = useState('');
   const [patientId, setPatientId] = useState('');
+  const [selectedPatient, setSelectedPatient] = useState<PatientRow | null>(null);
   const [patientMatches, setPatientMatches] = useState<PatientRow[]>([]);
   const [patientModalOpen, setPatientModalOpen] = useState(false);
 
@@ -66,20 +67,28 @@ const BillingSystem: React.FC = () => {
     const rows = await searchPatientsByContact(patientSearch);
     if (rows.length === 1) {
       setPatientId(rows[0].id);
+      setSelectedPatient(rows[0]);
       setPatientMatches([]);
     } else if (rows.length > 1) {
       setPatientMatches(rows);
       setPatientModalOpen(true);
     } else {
+      setSelectedPatient(null);
+      setPatientId('');
       setMessage('No patients found for that contact');
     }
   };
 
   const filteredDoctors = useMemo(() => {
     const q = doctorQuery.trim().toLowerCase();
-    if (!q) return doctors;
+    if (!q) return [];
     return doctors.filter(d => d.name.toLowerCase().includes(q));
   }, [doctorQuery, doctors]);
+
+  const onSelectDoctor = (d: DoctorRow) => {
+    setDoctorId(d.id);
+    setDoctorQuery(d.name);
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setMessage(null);
@@ -142,7 +151,10 @@ const BillingSystem: React.FC = () => {
                 />
                 <button type="button" className="btn btn-secondary" onClick={onSearchPatient}>Search</button>
               </div>
-              {patientId && <div className="text-xs text-green-700 mt-1">Selected Patient ID: <span className="font-mono">{patientId}</span></div>}
+              <div className="mt-2">
+                <label className="block text-xs text-gray-600">Patient Name</label>
+                <input className="mt-1 w-full rounded-xl border border-gray-300 bg-gray-50" value={selectedPatient?.name || ''} readOnly placeholder="No patient selected" />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium">Doctor</label>
@@ -152,14 +164,16 @@ const BillingSystem: React.FC = () => {
                 value={doctorQuery}
                 onChange={e => setDoctorQuery(e.target.value)}
               />
-              <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100">
-                {filteredDoctors.map(d => (
-                  <div key={d.id} className={`px-3 py-2 cursor-pointer hover:bg-gray-50 ${doctorId === d.id ? 'bg-brand-50' : ''}`} onClick={() => setDoctorId(d.id)}>
-                    {d.name}
-                  </div>
-                ))}
-                {filteredDoctors.length === 0 && <div className="px-3 py-2 text-sm text-gray-500">No match</div>}
-              </div>
+              {doctorQuery.trim().length > 0 && (
+                <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100">
+                  {filteredDoctors.map(d => (
+                    <div key={d.id} className={`px-3 py-2 cursor-pointer hover:bg-gray-50 ${doctorId === d.id ? 'bg-brand-50' : ''}`} onClick={() => onSelectDoctor(d)}>
+                      {d.name}
+                    </div>
+                  ))}
+                  {filteredDoctors.length === 0 && <div className="px-3 py-2 text-sm text-gray-500">No match</div>}
+                </div>
+              )}
               {doctor && <p className="text-xs text-gray-500 mt-1">Consultation Fee: {formatCurrency(opdFee)}</p>}
             </div>
             <div>
@@ -256,7 +270,7 @@ const BillingSystem: React.FC = () => {
                   <div className="font-medium">{p.name} <span className="text-xs text-gray-500">({p.age} / {p.gender})</span></div>
                   <div className="text-xs text-gray-500">{p.id} • {p.contact}</div>
                 </div>
-                <button className="btn btn-secondary" onClick={() => { setPatientId(p.id); setPatientModalOpen(false); setPatientMatches([]); }}>Select</button>
+                <button className="btn btn-secondary" onClick={() => { setPatientId(p.id); setSelectedPatient(p); setPatientModalOpen(false); setPatientMatches([]); }}>Select</button>
               </div>
             </div>
           ))}
