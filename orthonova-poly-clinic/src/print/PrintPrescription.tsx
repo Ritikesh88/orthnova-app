@@ -1,0 +1,92 @@
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { getDoctorById, getPatientById, getPrescriptionById } from '../api';
+import { DoctorRow, PatientRow, PrescriptionRow } from '../types';
+import { CLINIC_ADDRESS_LINE_1, CLINIC_ADDRESS_LINE_2, CLINIC_CONTACT, CLINIC_NAME } from '../config/clinic';
+import { formatDate } from '../utils/format';
+
+const PrintPrescription: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const [presc, setPresc] = useState<PrescriptionRow | null>(null);
+  const [patient, setPatient] = useState<PatientRow | null>(null);
+  const [doctor, setDoctor] = useState<DoctorRow | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      if (!id) return;
+      const p = await getPrescriptionById(id);
+      if (!p) return;
+      setPresc(p);
+      const [pat, doc] = await Promise.all([getPatientById(p.patient_id), getDoctorById(p.doctor_id)]);
+      setPatient(pat); setDoctor(doc);
+      const t = setTimeout(() => { window.focus(); window.print(); }, 400);
+      return () => clearTimeout(t);
+    })();
+  }, [id]);
+
+  if (!presc) return <div className="p-6">Loading...</div>;
+
+  return (
+    <div className="p-6 print:p-0">
+      <div className="max-w-3xl mx-auto bg-white p-6 print:p-0">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">{CLINIC_NAME}</h1>
+          <div className="text-sm">{CLINIC_ADDRESS_LINE_1}</div>
+          <div className="text-sm">{CLINIC_ADDRESS_LINE_2}</div>
+          <div className="text-sm">{CLINIC_CONTACT}</div>
+          <div className="text-xl font-semibold mt-2">PRESCRIPTION</div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+          <div className="space-y-1">
+            <div><span className="font-medium">Patient ID:</span> {patient?.id}</div>
+            <div><span className="font-medium">Date:</span> {formatDate(presc.created_at)}</div>
+            <div><span className="font-medium">Name:</span> {patient?.name}</div>
+            <div><span className="font-medium">Age/Gender:</span> {patient?.age} / {patient?.gender}</div>
+          </div>
+          <div className="space-y-1">
+            <div><span className="font-medium">Address:</span> {patient?.address}</div>
+            <div><span className="font-medium">Mobile No:</span> {patient?.contact}</div>
+            <div><span className="font-medium">Consultant:</span> {doctor?.name}</div>
+          </div>
+        </div>
+
+        <div className="mt-6 space-y-4 text-sm">
+          <div>
+            <div className="font-semibold">Diagnosis</div>
+            <div className="mt-1 whitespace-pre-wrap">{presc.diagnosis || '-'}</div>
+          </div>
+          <div>
+            <div className="font-semibold">Medicines</div>
+            <div className="mt-1 whitespace-pre-wrap">{presc.medicines || '-'}</div>
+          </div>
+          <div>
+            <div className="font-semibold">Advice</div>
+            <div className="mt-1 whitespace-pre-wrap">{presc.advice || '-'}</div>
+          </div>
+        </div>
+
+        <div className="mt-8 text-sm">
+          <div>(Valid for 7 days only)</div>
+          <div className="flex justify-between mt-8">
+            <div>Prepared by: ____________</div>
+            <div>Doctor's Signature: ____________</div>
+          </div>
+        </div>
+
+        <div className="mt-4 no-print">
+          <button className="btn btn-primary" onClick={() => window.print()}>Print</button>
+        </div>
+      </div>
+
+      <style>{`
+        @media print {
+          .no-print { display: none; }
+          body { background: white; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default PrintPrescription;
