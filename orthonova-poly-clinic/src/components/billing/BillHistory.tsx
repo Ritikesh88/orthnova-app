@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getDoctorById, getPatientById, listBills } from '../../api';
 import { BillRow } from '../../types';
 import { formatCurrency, formatDateTime } from '../../utils/format';

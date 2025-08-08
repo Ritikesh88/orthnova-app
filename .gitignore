@@ -1,0 +1,6 @@
+
+# OrthoNova
+/node_modules
+/build
+.env
+

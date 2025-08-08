@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createBill, listDoctors, listPatients, listServices } from '../../api';
+import { createBill, listDoctors, listServices, searchPatientsByContact } from '../../api';
 import { BillItemRow, DoctorRow, PatientRow, ServiceRow } from '../../types';
 import { formatCurrency, generateBillNumber } from '../../utils/format';
+import Modal from '../common/Modal';
 
 const MODES = ['Cash', 'UPI', 'Card'] as const;
 
@@ -10,12 +11,17 @@ type Mode = typeof MODES[number];
 interface SelectedItem { service: ServiceRow; quantity: number; }
 
 const BillingSystem: React.FC = () => {
-  const [patients, setPatients] = useState<PatientRow[]>([]);
   const [doctors, setDoctors] = useState<DoctorRow[]>([]);
   const [services, setServices] = useState<ServiceRow[]>([]);
 
+  const [patientSearch, setPatientSearch] = useState('');
   const [patientId, setPatientId] = useState('');
+  const [patientMatches, setPatientMatches] = useState<PatientRow[]>([]);
+  const [patientModalOpen, setPatientModalOpen] = useState(false);
+
+  const [doctorQuery, setDoctorQuery] = useState('');
   const [doctorId, setDoctorId] = useState('');
+
   const [items, setItems] = useState<SelectedItem[]>([]);
   const [discount, setDiscount] = useState<number>(0);
   const [mode, setMode] = useState<Mode>('Cash');
@@ -27,8 +33,8 @@ const BillingSystem: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      const [p, d, s] = await Promise.all([listPatients(), listDoctors(), listServices()]);
-      setPatients(p); setDoctors(d); setServices(s);
+      const [d, s] = await Promise.all([listDoctors(), listServices()]);
+      setDoctors(d); setServices(s);
     })();
   }, []);
 
@@ -55,6 +61,26 @@ const BillingSystem: React.FC = () => {
     }
   };
 
+  const onSearchPatient = async () => {
+    setMessage(null);
+    const rows = await searchPatientsByContact(patientSearch);
+    if (rows.length === 1) {
+      setPatientId(rows[0].id);
+      setPatientMatches([]);
+    } else if (rows.length > 1) {
+      setPatientMatches(rows);
+      setPatientModalOpen(true);
+    } else {
+      setMessage('No patients found for that contact');
+    }
+  };
+
+  const filteredDoctors = useMemo(() => {
+    const q = doctorQuery.trim().toLowerCase();
+    if (!q) return doctors;
+    return doctors.filter(d => d.name.toLowerCase().includes(q));
+  }, [doctorQuery, doctors]);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setMessage(null);
     if (!patientId || !doctorId) { setMessage('Select patient and doctor'); return; }
@@ -78,7 +104,7 @@ const BillingSystem: React.FC = () => {
       } as const;
 
       const itemsInsert: Array<Omit<BillItemRow, 'id'>> = items.map(it => ({
-        bill_id: '', // will be filled by API after bill insert
+        bill_id: '',
         service_id: it.service.id,
         quantity: it.quantity,
         price: Number(it.service.price),
@@ -91,7 +117,6 @@ const BillingSystem: React.FC = () => {
       const printUrl = `${window.location.origin}/print/bill/${inserted.id}`;
       const win = window.open(printUrl, '_blank');
       if (win) { win.focus(); }
-      // Reset form
       setItems([]); setDiscount(0); setMode('Cash'); setTxnRef(''); setStatus('paid');
     } catch (e: any) {
       setMessage(e.message);
@@ -107,23 +132,39 @@ const BillingSystem: React.FC = () => {
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium">Patient</label>
-              <select className="mt-1 w-full rounded-xl border-gray-300 focus:ring-brand-500" value={patientId} onChange={e => setPatientId(e.target.value)} required>
-                <option value="">Select patient</option>
-                {patients.map(p => <option key={p.id} value={p.id}>{p.id} — {p.name}</option>)}
-              </select>
+              <label className="block text-sm font-medium">Patient Contact</label>
+              <div className="flex gap-2 mt-1">
+                <input
+                  placeholder="Enter contact number"
+                  className="flex-1 rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500"
+                  value={patientSearch}
+                  onChange={e => setPatientSearch(e.target.value)}
+                />
+                <button type="button" className="btn btn-secondary" onClick={onSearchPatient}>Search</button>
+              </div>
+              {patientId && <div className="text-xs text-green-700 mt-1">Selected Patient ID: <span className="font-mono">{patientId}</span></div>}
             </div>
             <div>
               <label className="block text-sm font-medium">Doctor</label>
-              <select className="mt-1 w-full rounded-xl border-gray-300 focus:ring-brand-500" value={doctorId} onChange={e => setDoctorId(e.target.value)} required>
-                <option value="">Select doctor</option>
-                {doctors.map(d => <option key={d.id} value={d.id}>{d.name} ({d.id})</option>)}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">Consultation Fee: {formatCurrency(opdFee)}</p>
+              <input
+                placeholder="Type to search doctor by name"
+                className="mt-1 w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500"
+                value={doctorQuery}
+                onChange={e => setDoctorQuery(e.target.value)}
+              />
+              <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100">
+                {filteredDoctors.map(d => (
+                  <div key={d.id} className={`px-3 py-2 cursor-pointer hover:bg-gray-50 ${doctorId === d.id ? 'bg-brand-50' : ''}`} onClick={() => setDoctorId(d.id)}>
+                    {d.name}
+                  </div>
+                ))}
+                {filteredDoctors.length === 0 && <div className="px-3 py-2 text-sm text-gray-500">No match</div>}
+              </div>
+              {doctor && <p className="text-xs text-gray-500 mt-1">Consultation Fee: {formatCurrency(opdFee)}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium">Discount (₹)</label>
-              <input type="number" step="0.01" className="mt-1 w-full rounded-xl border-gray-300 focus:ring-brand-500" value={discount} onChange={e => setDiscount(Number(e.target.value))} />
+              <input type="number" step="0.01" className="mt-1 w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500" value={discount} onChange={e => setDiscount(Number(e.target.value))} />
             </div>
           </div>
 
@@ -153,7 +194,7 @@ const BillingSystem: React.FC = () => {
                       <div className="text-xs text-gray-500">{formatCurrency(Number(it.service.price))}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <input type="number" min={0} className="w-20 rounded-xl border-gray-300" value={it.quantity} onChange={e => updateQty(it.service.id, Number(e.target.value))} />
+                      <input type="number" min={0} className="w-20 rounded-xl border border-gray-300 bg-white" value={it.quantity} onChange={e => updateQty(it.service.id, Number(e.target.value))} />
                       <div className="w-24 text-right">{formatCurrency(Number(it.service.price) * it.quantity)}</div>
                     </div>
                   </div>
@@ -173,19 +214,19 @@ const BillingSystem: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium">Payment Mode</label>
-              <select className="mt-1 w-full rounded-xl border-gray-300 focus:ring-brand-500" value={mode} onChange={e => setMode(e.target.value as Mode)}>
+              <select className="mt-1 w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500" value={mode} onChange={e => setMode(e.target.value as Mode)}>
                 {MODES.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
             {(mode === 'UPI' || mode === 'Card') && (
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium">Transaction Reference</label>
-                <input className="mt-1 w-full rounded-xl border-gray-300 focus:ring-brand-500" value={txnRef} onChange={e => setTxnRef(e.target.value)} required />
+                <input className="mt-1 w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500" value={txnRef} onChange={e => setTxnRef(e.target.value)} required />
               </div>
             )}
             <div>
               <label className="block text-sm font-medium">Status</label>
-              <select className="mt-1 w-full rounded-xl border-gray-300 focus:ring-brand-500" value={status} onChange={e => setStatus(e.target.value as any)}>
+              <select className="mt-1 w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500" value={status} onChange={e => setStatus(e.target.value as any)}>
                 <option value="paid">Paid</option>
                 <option value="pending">Pending</option>
                 <option value="partial">Partial</option>
@@ -205,6 +246,23 @@ const BillingSystem: React.FC = () => {
           {message && <p className="text-sm mt-2">{message}</p>}
         </form>
       </div>
+
+      <Modal open={patientModalOpen} title="Select Patient" onClose={() => setPatientModalOpen(false)}>
+        <div className="divide-y divide-gray-100">
+          {patientMatches.map(p => (
+            <div key={p.id} className="py-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">{p.name} <span className="text-xs text-gray-500">({p.age} / {p.gender})</span></div>
+                  <div className="text-xs text-gray-500">{p.id} • {p.contact}</div>
+                </div>
+                <button className="btn btn-secondary" onClick={() => { setPatientId(p.id); setPatientModalOpen(false); setPatientMatches([]); }}>Select</button>
+              </div>
+            </div>
+          ))}
+          {patientMatches.length === 0 && <div className="py-4 text-sm text-gray-500">No matches.</div>}
+        </div>
+      </Modal>
     </div>
   );
 };
