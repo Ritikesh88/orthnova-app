@@ -29,29 +29,31 @@ const PrintPrescription: React.FC = () => {
   return (
     <div className="p-6 print:p-0">
       <div className="max-w-3xl mx-auto bg-white p-6 print:p-0">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">{CLINIC_NAME}</h1>
-          <div className="text-sm">{CLINIC_ADDRESS_LINE_1}</div>
-          <div className="text-sm">{CLINIC_ADDRESS_LINE_2}</div>
-          <div className="text-sm">{CLINIC_CONTACT}</div>
-          <div className="text-xl font-semibold mt-2">PRESCRIPTION</div>
+        <div className="border-2 border-gray-700 rounded-md p-4">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">{CLINIC_NAME}</h1>
+            <div className="text-sm">{CLINIC_ADDRESS_LINE_1}</div>
+            <div className="text-sm">{CLINIC_ADDRESS_LINE_2}</div>
+            <div className="text-sm">{CLINIC_CONTACT}</div>
+            <div className="text-xl font-semibold mt-2">PRESCRIPTION</div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+            <div className="space-y-1">
+              <div><span className="font-medium">Patient ID:</span> {patient?.id}</div>
+              <div><span className="font-medium">Date:</span> {formatDate(presc.created_at)}</div>
+              <div><span className="font-medium">Name:</span> {patient?.name}</div>
+              <div><span className="font-medium">Age/Gender:</span> {patient?.age} / {patient?.gender}</div>
+            </div>
+            <div className="space-y-1">
+              <div><span className="font-medium">Address:</span> {patient?.address}</div>
+              <div><span className="font-medium">Mobile No:</span> {patient?.contact}</div>
+              <div><span className="font-medium">Consultant:</span> {doctor?.name}</div>
+            </div>
+          </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          <div className="space-y-1">
-            <div><span className="font-medium">Patient ID:</span> {patient?.id}</div>
-            <div><span className="font-medium">Date:</span> {formatDate(presc.created_at)}</div>
-            <div><span className="font-medium">Name:</span> {patient?.name}</div>
-            <div><span className="font-medium">Age/Gender:</span> {patient?.age} / {patient?.gender}</div>
-          </div>
-          <div className="space-y-1">
-            <div><span className="font-medium">Address:</span> {patient?.address}</div>
-            <div><span className="font-medium">Mobile No:</span> {patient?.contact}</div>
-            <div><span className="font-medium">Consultant:</span> {doctor?.name}</div>
-          </div>
-        </div>
-
-        <div className="mt-8 text-sm">
+        <div className="mt-6 text-sm border-2 border-gray-700 rounded-md p-4">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <span className="font-medium w-16">Weight:</span>
