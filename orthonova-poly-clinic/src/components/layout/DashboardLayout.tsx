@@ -3,22 +3,23 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const navItemClass = ({ isActive }: { isActive: boolean }) =>
-  `block rounded-xl px-3 py-2 transition ${isActive ? 'bg-brand-50 text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`;
+  `block rounded-xl px-3 py-2 transition ${isActive ? 'bg-brand-600/90 text-white' : 'text-brand-50/90 hover:bg-brand-700/80 hover:text-white'}`;
 
 const DashboardLayout: React.FC = () => {
   const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen grid grid-cols-12">
-      <aside className="col-span-12 md:col-span-3 lg:col-span-2 border-r border-gray-100 bg-white sticky top-0 h-screen overflow-y-auto p-4">
+      <aside className="col-span-12 md:col-span-3 lg:col-span-2 bg-gradient-to-b from-brand-800 to-brand-700 sticky top-0 h-screen overflow-y-auto p-4 text-white">
         <div className="flex items-center justify-between mb-6">
-          <Link to="/" className="text-lg font-bold">ORTHONOVA</Link>
+          <Link to="/" className="text-lg font-bold tracking-wide">ORTHONOVA</Link>
+          <span className="badge">{user?.role}</span>
         </div>
         <nav className="space-y-1">
           <NavLink to="/" className={navItemClass} end>Dashboard</NavLink>
           {(user?.role === 'admin') && (
             <>
-              <div className="mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin</div>
+              <div className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-white/60">Admin</div>
               <NavLink to="/admin/users" className={navItemClass}>Users</NavLink>
               <NavLink to="/admin/doctors" className={navItemClass}>Doctors</NavLink>
               <NavLink to="/admin/services" className={navItemClass}>Services</NavLink>
@@ -27,7 +28,7 @@ const DashboardLayout: React.FC = () => {
           )}
           {(user?.role === 'receptionist' || user?.role === 'admin') && (
             <>
-              <div className="mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Reception</div>
+              <div className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-white/60">Reception</div>
               <NavLink to="/patients/register" className={navItemClass}>Register Patient</NavLink>
               <NavLink to="/billing" className={navItemClass}>Generate Bill</NavLink>
               <NavLink to="/prescriptions" className={navItemClass}>Generate Prescription</NavLink>
@@ -37,7 +38,7 @@ const DashboardLayout: React.FC = () => {
           )}
           {user?.role === 'doctor' && (
             <>
-              <div className="mt-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Doctor</div>
+              <div className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-white/60">Doctor</div>
               <NavLink to="/patients" className={navItemClass}>Patients</NavLink>
               <NavLink to="/prescriptions" className={navItemClass}>Generate Prescription</NavLink>
               <NavLink to="/prescriptions/list" className={navItemClass}>Manage Prescriptions</NavLink>
@@ -48,7 +49,7 @@ const DashboardLayout: React.FC = () => {
       </aside>
 
       <div className="col-span-12 md:col-span-9 lg:col-span-10">
-        <header className="sticky top-0 z-10 bg-white border-b border-gray-100">
+        <header className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b-2 border-brand-100">
           <div className="flex items-center justify-between px-6 py-4">
             <div>
               <h1 className="text-lg font-semibold">Dashboard</h1>

@@ -7,11 +7,11 @@ html, body, #root {
 }
 
 body {
-  @apply bg-gray-50 text-gray-900;
+  @apply bg-gradient-to-br from-brand-50 via-white to-gray-50 text-gray-900;
 }
 
 input, select, textarea {
-  @apply border border-gray-300 bg-white;
+  @apply border border-gray-300 bg-white rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-200 transition;
 }
 
 .btn {
@@ -19,13 +19,17 @@ input, select, textarea {
 }
 
 .btn-primary {
-  @apply bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow hover:from-brand-700 hover:to-brand-600 focus:ring-brand-500;
+  @apply bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-soft hover:from-brand-700 hover:to-brand-600 focus:ring-brand-500;
 }
 
 .btn-secondary {
-  @apply bg-white text-gray-900 border border-gray-200 shadow-sm hover:bg-gray-50 focus:ring-brand-400;
+  @apply bg-white text-brand-800 border border-brand-200 shadow-sm hover:bg-brand-50 focus:ring-brand-300;
 }
 
 .card {
-  @apply bg-white rounded-2xl shadow-sm border border-gray-100;
+  @apply bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-brand-100;
+}
+
+.badge {
+  @apply inline-flex items-center rounded-full bg-brand-50 text-brand-800 px-2 py-0.5 text-xs font-medium border border-brand-100;
 }
