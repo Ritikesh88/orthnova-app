@@ -18,8 +18,11 @@ const AppointmentsList: React.FC = () => {
       try {
         const list = await listAppointments(user?.role === 'doctor' ? { doctor_id: user?.userId } : undefined);
         const enriched: Row[] = await Promise.all(list.map(async r => {
-          const [p, d] = await Promise.all([getPatientById(r.patient_id), getDoctorById(r.doctor_id)]);
-          return { ...r, patientName: p?.name, doctorName: d?.name };
+          const [p, d] = await Promise.all([
+            r.patient_id ? getPatientById(r.patient_id) : Promise.resolve(null),
+            getDoctorById(r.doctor_id)
+          ]);
+          return { ...r, patientName: p?.name || r.guest_name || undefined, doctorName: d?.name };
         }));
         setRows(enriched);
       } catch (e: any) { setError(e.message); }
@@ -40,6 +43,7 @@ const AppointmentsList: React.FC = () => {
             <tr className="text-left text-gray-500">
               <th className="py-2 pr-4">Date/Time</th>
               <th className="py-2 pr-4">Patient</th>
+              <th className="py-2 pr-4">Contact</th>
               <th className="py-2 pr-4">Doctor</th>
               <th className="py-2 pr-4">Status</th>
               <th className="py-2 pr-4">Notes</th>
@@ -49,14 +53,15 @@ const AppointmentsList: React.FC = () => {
             {rows.map(r => (
               <tr key={r.id} className="border-t border-gray-100">
                 <td className="py-2 pr-4">{formatDateTime(r.appointment_datetime)}</td>
-                <td className="py-2 pr-4">{r.patientName || r.patient_id}</td>
+                <td className="py-2 pr-4">{r.patientName || '-'}</td>
+                <td className="py-2 pr-4">{r.patient_id ? '' : (r.guest_contact || '-')}</td>
                 <td className="py-2 pr-4">{r.doctorName || r.doctor_id}</td>
                 <td className="py-2 pr-4 capitalize">{r.status}</td>
                 <td className="py-2 pr-4">{r.notes || '-'}</td>
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td className="py-4 text-gray-500" colSpan={5}>{loading ? 'Loading...' : 'No appointments found.'}</td></tr>
+              <tr><td className="py-4 text-gray-500" colSpan={6}>{loading ? 'Loading...' : 'No appointments found.'}</td></tr>
             )}
           </tbody>
         </table>

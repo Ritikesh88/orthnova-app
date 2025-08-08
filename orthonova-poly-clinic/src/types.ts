@@ -71,11 +71,13 @@ export interface PrescriptionRow {
 
 export interface AppointmentRow {
   id: string; // UUID
-  patient_id: string;
+  patient_id: string | null;
   doctor_id: string;
   appointment_datetime: string; // ISO datetime
   status: 'booked' | 'completed' | 'cancelled';
   notes: string | null;
+  guest_name: string | null;
+  guest_contact: string | null;
   created_at: string;
 }
 

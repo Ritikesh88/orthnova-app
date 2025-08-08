@@ -10,6 +10,10 @@ const AppointmentBooking: React.FC = () => {
   const [patientMatches, setPatientMatches] = useState<PatientRow[]>([]);
   const [patientModalOpen, setPatientModalOpen] = useState(false);
 
+  const [nonRegistered, setNonRegistered] = useState(false);
+  const [guestName, setGuestName] = useState('');
+  const [guestContact, setGuestContact] = useState('');
+
   const [doctorQuery, setDoctorQuery] = useState('');
   const [doctor, setDoctor] = useState<DoctorRow | null>(null);
 
@@ -42,12 +46,25 @@ const AppointmentBooking: React.FC = () => {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setMessage(null);
-    if (!patient || !doctor) { setMessage('Select patient and doctor'); return; }
+    if (!doctor) { setMessage('Select doctor'); return; }
     if (!datetime) { setMessage('Select date/time'); return; }
+    if (nonRegistered) {
+      if (!guestName.trim() || !guestContact.trim()) { setMessage('Enter guest name and contact'); return; }
+    } else {
+      if (!patient) { setMessage('Select patient or toggle Non-registered'); return; }
+    }
     try {
-      await createAppointment({ patient_id: patient.id, doctor_id: doctor.id, appointment_datetime: new Date(datetime).toISOString(), status: 'booked', notes });
+      await createAppointment({
+        patient_id: nonRegistered ? null : patient!.id,
+        doctor_id: doctor.id,
+        appointment_datetime: new Date(datetime).toISOString(),
+        status: 'booked',
+        notes,
+        guest_name: nonRegistered ? guestName.trim() : null,
+        guest_contact: nonRegistered ? guestContact.trim() : null,
+      });
       setMessage('Appointment booked');
-      setDatetime(''); setNotes('');
+      setDatetime(''); setNotes(''); setGuestName(''); setGuestContact(''); setPatient(null); setPatientSearch(''); setNonRegistered(false);
     } catch (e: any) { setMessage(e.message); }
   };
 
@@ -58,15 +75,36 @@ const AppointmentBooking: React.FC = () => {
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium">Patient Contact</label>
-              <div className="flex gap-2 mt-1">
-                <input className="flex-1" placeholder="Enter contact number" value={patientSearch} onChange={e => setPatientSearch(e.target.value)} />
-                <button type="button" className="btn btn-secondary" onClick={onSearchPatient}>Search</button>
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium">Patient Contact</label>
+                <label className="text-sm flex items-center gap-2">
+                  <input type="checkbox" checked={nonRegistered} onChange={e => setNonRegistered(e.target.checked)} />
+                  Non-registered
+                </label>
               </div>
-              <div className="mt-2">
-                <label className="block text-xs text-gray-600">Patient Name</label>
-                <input className="mt-1 w-full bg-gray-50" value={patient?.name || ''} readOnly placeholder="No patient selected" />
-              </div>
+              {!nonRegistered ? (
+                <>
+                  <div className="flex gap-2 mt-1">
+                    <input className="flex-1" placeholder="Enter contact number" value={patientSearch} onChange={e => setPatientSearch(e.target.value)} />
+                    <button type="button" className="btn btn-secondary" onClick={onSearchPatient}>Search</button>
+                  </div>
+                  <div className="mt-2">
+                    <label className="block text-xs text-gray-600">Patient Name</label>
+                    <input className="mt-1 w-full bg-gray-50" value={patient?.name || ''} readOnly placeholder="No patient selected" />
+                  </div>
+                </>
+              ) : (
+                <div className="mt-1 space-y-2">
+                  <div>
+                    <label className="block text-sm font-medium">Guest Name</label>
+                    <input className="mt-1 w-full" value={guestName} onChange={e => setGuestName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Guest Contact</label>
+                    <input className="mt-1 w-full" value={guestContact} onChange={e => setGuestContact(e.target.value)} />
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium">Doctor</label>
