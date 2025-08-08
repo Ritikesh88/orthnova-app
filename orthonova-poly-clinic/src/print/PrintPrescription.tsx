@@ -51,26 +51,26 @@ const PrintPrescription: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-6 space-y-4 text-sm">
-          <div>
-            <div className="font-semibold">Diagnosis</div>
-            <div className="mt-1 whitespace-pre-wrap">{presc.diagnosis || '-'}</div>
-          </div>
-          <div>
-            <div className="font-semibold">Medicines</div>
-            <div className="mt-1 whitespace-pre-wrap">{presc.medicines || '-'}</div>
-          </div>
-          <div>
-            <div className="font-semibold">Advice</div>
-            <div className="mt-1 whitespace-pre-wrap">{presc.advice || '-'}</div>
-          </div>
-        </div>
-
         <div className="mt-8 text-sm">
-          <div>(Valid for 7 days only)</div>
-          <div className="flex justify-between mt-8">
-            <div>Prepared by: ____________</div>
-            <div>Doctor's Signature: ____________</div>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <span className="w-24 font-medium">Weight:</span>
+                <div className="flex-1 border-b border-gray-400 h-5" />
+              </div>
+              <div className="flex items-center">
+                <span className="w-24 font-medium">Height:</span>
+                <div className="flex-1 border-b border-gray-400 h-5" />
+              </div>
+              <div className="flex items-center">
+                <span className="w-24 font-medium">BP:</span>
+                <div className="flex-1 border-b border-gray-400 h-5" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="font-medium">Others:</div>
+              <div className="h-24 border border-gray-400 rounded" />
+            </div>
           </div>
         </div>
 
