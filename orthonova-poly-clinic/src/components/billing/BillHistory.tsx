@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { getDoctorById, getPatientById, listBills } from '../../api';
 import { BillRow } from '../../types';
 import { formatCurrency, formatDateTime } from '../../utils/format';
@@ -13,12 +13,14 @@ const BillHistory: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [searchText, setSearchText] = useState('');
+  const [searchDate, setSearchDate] = useState('');
+
   useEffect(() => {
     (async () => {
       setLoading(true); setError(null);
       try {
         const data = await listBills();
-        // Enrich with names (best-effort)
         const enriched: EnrichedBill[] = await Promise.all(data.map(async b => {
           const [p, d] = await Promise.all([getPatientById(b.patient_id), getDoctorById(b.doctor_id)]);
           return { ...b, patientName: p?.name, doctorName: d?.name };
@@ -29,8 +31,36 @@ const BillHistory: React.FC = () => {
     })();
   }, []);
 
+  const filtered = useMemo(() => {
+    const txt = searchText.trim().toLowerCase();
+    const date = searchDate;
+    return bills.filter(b => {
+      const matchesText = !txt || [b.patientName, b.doctorName, b.bill_number]
+        .filter(Boolean)
+        .some(v => String(v).toLowerCase().includes(txt));
+      const matchesDate = !date || (new Date(b.created_at).toISOString().slice(0,10) === date);
+      return matchesText && matchesDate;
+    });
+  }, [bills, searchText, searchDate]);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      <div className="card p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium">Search (Patient/Doctor/Bill No)</label>
+            <input className="mt-1 w-full" value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="Type to filter" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Date</label>
+            <input type="date" className="mt-1 w-full" value={searchDate} onChange={e => setSearchDate(e.target.value)} />
+          </div>
+          <div className="flex items-end">
+            <button className="btn btn-secondary" onClick={() => { setSearchText(''); setSearchDate(''); }} disabled={loading}>Clear</button>
+          </div>
+        </div>
+      </div>
+
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Bill History</h2>
@@ -51,7 +81,7 @@ const BillHistory: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {bills.map(b => (
+              {filtered.map(b => (
                 <tr key={b.id} className="border-t border-gray-100">
                   <td className="py-2 pr-4 font-mono">{b.bill_number}</td>
                   <td className="py-2 pr-4">{formatDateTime(b.created_at)}</td>
@@ -66,7 +96,7 @@ const BillHistory: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {bills.length === 0 && (
+              {filtered.length === 0 && (
                 <tr><td className="py-4 text-gray-500" colSpan={7}>No bills found.</td></tr>
               )}
             </tbody>

@@ -5,6 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 const navItemClass = ({ isActive }: { isActive: boolean }) =>
   `block rounded-xl px-3 py-2 transition ${isActive ? 'bg-brand-600/90 text-white' : 'text-brand-50/90 hover:bg-brand-700/80 hover:text-white'}`;
 
+const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-white/60">{children}</div>
+);
+
 const DashboardLayout: React.FC = () => {
   const { user, logout } = useAuth();
 
@@ -17,37 +21,40 @@ const DashboardLayout: React.FC = () => {
         </div>
         <nav className="space-y-1">
           <NavLink to="/" className={navItemClass} end>Dashboard</NavLink>
+
+          <SectionTitle>Patient Registration</SectionTitle>
+          {(user?.role === 'receptionist' || user?.role === 'admin') && (
+            <NavLink to="/patients/register" className={navItemClass}>Register Patient</NavLink>
+          )}
+          {user?.role === 'doctor' && (
+            <NavLink to="/patients" className={navItemClass}>Patients</NavLink>
+          )}
+
+          <SectionTitle>Prescription</SectionTitle>
+          <NavLink to="/prescriptions" className={navItemClass}>Generate Prescription</NavLink>
+          <NavLink to="/prescriptions/list" className={navItemClass}>Manage Prescriptions</NavLink>
+
+          <SectionTitle>Generate Bill</SectionTitle>
+          {(user?.role === 'receptionist' || user?.role === 'admin') && (
+            <NavLink to="/billing" className={navItemClass}>Generate Bill</NavLink>
+          )}
+          {(user?.role === 'admin') && (
+            <NavLink to="/billing/history" className={navItemClass}>Bill History</NavLink>
+          )}
+
+          <SectionTitle>Appointments</SectionTitle>
+          {(user?.role === 'receptionist' || user?.role === 'admin') && (
+            <NavLink to="/appointments/book" className={navItemClass}>Book Appointment + Appointments</NavLink>
+          )}
+          <NavLink to="/appointments" className={navItemClass}>Appointments</NavLink>
+          <NavLink to="/appointments/calendar" className={navItemClass}>Calendar</NavLink>
+
           {(user?.role === 'admin') && (
             <>
-              <div className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-white/60">Admin</div>
+              <SectionTitle>Admin</SectionTitle>
               <NavLink to="/admin/users" className={navItemClass}>Users</NavLink>
               <NavLink to="/admin/doctors" className={navItemClass}>Doctors</NavLink>
               <NavLink to="/admin/services" className={navItemClass}>Services</NavLink>
-              <NavLink to="/billing/history" className={navItemClass}>Bill History</NavLink>
-            </>
-          )}
-          {(user?.role === 'receptionist' || user?.role === 'admin') && (
-            <>
-              <div className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-white/60">Reception</div>
-              <NavLink to="/patients/register" className={navItemClass}>Register Patient</NavLink>
-              <NavLink to="/billing" className={navItemClass}>Generate Bill</NavLink>
-              <NavLink to="/prescriptions" className={navItemClass}>Generate Prescription</NavLink>
-              <NavLink to="/prescriptions/list" className={navItemClass}>Manage Prescriptions</NavLink>
-              <NavLink to="/appointments/book" className={navItemClass}>Book Appointment</NavLink>
-              <NavLink to="/appointments" className={navItemClass}>Appointments</NavLink>
-              <NavLink to="/appointments/calendar" className={navItemClass}>Calendar</NavLink>
-              <NavLink to="/billing/history" className={navItemClass}>Bill History</NavLink>
-            </>
-          )}
-          {user?.role === 'doctor' && (
-            <>
-              <div className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-white/60">Doctor</div>
-              <NavLink to="/patients" className={navItemClass}>Patients</NavLink>
-              <NavLink to="/prescriptions" className={navItemClass}>Generate Prescription</NavLink>
-              <NavLink to="/prescriptions/list" className={navItemClass}>Manage Prescriptions</NavLink>
-              <NavLink to="/appointments" className={navItemClass}>Appointments</NavLink>
-              <NavLink to="/appointments/calendar" className={navItemClass}>Calendar</NavLink>
-              <NavLink to="/billing/history" className={navItemClass}>Billing History</NavLink>
             </>
           )}
         </nav>
