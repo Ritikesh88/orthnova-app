@@ -64,7 +64,7 @@ const DashboardLayout: React.FC = () => {
           {/* Appointments */}
           <SectionTitle>Appointments</SectionTitle>
           {(user?.role === 'receptionist' || user?.role === 'admin') && (
-            <NavLink to="/appointments/book" className={navItemClass}>Book Appointment + Appointments</NavLink>
+            <NavLink to="/appointments/book" className={navItemClass}>Book Appointment</NavLink>
           )}
           <NavLink to="/appointments" className={navItemClass}>Appointments</NavLink>
           <NavLink to="/appointments/calendar" className={navItemClass}>Calendar</NavLink>
