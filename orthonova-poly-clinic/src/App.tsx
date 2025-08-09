@@ -19,8 +19,9 @@ import AppointmentBooking from './components/appointments/AppointmentBooking';
 import AppointmentsList from './components/appointments/AppointmentsList';
 import AppointmentsCalendar from './components/appointments/AppointmentsCalendar';
 
+import AdminDashboard from './components/dashboard/AdminDashboard';
 const DashboardHome: React.FC = () => (
-  <div className="card p-6">Welcome to OrthoNova Poly Clinic Management.</div>
+  <AdminDashboard />
 );
 
 const AppRoutes: React.FC = () => {
