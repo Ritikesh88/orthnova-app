@@ -22,52 +22,50 @@ const DashboardLayout: React.FC = () => {
         <nav className="space-y-1">
           <NavLink to="/" className={navItemClass} end>Dashboard</NavLink>
 
-          {/* Admin-only section */}
           {user?.role === 'admin' && (
             <>
               <SectionTitle>Admin</SectionTitle>
               <NavLink to="/admin/users" className={navItemClass}>User Management</NavLink>
+              <NavLink to="/billing/history" className={navItemClass}>Billing History</NavLink>
+              <NavLink to="/appointments" className={navItemClass}>Appointment History</NavLink>
+              <NavLink to="/admin/services" className={navItemClass}>Manage Service</NavLink>
+              <NavLink to="/prescriptions/list" className={navItemClass}>Manage Prescriptions</NavLink>
             </>
           )}
 
-          {/* Patient Registration */}
-          <SectionTitle>Patient Registration</SectionTitle>
-          {(user?.role === 'receptionist' || user?.role === 'admin') && (
-            <NavLink to="/patients/register" className={navItemClass}>Register Patient</NavLink>
-          )}
-          {user?.role === 'doctor' && (
-            <NavLink to="/patients" className={navItemClass}>Patients</NavLink>
-          )}
-
-          {/* Prescription */}
-          <SectionTitle>Prescription</SectionTitle>
-          <NavLink to="/prescriptions" className={navItemClass}>Generate Prescription</NavLink>
-          <NavLink to="/prescriptions/list" className={navItemClass}>Manage Prescriptions</NavLink>
-
-          {/* Generate Bill */}
-          <SectionTitle>Generate Bill</SectionTitle>
-          {(user?.role === 'receptionist' || user?.role === 'admin') && (
-            <NavLink to="/billing" className={navItemClass}>Billing System</NavLink>
-          )}
-          {user?.role === 'admin' && (
-            <NavLink to="/billing/history" className={navItemClass}>Bill History</NavLink>
-          )}
-
-          {/* Admin registrations */}
-          {user?.role === 'admin' && (
+          {user?.role === 'receptionist' && (
             <>
-              <NavLink to="/admin/doctors" className={navItemClass}>Doctor Registration</NavLink>
-              <NavLink to="/admin/services" className={navItemClass}>Services Catalog</NavLink>
+              <SectionTitle>Patient Registration</SectionTitle>
+              <NavLink to="/patients/register" className={navItemClass}>Register Patient</NavLink>
+
+              <SectionTitle>Prescription</SectionTitle>
+              <NavLink to="/prescriptions" className={navItemClass}>Generate Prescription</NavLink>
+              <NavLink to="/prescriptions/list" className={navItemClass}>Manage Prescriptions</NavLink>
+
+              <SectionTitle>Generate Bill</SectionTitle>
+              <NavLink to="/billing" className={navItemClass}>Billing System</NavLink>
+
+              <SectionTitle>Appointments</SectionTitle>
+              <NavLink to="/appointments/book" className={navItemClass}>Book Appointment</NavLink>
+              <NavLink to="/appointments" className={navItemClass}>Appointments</NavLink>
+              <NavLink to="/appointments/calendar" className={navItemClass}>Calendar</NavLink>
             </>
           )}
 
-          {/* Appointments */}
-          <SectionTitle>Appointments</SectionTitle>
-          {(user?.role === 'receptionist' || user?.role === 'admin') && (
-            <NavLink to="/appointments/book" className={navItemClass}>Book Appointment</NavLink>
+          {user?.role === 'doctor' && (
+            <>
+              <SectionTitle>Patient Registration</SectionTitle>
+              <NavLink to="/patients" className={navItemClass}>Patients</NavLink>
+
+              <SectionTitle>Prescription</SectionTitle>
+              <NavLink to="/prescriptions" className={navItemClass}>Generate Prescription</NavLink>
+              <NavLink to="/prescriptions/list" className={navItemClass}>Manage Prescriptions</NavLink>
+
+              <SectionTitle>Appointments</SectionTitle>
+              <NavLink to="/appointments" className={navItemClass}>Appointments</NavLink>
+              <NavLink to="/appointments/calendar" className={navItemClass}>Calendar</NavLink>
+            </>
           )}
-          <NavLink to="/appointments" className={navItemClass}>Appointments</NavLink>
-          <NavLink to="/appointments/calendar" className={navItemClass}>Calendar</NavLink>
         </nav>
       </aside>
 
