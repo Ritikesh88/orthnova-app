@@ -21,7 +21,7 @@ const LoginForm: React.FC = () => {
       <div className="flex items-center justify-center p-6 bg-gradient-to-br from-brand-50 via-white to-brand-50">
         <div className="card w-full max-w-md p-8 shadow-xl">
           <div className="text-center">
-            <img src={LOGO_URL} alt="OrthoNova Logo" className="mx-auto w-16 h-16 object-contain mb-2" />
+            <img src={LOGO_URL} alt="OrthoNova Logo" className="mx-auto w-full h-auto max-w-[320px] mb-4 object-contain" />
             <h1 className="text-2xl font-bold text-gray-900">OrthoNova Poly Clinic</h1>
             <p className="text-sm text-gray-500 mt-1">Sign in to continue</p>
           </div>
