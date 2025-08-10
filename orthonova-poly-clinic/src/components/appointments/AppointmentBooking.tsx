@@ -24,7 +24,6 @@ const AppointmentBooking: React.FC = () => {
 
   // Filters at top
   const [filterDate, setFilterDate] = useState(toDateInputValue(new Date()));
-  const [filterContact, setFilterContact] = useState('');
   const [filterDoctorQuery, setFilterDoctorQuery] = useState('');
   const [filterDoctor, setFilterDoctor] = useState<DoctorRow | null>(null);
 
@@ -151,26 +150,24 @@ const AppointmentBooking: React.FC = () => {
     <div className="space-y-4">
       {/* Top filter bar */}
       <div className="card p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium">Date</label>
             <input type="date" className="mt-1 w-full" value={filterDate} onChange={e => { setFilterDate(e.target.value); setDate(e.target.value); }} />
           </div>
           <div>
-            <label className="block text-sm font-medium">Patient Contact</label>
-            <input className="mt-1 w-full" placeholder="Filter by contact" value={filterContact} onChange={e => setFilterContact(e.target.value)} />
-          </div>
-          <div>
             <label className="block text-sm font-medium">Doctor Name</label>
             <input className="mt-1 w-full" placeholder="Search doctor" value={filterDoctorQuery} onChange={e => setFilterDoctorQuery(e.target.value)} />
-            <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100">
-              {filteredDoctors.map(d => (
-                <div key={d.id} className={`px-3 py-2 cursor-pointer hover:bg-gray-50 ${doctor?.id === d.id ? 'bg-brand-50' : ''}`} onClick={() => setFilterDoctor(d)}>
-                  {d.name}
-                </div>
-              ))}
-              {filteredDoctors.length === 0 && <div className="px-3 py-2 text-sm text-gray-500">No match</div>}
-            </div>
+            {filterDoctorQuery.trim() && (
+              <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100">
+                {filteredDoctors.map(d => (
+                  <div key={d.id} className={`px-3 py-2 cursor-pointer hover:bg-gray-50 ${doctor?.id === d.id ? 'bg-brand-50' : ''}`} onClick={() => setFilterDoctor(d)}>
+                    {d.name}
+                  </div>
+                ))}
+                {filteredDoctors.length === 0 && <div className="px-3 py-2 text-sm text-gray-500">No match</div>}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -210,18 +207,6 @@ const AppointmentBooking: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium">Date</label>
                 <input type="date" className="mt-1 w-full" value={date} onChange={e => setDate(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Service</label>
-                <input className="mt-1 w-full" placeholder="Search service" value={serviceQuery} onChange={e => setServiceQuery(e.target.value)} />
-                <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100">
-                  {filteredServices.map(s => (
-                    <div key={s.id} className={`px-3 py-2 cursor-pointer hover:bg-gray-50 ${selectedService?.id === s.id ? 'bg-brand-50' : ''}`} onClick={() => setSelectedService(s)}>
-                      {s.service_name} <span className="text-gray-500 text-xs">({s.service_type})</span>
-                    </div>
-                  ))}
-                  {filteredServices.length === 0 && <div className="px-3 py-2 text-sm text-gray-500">No match</div>}
-                </div>
               </div>
             </div>
 
