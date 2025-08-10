@@ -78,7 +78,7 @@ const DashboardLayout: React.FC = () => {
               <SectionTitle>Admin</SectionTitle>
               <NavLink to="/admin/users" className={navItemClass}><span>{Icon.users}</span><span>User Management</span></NavLink>
               <NavLink to="/billing/history" className={navItemClass}><span>{Icon.history}</span><span>Billing History</span></NavLink>
-              <NavLink to="/appointments" className={navItemClass}><span>{Icon.appointment}</span><span>Appointment History</span></NavLink>
+              <NavLink to="/appointments" className={navItemClass} end><span>{Icon.appointment}</span><span>Appointment History</span></NavLink>
               <NavLink to="/admin/services" className={navItemClass}><span>{Icon.services}</span><span>Manage Service</span></NavLink>
               <NavLink to="/prescriptions/list" className={navItemClass}><span>{Icon.history}</span><span>Prescription History</span></NavLink>
             </>
@@ -90,15 +90,15 @@ const DashboardLayout: React.FC = () => {
               <NavLink to="/patients/register" className={navItemClass}><span>{Icon.patient}</span><span>Register Patient</span></NavLink>
 
               <SectionTitle>Prescription</SectionTitle>
-              <NavLink to="/prescriptions" className={navItemClass}><span>{Icon.prescription}</span><span>Generate Prescription</span></NavLink>
+              <NavLink to="/prescriptions" className={navItemClass} end><span>{Icon.prescription}</span><span>Generate Prescription</span></NavLink>
               <NavLink to="/prescriptions/list" className={navItemClass}><span>{Icon.history}</span><span>Prescription History</span></NavLink>
 
               <SectionTitle>Billing</SectionTitle>
-              <NavLink to="/billing" className={navItemClass}><span>{Icon.billing}</span><span>Billing</span></NavLink>
+              <NavLink to="/billing" className={navItemClass} end><span>{Icon.billing}</span><span>Billing</span></NavLink>
 
               <SectionTitle>Appointments</SectionTitle>
               <NavLink to="/appointments/book" className={navItemClass}><span>{Icon.appointment}</span><span>Book Appointment</span></NavLink>
-              <NavLink to="/appointments" className={navItemClass}><span>{Icon.history}</span><span>Appointment History</span></NavLink>
+              <NavLink to="/appointments" className={navItemClass} end><span>{Icon.history}</span><span>Appointment History</span></NavLink>
               <NavLink to="/appointments/calendar" className={navItemClass}><span>{Icon.calendar}</span><span>Calendar</span></NavLink>
             </>
           )}
@@ -106,14 +106,14 @@ const DashboardLayout: React.FC = () => {
           {user?.role === 'doctor' && (
             <>
               <SectionTitle>Patient Registration</SectionTitle>
-              <NavLink to="/patients" className={navItemClass}><span>{Icon.patient}</span><span>Patients</span></NavLink>
+              <NavLink to="/patients" className={navItemClass} end><span>{Icon.patient}</span><span>Patients</span></NavLink>
 
               <SectionTitle>Prescription</SectionTitle>
-              <NavLink to="/prescriptions" className={navItemClass}><span>{Icon.prescription}</span><span>Generate Prescription</span></NavLink>
+              <NavLink to="/prescriptions" className={navItemClass} end><span>{Icon.prescription}</span><span>Generate Prescription</span></NavLink>
               <NavLink to="/prescriptions/list" className={navItemClass}><span>{Icon.history}</span><span>Prescription History</span></NavLink>
 
               <SectionTitle>Appointments</SectionTitle>
-              <NavLink to="/appointments" className={navItemClass}><span>{Icon.history}</span><span>Appointment History</span></NavLink>
+              <NavLink to="/appointments" className={navItemClass} end><span>{Icon.history}</span><span>Appointment History</span></NavLink>
               <NavLink to="/appointments/calendar" className={navItemClass}><span>{Icon.calendar}</span><span>Calendar</span></NavLink>
             </>
           )}
