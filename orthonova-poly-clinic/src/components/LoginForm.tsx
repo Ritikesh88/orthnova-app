@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
+const LOGO_URL = 'https://drive.google.com/uc?export=view&id=1CYZD4ocM7owQbu0JEbvDPlbH6pO3dEMV';
+
 const LoginForm: React.FC = () => {
   const { login, loading } = useAuth();
   const [userId, setUserId] = useState('');
@@ -19,7 +21,7 @@ const LoginForm: React.FC = () => {
       <div className="flex items-center justify-center p-6 bg-gradient-to-br from-brand-50 via-white to-brand-50">
         <div className="card w-full max-w-md p-8 shadow-xl">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-brand-500 text-white font-bold mb-2">O</div>
+            <img src={LOGO_URL} alt="OrthoNova Logo" className="mx-auto w-16 h-16 object-contain mb-2" />
             <h1 className="text-2xl font-bold text-gray-900">OrthoNova Poly Clinic</h1>
             <p className="text-sm text-gray-500 mt-1">Sign in to continue</p>
           </div>
