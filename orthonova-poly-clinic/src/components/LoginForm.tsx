@@ -15,40 +15,57 @@ const LoginForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-brand-100 via-white to-brand-50">
-      <div className="card w-full max-w-md p-8 shadow-xl">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-brand-700">OrthoNova Poly Clinic</h1>
-          <p className="text-sm text-gray-500 mt-1">Sign in to continue</p>
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
+      <div className="flex items-center justify-center p-6 bg-gradient-to-br from-brand-50 via-white to-brand-50">
+        <div className="card w-full max-w-md p-8 shadow-xl">
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-brand-500 text-white font-bold mb-2">O</div>
+            <h1 className="text-2xl font-bold text-gray-900">OrthoNova Poly Clinic</h1>
+            <p className="text-sm text-gray-500 mt-1">Sign in to continue</p>
+          </div>
+          <form onSubmit={onSubmit} className="space-y-4 mt-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">User ID</label>
+              <div className="relative mt-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></svg>
+                </span>
+                <input
+                  type="text"
+                  className="pl-9 w-full"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Password</label>
+              <div className="relative mt-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </span>
+                <input
+                  type="password"
+                  className="pl-9 w-full"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            {error && (
+              <div className="text-red-600 text-sm">{error}</div>
+            )}
+            <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </form>
         </div>
-        <form onSubmit={onSubmit} className="space-y-4 mt-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">User ID</label>
-            <input
-              type="text"
-              className="mt-1 w-full"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input
-              type="password"
-              className="mt-1 w-full"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          {error && (
-            <div className="text-red-600 text-sm">{error}</div>
-          )}
-          <button type="submit" className="btn btn-primary w-full" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+      </div>
+      <div className="hidden md:block relative">
+        <img src="https://images.unsplash.com/photo-1587411760036-6e7440b37a57?q=80&w=1600&auto=format&fit=crop" alt="Clinic" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-brand-500/20" />
       </div>
     </div>
   );
