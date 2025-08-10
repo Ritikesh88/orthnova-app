@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const navItemClass = ({ isActive }: { isActive: boolean }) =>
@@ -9,8 +9,27 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   <div className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-white/80">{children}</div>
 );
 
+function usePageTitle(): string {
+  const { pathname } = useLocation();
+  if (pathname === '/' || pathname === '') return 'Dashboard';
+  if (pathname.startsWith('/admin/users')) return 'User Management';
+  if (pathname.startsWith('/patients/register')) return 'Patient Registration';
+  if (pathname.startsWith('/patients')) return 'Patients';
+  if (pathname.startsWith('/admin/doctors')) return 'Doctor Registration';
+  if (pathname.startsWith('/admin/services')) return 'Manage Service';
+  if (pathname.startsWith('/billing/history')) return 'Billing History';
+  if (pathname.startsWith('/billing')) return 'Billing';
+  if (pathname.startsWith('/prescriptions/list')) return 'Prescription History';
+  if (pathname.startsWith('/prescriptions')) return 'Generate Prescription';
+  if (pathname.startsWith('/appointments/book')) return 'Book Appointment';
+  if (pathname.startsWith('/appointments/calendar')) return 'Calendar';
+  if (pathname.startsWith('/appointments')) return 'Appointment History';
+  return 'OrthoNova';
+}
+
 const DashboardLayout: React.FC = () => {
   const { user, logout } = useAuth();
+  const title = usePageTitle();
 
   return (
     <div className="min-h-screen grid grid-cols-12">
@@ -29,7 +48,7 @@ const DashboardLayout: React.FC = () => {
               <NavLink to="/billing/history" className={navItemClass}>Billing History</NavLink>
               <NavLink to="/appointments" className={navItemClass}>Appointment History</NavLink>
               <NavLink to="/admin/services" className={navItemClass}>Manage Service</NavLink>
-              <NavLink to="/prescriptions/list" className={navItemClass}>Manage Prescriptions</NavLink>
+              <NavLink to="/prescriptions/list" className={navItemClass}>Prescription History</NavLink>
             </>
           )}
 
@@ -40,14 +59,14 @@ const DashboardLayout: React.FC = () => {
 
               <SectionTitle>Prescription</SectionTitle>
               <NavLink to="/prescriptions" className={navItemClass}>Generate Prescription</NavLink>
-              <NavLink to="/prescriptions/list" className={navItemClass}>Manage Prescriptions</NavLink>
+              <NavLink to="/prescriptions/list" className={navItemClass}>Prescription History</NavLink>
 
               <SectionTitle>Generate Bill</SectionTitle>
-              <NavLink to="/billing" className={navItemClass}>Billing System</NavLink>
+              <NavLink to="/billing" className={navItemClass}>Billing</NavLink>
 
               <SectionTitle>Appointments</SectionTitle>
               <NavLink to="/appointments/book" className={navItemClass}>Book Appointment</NavLink>
-              <NavLink to="/appointments" className={navItemClass}>Appointments</NavLink>
+              <NavLink to="/appointments" className={navItemClass}>Appointment History</NavLink>
               <NavLink to="/appointments/calendar" className={navItemClass}>Calendar</NavLink>
             </>
           )}
@@ -59,10 +78,10 @@ const DashboardLayout: React.FC = () => {
 
               <SectionTitle>Prescription</SectionTitle>
               <NavLink to="/prescriptions" className={navItemClass}>Generate Prescription</NavLink>
-              <NavLink to="/prescriptions/list" className={navItemClass}>Manage Prescriptions</NavLink>
+              <NavLink to="/prescriptions/list" className={navItemClass}>Prescription History</NavLink>
 
               <SectionTitle>Appointments</SectionTitle>
-              <NavLink to="/appointments" className={navItemClass}>Appointments</NavLink>
+              <NavLink to="/appointments" className={navItemClass}>Appointment History</NavLink>
               <NavLink to="/appointments/calendar" className={navItemClass}>Calendar</NavLink>
             </>
           )}
@@ -73,7 +92,7 @@ const DashboardLayout: React.FC = () => {
         <header className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-brand-100">
           <div className="flex items-center justify-between px-6 py-4">
             <div>
-              <h1 className="text-lg font-semibold">Dashboard</h1>
+              <h1 className="text-lg font-semibold">{title}</h1>
               {user && (
                 <p className="text-sm text-gray-500">Signed in as {user.userId} ({user.role})</p>
               )}
