@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-const LOGO_URL = 'https://drive.google.com/uc?export=view&id=1CYZD4ocM7owQbu0JEbvDPlbH6pO3dEMV';
+const LOGO_URL = '/orthonova-logo.png';
 
 const LoginForm: React.FC = () => {
   const { login, loading } = useAuth();
