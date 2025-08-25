@@ -33,28 +33,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = useCallback(async (userId: string, password: string) => {
     setLoading(true);
     try {
+      console.log('Attempting login for user:', userId);
+      console.log('Supabase URL:', process.env.REACT_APP_SUPABASE_URL);
+      
       const { data, error } = await supabase
         .from('users')
         .select('user_id,password,role')
         .eq('user_id', userId)
         .maybeSingle();
 
+      console.log('Supabase response:', { data, error });
+
       if (error) {
-        return { ok: false as const, error: 'Login failed. Please try again.' };
+        console.error('Supabase error:', error);
+        return { ok: false as const, error: `Login failed: ${error.message}` };
       }
 
       if (!data) {
+        console.log('No user found for ID:', userId);
         return { ok: false as const, error: 'Invalid credentials.' };
       }
 
       if (data.password !== password) {
+        console.log('Password mismatch for user:', userId);
         return { ok: false as const, error: 'Invalid credentials.' };
       }
 
+      console.log('Login successful for user:', userId, 'with role:', data.role);
       const sessionUser: SessionUser = { userId: data.user_id, role: data.role as UserRole };
       setUser(sessionUser);
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sessionUser));
       return { ok: true as const };
+    } catch (err) {
+      console.error('Login exception:', err);
+      return { ok: false as const, error: 'Login failed. Please try again.' };
     } finally {
       setLoading(false);
     }
