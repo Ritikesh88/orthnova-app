@@ -40,6 +40,12 @@ const Icon = {
   calendar: (
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
   ),
+  inventory: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+  ),
+  pill: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 14l7-7a4.95 4.95 0 1 1 7 7l-7 7a4.95 4.95 0 1 1-7-7z"/></svg>
+  ),
 };
 
 function usePageTitle(): string {
@@ -51,6 +57,8 @@ function usePageTitle(): string {
   if (pathname.startsWith('/admin/services')) return 'Manage Service';
   if (pathname.startsWith('/billing/history')) return 'Billing History';
   if (pathname.startsWith('/billing')) return 'Billing';
+  if (pathname.startsWith('/admin/inventory')) return 'Inventory';
+  if (pathname.startsWith('/physician/dispense')) return 'Physician Dispense';
   if (pathname.startsWith('/prescriptions/list')) return 'Prescription History';
   if (pathname.startsWith('/prescriptions')) return 'Generate Prescription';
   if (pathname.startsWith('/appointments/book')) return 'Book Appointment';
@@ -81,6 +89,7 @@ const DashboardLayout: React.FC = () => {
               <NavLink to="/appointments" className={navItemClass} end><span>{Icon.appointment}</span><span>Appointment History</span></NavLink>
               <NavLink to="/admin/services" className={navItemClass}><span>{Icon.services}</span><span>Manage Service</span></NavLink>
               <NavLink to="/prescriptions/list" className={navItemClass}><span>{Icon.history}</span><span>Prescription History</span></NavLink>
+              <NavLink to="/admin/inventory" className={navItemClass}><span>{Icon.inventory}</span><span>Inventory</span></NavLink>
             </>
           )}
 
@@ -115,6 +124,14 @@ const DashboardLayout: React.FC = () => {
               <SectionTitle>Appointments</SectionTitle>
               <NavLink to="/appointments" className={navItemClass} end><span>{Icon.history}</span><span>Appointment History</span></NavLink>
               <NavLink to="/appointments/calendar" className={navItemClass}><span>{Icon.calendar}</span><span>Calendar</span></NavLink>
+            </>
+          )}
+
+          {user?.role === 'physician' && (
+            <>
+              <SectionTitle>Dispense</SectionTitle>
+              <NavLink to="/physician/dispense" className={navItemClass} end><span>{Icon.pill}</span><span>Dispense</span></NavLink>
+              <NavLink to="/billing/history" className={navItemClass}><span>{Icon.history}</span><span>Billing History</span></NavLink>
             </>
           )}
         </nav>

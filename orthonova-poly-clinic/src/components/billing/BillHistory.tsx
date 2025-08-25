@@ -22,8 +22,8 @@ const BillHistory: React.FC = () => {
       try {
         const data = await listBills();
         const enriched: EnrichedBill[] = await Promise.all(data.map(async b => {
-          const [p, d] = await Promise.all([getPatientById(b.patient_id), getDoctorById(b.doctor_id)]);
-          return { ...b, patientName: p?.name, doctorName: d?.name };
+          const [p, d] = await Promise.all([b.patient_id ? getPatientById(b.patient_id) : Promise.resolve(null as any), getDoctorById(b.doctor_id)]);
+          return { ...b, patientName: p?.name || b.guest_name || undefined, doctorName: d?.name };
         }));
         setBills(enriched);
       } catch (e: any) { setError(e.message); }
@@ -85,7 +85,7 @@ const BillHistory: React.FC = () => {
                 <tr key={b.id} className="border-t border-gray-100">
                   <td className="py-2 pr-4 font-mono">{b.bill_number}</td>
                   <td className="py-2 pr-4">{formatDateTime(b.created_at)}</td>
-                  <td className="py-2 pr-4">{b.patientName || b.patient_id}</td>
+                  <td className="py-2 pr-4">{b.patientName || b.patient_id || 'Guest'}</td>
                   <td className="py-2 pr-4">{b.doctorName || b.doctor_id}</td>
                   <td className="py-2 pr-4">{formatCurrency(b.net_amount)}</td>
                   <td className="py-2 pr-4 capitalize">{b.status}</td>
