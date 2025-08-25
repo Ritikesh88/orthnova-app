@@ -3,9 +3,11 @@ import {
   BillItemRow,
   BillRow,
   DoctorRow,
+  InventoryItemRow,
   PatientRow,
   PrescriptionRow,
   ServiceRow,
+  StockLedgerRow,
   UserRow,
   AppointmentRow,
 } from '../types';
@@ -131,6 +133,52 @@ export async function listBills(): Promise<BillRow[]> {
 export async function listBillItems(billId: string): Promise<BillItemRow[]> {
   const res = await supabase.from('bill_items').select('*').eq('bill_id', billId);
   return throwIfError<BillItemRow[]>(res);
+}
+
+// Inventory
+export async function listInventoryItems(query?: string): Promise<InventoryItemRow[]> {
+  let q = supabase.from('inventory_items').select('*').order('created_at', { ascending: false });
+  if (query && query.trim()) {
+    const like = `%${query.trim()}%`;
+    q = q.ilike('name', like);
+  }
+  const res = await q;
+  return throwIfError<InventoryItemRow[]>(res);
+}
+
+export async function createInventoryItem(row: Omit<InventoryItemRow, 'id' | 'created_at' | 'current_stock'>): Promise<InventoryItemRow> {
+  const payload = { ...row, current_stock: row.opening_stock } as any;
+  const res = await supabase.from('inventory_items').insert(payload).select('*').single();
+  return throwIfError<InventoryItemRow>(res);
+}
+
+export async function updateInventoryItem(id: string, updates: Partial<Omit<InventoryItemRow, 'id' | 'created_at'>>): Promise<InventoryItemRow> {
+  const res = await supabase.from('inventory_items').update(updates).eq('id', id).select('*').single();
+  return throwIfError<InventoryItemRow>(res);
+}
+
+export async function adjustStock(
+  item_id: string,
+  change: number,
+  reason: StockLedgerRow['reason'],
+  opts?: { notes?: string | null; reference_bill_id?: string | null; created_by?: string | null }
+): Promise<{ item: InventoryItemRow; ledger: StockLedgerRow }> {
+  const ledgerInsert = {
+    item_id,
+    change,
+    reason,
+    notes: opts?.notes ?? null,
+    reference_bill_id: opts?.reference_bill_id ?? null,
+    created_by: opts?.created_by ?? null,
+    created_at: new Date().toISOString(),
+  } as const;
+  const ledgerRes = await supabase.from('stock_ledger').insert(ledgerInsert as any).select('*').single();
+  const ledger = await throwIfError<StockLedgerRow>(ledgerRes);
+  const itemRes = await supabase.rpc('increment_inventory_stock', { p_item_id: item_id, p_delta: change });
+  await throwIfError(itemRes as any);
+  const latest = await supabase.from('inventory_items').select('*').eq('id', item_id).single();
+  const item = await throwIfError<InventoryItemRow>(latest);
+  return { item, ledger };
 }
 
 // Prescriptions

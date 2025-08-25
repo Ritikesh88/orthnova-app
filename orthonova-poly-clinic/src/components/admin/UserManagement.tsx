@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { addUser, deleteUser, listUsers, updateUser } from '../../api';
 import { UserRow, UserRole } from '../../types';
 
-const roles: UserRole[] = ['admin', 'doctor', 'receptionist'];
+const roles: UserRole[] = ['admin', 'doctor', 'receptionist', 'physician'];
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserRow[]>([]);

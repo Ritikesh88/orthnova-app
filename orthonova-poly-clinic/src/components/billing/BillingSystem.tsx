@@ -20,6 +20,11 @@ const BillingSystem: React.FC = () => {
   const [patientMatches, setPatientMatches] = useState<PatientRow[]>([]);
   const [patientModalOpen, setPatientModalOpen] = useState(false);
 
+  // Guest/non-registered patient support
+  const [isGuest, setIsGuest] = useState(false);
+  const [guestName, setGuestName] = useState('');
+  const [guestContact, setGuestContact] = useState('');
+
   const [doctorQuery, setDoctorQuery] = useState('');
   const [doctorId, setDoctorId] = useState('');
 
@@ -64,6 +69,7 @@ const BillingSystem: React.FC = () => {
 
   const onSearchPatient = async () => {
     setMessage(null);
+    if (isGuest) return; // skip search in guest mode
     const rows = await searchPatientsByContact(patientSearch);
     if (rows.length === 1) {
       setPatientId(rows[0].id);
@@ -92,7 +98,8 @@ const BillingSystem: React.FC = () => {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setMessage(null);
-    if (!patientId || !doctorId) { setMessage('Select patient and doctor'); return; }
+    if ((!patientId && !isGuest) || !doctorId) { setMessage('Select patient and doctor'); return; }
+    if (isGuest && (!guestName.trim() || !guestContact.trim())) { setMessage('Enter guest name and contact'); return; }
     if ((mode === 'UPI' || mode === 'Card') && !txnRef.trim()) { setMessage('Transaction reference required for UPI/Card'); return; }
     if (items.length === 0 && opdFee === 0) { setMessage('Add at least one service or select a doctor with OPD fee'); return; }
 
@@ -100,7 +107,7 @@ const BillingSystem: React.FC = () => {
     try {
       const bill_number = generateBillNumber();
       const billInsert = {
-        patient_id: patientId,
+        patient_id: isGuest ? null : patientId,
         doctor_id: doctorId,
         total_amount: total,
         discount: Number(discount || 0),
@@ -109,6 +116,9 @@ const BillingSystem: React.FC = () => {
         bill_number,
         mode_of_payment: mode,
         transaction_reference: (mode === 'UPI' || mode === 'Card') ? txnRef : null,
+        guest_name: isGuest ? guestName.trim() : null,
+        guest_contact: isGuest ? guestContact.trim() : null,
+        bill_type: 'services',
         created_at: new Date().toISOString(),
       } as const;
 
@@ -148,13 +158,30 @@ const BillingSystem: React.FC = () => {
                   className="flex-1 rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500"
                   value={patientSearch}
                   onChange={e => setPatientSearch(e.target.value)}
+                  disabled={isGuest}
                 />
-                <button type="button" className="btn btn-secondary" onClick={onSearchPatient}>Search</button>
+                <button type="button" className="btn btn-secondary" onClick={onSearchPatient} disabled={isGuest}>Search</button>
               </div>
               <div className="mt-2">
                 <label className="block text-xs text-gray-600">Patient Name</label>
                 <input className="mt-1 w-full rounded-xl border border-gray-300 bg-gray-50" value={selectedPatient?.name || ''} readOnly placeholder="No patient selected" />
               </div>
+              <div className="mt-3 flex items-center gap-2">
+                <input id="guest-toggle" type="checkbox" checked={isGuest} onChange={e => { setIsGuest(e.target.checked); if (e.target.checked) { setSelectedPatient(null); setPatientId(''); } }} />
+                <label htmlFor="guest-toggle" className="text-sm">Bill for non-registered patient</label>
+              </div>
+              {isGuest && (
+                <div className="mt-2 space-y-2">
+                  <div>
+                    <label className="block text-sm font-medium">Guest Name</label>
+                    <input className="mt-1 w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500" value={guestName} onChange={e => setGuestName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium">Guest Contact</label>
+                    <input className="mt-1 w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500" value={guestContact} onChange={e => setGuestContact(e.target.value)} />
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium">Doctor</label>
