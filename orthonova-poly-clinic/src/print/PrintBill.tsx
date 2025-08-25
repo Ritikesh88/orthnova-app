@@ -20,7 +20,7 @@ const PrintBill: React.FC = () => {
       if (!b) return;
       setBill(b);
       const [p, d, its, svc] = await Promise.all([
-        getPatientById(b.patient_id),
+        b.patient_id ? getPatientById(b.patient_id) : Promise.resolve(null as any),
         getDoctorById(b.doctor_id),
         listBillItems(b.id),
         listServices(),
@@ -55,12 +55,12 @@ const PrintBill: React.FC = () => {
           <div className="space-y-1">
             <div><span className="font-medium">Order No:</span> {bill.bill_number}</div>
             <div><span className="font-medium">Date:</span> {formatDateTime(bill.created_at)}</div>
-            <div><span className="font-medium">Patient Name:</span> {patient?.name}</div>
-            <div><span className="font-medium">Age/Gender:</span> {patient?.age} / {patient?.gender}</div>
+            <div><span className="font-medium">Patient Name:</span> {patient?.name || bill.guest_name || '-'}</div>
+            <div><span className="font-medium">Age/Gender:</span> {patient ? `${patient.age} / ${patient.gender}` : '-'}</div>
           </div>
           <div className="space-y-1">
-            <div><span className="font-medium">Contact:</span> {patient?.contact}</div>
-            <div><span className="font-medium">Address:</span> {patient?.address}</div>
+            <div><span className="font-medium">Contact:</span> {patient?.contact || bill.guest_contact || '-'}</div>
+            <div><span className="font-medium">Address:</span> {patient?.address || '-'}</div>
             <div><span className="font-medium">Consultant:</span> {doctor?.name}</div>
           </div>
         </div>
@@ -87,11 +87,12 @@ const PrintBill: React.FC = () => {
                 <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(opdFee)}</td>
               </tr>
               {items.map(it => {
-                const svc = services[it.service_id];
+                const svc = it.service_id ? services[it.service_id] : undefined;
+                const displayName = svc?.service_name || it.item_name || it.inventory_item_id || it.service_id || 'Item';
                 const amount = Number(it.total);
                 return (
                   <tr key={it.id}>
-                    <td className="border border-gray-300 px-2 py-1">{svc?.service_name || it.service_id}</td>
+                    <td className="border border-gray-300 px-2 py-1">{displayName}</td>
                     <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(Number(it.price))}</td>
                     <td className="border border-gray-300 px-2 py-1 text-right">{it.quantity}</td>
                     <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(amount)}</td>
