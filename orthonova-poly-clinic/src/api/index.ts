@@ -147,7 +147,17 @@ export async function listInventoryItems(query?: string): Promise<InventoryItemR
 }
 
 export async function createInventoryItem(row: Omit<InventoryItemRow, 'id' | 'created_at' | 'current_stock'>): Promise<InventoryItemRow> {
-  const payload = { ...row, current_stock: row.opening_stock } as any;
+  const payload = { 
+    ...row, 
+    current_stock: row.opening_stock,
+    // Ensure all required fields are present
+    category: row.category || 'Other',
+    manufacturer: row.manufacturer || 'Unknown',
+    expiry_date: row.expiry_date || null,
+    batch_number: row.batch_number || null,
+    hsn_code: row.hsn_code || null,
+    gst_rate: row.gst_rate || 18
+  } as any;
   const res = await supabase.from('inventory_items').insert(payload).select('*').single();
   return throwIfError<InventoryItemRow>(res);
 }
@@ -179,6 +189,63 @@ export async function adjustStock(
   const latest = await supabase.from('inventory_items').select('*').eq('id', item_id).single();
   const item = await throwIfError<InventoryItemRow>(latest);
   return { item, ledger };
+}
+
+// Medicine Store specific functions
+export async function createMedicineStoreBill(
+  bill: Omit<BillRow, 'id' | 'created_at'>,
+  items: Array<Omit<BillItemRow, 'id'>>,
+  createdBy?: string
+): Promise<BillRow> {
+  const billRes = await supabase.from('bills').insert(bill).select('*').single();
+  const insertedBill = await throwIfError<BillRow>(billRes);
+  
+  if (items.length > 0) {
+    const itemsToInsert = items.map((it) => ({ ...it, bill_id: insertedBill.id }));
+    const itemsRes = await supabase.from('bill_items').insert(itemsToInsert).select('*');
+    await throwIfError<BillItemRow[]>(itemsRes);
+    
+    // Update stock for each item
+    for (const item of items) {
+      if (item.inventory_item_id) {
+        await adjustStock(
+          item.inventory_item_id, 
+          -item.quantity, 
+          'dispense', 
+          { 
+            reference_bill_id: insertedBill.id, 
+            created_by: createdBy || null,
+            notes: `Sold in bill ${insertedBill.bill_number}`
+          }
+        );
+      }
+    }
+  }
+  
+  return insertedBill;
+}
+
+export async function getLowStockItems(): Promise<InventoryItemRow[]> {
+  const res = await supabase
+    .from('inventory_items')
+    .select('*')
+    .not('low_stock_threshold', 'is', null)
+    .filter('current_stock', 'lte', 'low_stock_threshold')
+    .order('current_stock', { ascending: true });
+  return throwIfError<InventoryItemRow[]>(res);
+}
+
+export async function getExpiringItems(days: number = 30): Promise<InventoryItemRow[]> {
+  const futureDate = new Date();
+  futureDate.setDate(futureDate.getDate() + days);
+  
+  const res = await supabase
+    .from('inventory_items')
+    .select('*')
+    .not('expiry_date', 'is', null)
+    .lte('expiry_date', futureDate.toISOString().split('T')[0])
+    .order('expiry_date', { ascending: true });
+  return throwIfError<InventoryItemRow[]>(res);
 }
 
 // Prescriptions

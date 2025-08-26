@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'doctor' | 'receptionist' | 'physician';
+export type UserRole = 'admin' | 'doctor' | 'receptionist' | 'store_manager';
 
 export interface UserRow {
   id: string; // UUID
@@ -39,7 +39,7 @@ export interface ServiceRow {
 export interface BillRow {
   id: string; // UUID
   patient_id: string | null;
-  doctor_id: string;
+  doctor_id: string | null; // Optional for medicine store bills
   total_amount: number;
   discount: number;
   net_amount: number;
@@ -50,8 +50,11 @@ export interface BillRow {
   // Support for non-registered/guest patients
   guest_name?: string | null;
   guest_contact?: string | null;
-  // Optional bill classification (e.g., services vs pharmacy)
-  bill_type?: 'services' | 'pharmacy' | 'mixed';
+  // Bill classification
+  bill_type: 'services' | 'pharmacy' | 'mixed';
+  // Medicine store specific fields
+  prescription_id?: string | null;
+  is_medicine_store_bill?: boolean;
   created_at: string;
 }
 
@@ -106,6 +109,13 @@ export interface InventoryItemRow {
   opening_stock: number;
   current_stock: number;
   low_stock_threshold: number | null;
+  // Medicine store specific fields
+  category: string; // e.g., 'Tablets', 'Syrups', 'Injections', 'Devices'
+  manufacturer: string;
+  expiry_date: string | null;
+  batch_number: string | null;
+  hsn_code: string | null; // GST HSN code
+  gst_rate: number; // GST percentage
   created_at: string;
 }
 
@@ -117,5 +127,66 @@ export interface StockLedgerRow {
   notes: string | null;
   reference_bill_id: string | null; // link to BillRow if dispense
   created_by: string | null; // user_id
+  created_at: string;
+}
+
+// New types for medicine store
+export interface MedicineStoreBillRow {
+  id: string; // UUID
+  bill_number: string;
+  patient_id: string | null;
+  guest_name: string | null;
+  guest_contact: string | null;
+  prescription_id: string | null;
+  doctor_id: string | null;
+  total_amount: number;
+  discount: number;
+  net_amount: number;
+  gst_amount: number;
+  status: 'paid' | 'pending' | 'partial';
+  mode_of_payment: 'Cash' | 'UPI' | 'Card';
+  transaction_reference: string | null;
+  created_by: string; // user_id
+  created_at: string;
+}
+
+export interface MedicineStoreBillItemRow {
+  id: string; // UUID
+  bill_id: string;
+  inventory_item_id: string;
+  item_name: string;
+  quantity: number;
+  price: number;
+  gst_rate: number;
+  gst_amount: number;
+  total: number;
+  created_at: string;
+}
+
+export interface StockPurchaseRow {
+  id: string; // UUID
+  supplier_name: string;
+  supplier_contact: string;
+  invoice_number: string;
+  invoice_date: string;
+  total_amount: number;
+  gst_amount: number;
+  net_amount: number;
+  payment_status: 'paid' | 'pending' | 'partial';
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export interface StockPurchaseItemRow {
+  id: string; // UUID
+  purchase_id: string;
+  inventory_item_id: string;
+  item_name: string;
+  quantity: number;
+  cost_price: number;
+  expiry_date: string | null;
+  batch_number: string | null;
+  total: number;
   created_at: string;
 }

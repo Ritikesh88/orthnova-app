@@ -20,8 +20,8 @@ const PrintBill: React.FC = () => {
       if (!b) return;
       setBill(b);
       const [p, d, its, svc] = await Promise.all([
-        b.patient_id ? getPatientById(b.patient_id) : Promise.resolve(null as any),
-        getDoctorById(b.doctor_id),
+        b.patient_id ? getPatientById(b.patient_id) : Promise.resolve(null),
+        b.doctor_id ? getDoctorById(b.doctor_id) : Promise.resolve(null),
         listBillItems(b.id),
         listServices(),
       ]);

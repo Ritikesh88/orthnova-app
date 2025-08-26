@@ -12,7 +12,6 @@ import BillingSystem from './components/billing/BillingSystem';
 import BillHistory from './components/billing/BillHistory';
 import PrescriptionForm from './components/prescriptions/PrescriptionForm';
 import PrescriptionsList from './components/prescriptions/PrescriptionsList';
-import PhysicianDispense from './components/prescriptions/PhysicianDispense';
 import PatientsList from './components/patients/PatientsList';
 import PrintBill from './print/PrintBill';
 import PrintPrescription from './print/PrintPrescription';
@@ -20,6 +19,8 @@ import AppointmentBooking from './components/appointments/AppointmentBooking';
 import AppointmentsList from './components/appointments/AppointmentsList';
 import AppointmentsCalendar from './components/appointments/AppointmentsCalendar';
 import InventoryManager from './components/admin/InventoryManager';
+import StockPurchase from './components/admin/StockPurchase';
+import PharmacyBilling from './components/billing/PharmacyBilling';
 
 import AdminDashboard from './components/dashboard/AdminDashboard';
 const DashboardHome: React.FC = () => (
@@ -46,14 +47,15 @@ const AppRoutes: React.FC = () => {
         <Route path="admin/users" element={<ProtectedRoute allowedRoles={["admin"] as any}><UserManagement /></ProtectedRoute>} />
         <Route path="admin/doctors" element={<ProtectedRoute allowedRoles={["admin"] as any}><DoctorRegistration /></ProtectedRoute>} />
         <Route path="admin/services" element={<ProtectedRoute allowedRoles={["admin"] as any}><ServicesCatalog /></ProtectedRoute>} />
-        <Route path="admin/inventory" element={<ProtectedRoute allowedRoles={["admin"] as any}><InventoryManager /></ProtectedRoute>} />
-        {/* Receptionist/Admin */}
+        <Route path="admin/inventory" element={<ProtectedRoute allowedRoles={["admin", "store_manager"] as any}><InventoryManager /></ProtectedRoute>} />
+        <Route path="admin/stock-purchase" element={<ProtectedRoute allowedRoles={["admin", "store_manager"] as any}><StockPurchase /></ProtectedRoute>} />
+        {/* Receptionist/Admin/Store Manager */}
         <Route path="patients/register" element={<ProtectedRoute allowedRoles={["receptionist", "admin"] as any}><PatientRegistration /></ProtectedRoute>} />
         <Route path="billing" element={<ProtectedRoute allowedRoles={["receptionist", "admin"] as any}><BillingSystem /></ProtectedRoute>} />
+        <Route path="billing/pharmacy" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "store_manager"] as any}><PharmacyBilling /></ProtectedRoute>} />
         <Route path="appointments/book" element={<ProtectedRoute allowedRoles={["receptionist", "admin"] as any}><AppointmentBooking /></ProtectedRoute>} />
         {/* Doctor */}
         <Route path="patients" element={<ProtectedRoute allowedRoles={["doctor"] as any}><PatientsList /></ProtectedRoute>} />
-        <Route path="physician/dispense" element={<ProtectedRoute allowedRoles={["physician", "admin"] as any}><PhysicianDispense /></ProtectedRoute>} />
         {/* All roles can view appointments */}
         <Route path="appointments" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "doctor"] as any}><AppointmentsList /></ProtectedRoute>} />
         <Route path="appointments/calendar" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "doctor"] as any}><AppointmentsCalendar /></ProtectedRoute>} />

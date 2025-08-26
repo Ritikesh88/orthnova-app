@@ -22,7 +22,10 @@ const BillHistory: React.FC = () => {
       try {
         const data = await listBills();
         const enriched: EnrichedBill[] = await Promise.all(data.map(async b => {
-          const [p, d] = await Promise.all([b.patient_id ? getPatientById(b.patient_id) : Promise.resolve(null as any), getDoctorById(b.doctor_id)]);
+          const [p, d] = await Promise.all([
+            b.patient_id ? getPatientById(b.patient_id) : Promise.resolve(null as any), 
+            b.doctor_id ? getDoctorById(b.doctor_id) : Promise.resolve(null as any)
+          ]);
           return { ...b, patientName: p?.name || b.guest_name || undefined, doctorName: d?.name };
         }));
         setBills(enriched);

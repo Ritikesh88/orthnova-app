@@ -127,12 +127,15 @@ const DashboardLayout: React.FC = () => {
             </>
           )}
 
-          {user?.role === 'physician' && (
-            <>
-              <SectionTitle>Dispense</SectionTitle>
-              <NavLink to="/physician/dispense" className={navItemClass} end><span>{Icon.pill}</span><span>Dispense</span></NavLink>
-              <NavLink to="/billing/history" className={navItemClass}><span>{Icon.history}</span><span>Billing History</span></NavLink>
-            </>
+          {user?.role === 'store_manager' && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Medicine Store</h3>
+              <nav className="space-y-1">
+                <Link to="/admin/inventory" className="nav-link">Inventory Management</Link>
+                <Link to="/admin/stock-purchase" className="nav-link">Stock Purchase</Link>
+                <Link to="/billing/pharmacy" className="nav-link">Pharmacy Billing</Link>
+              </nav>
+            </div>
           )}
         </nav>
       </aside>
