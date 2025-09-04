@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import { createInventoryItem, listInventoryItems, updateInventoryItem, adjustStock } from '../../api';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createInventoryItem, listInventoryItems, adjustStock } from '../../api';
 import { InventoryItemRow } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+
+// Feature flag to toggle Medicine Store UI
+const MEDICINE_STORE_ACTIVE = false;
 
 const InventoryManager = () => {
   const { user } = useAuth();
@@ -41,16 +44,16 @@ const InventoryManager = () => {
     gst_rate: 18,
   });
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true); setError(null);
     try {
       const data = await listInventoryItems(query);
       setItems(data);
     } catch (e: any) { setError(e.message); }
     finally { setLoading(false); }
-  };
+  }, [query]);
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { if (MEDICINE_STORE_ACTIVE) { refresh(); } }, [refresh]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -103,6 +106,13 @@ const InventoryManager = () => {
 
   return (
     <div className="space-y-6">
+      {!MEDICINE_STORE_ACTIVE ? (
+        <div className="card p-6">
+          <h2 className="text-xl font-semibold mb-2">Medicine Store (Inactive)</h2>
+          <p className="text-sm text-gray-600">This module is currently disabled. All code is preserved and can be re-enabled later.</p>
+        </div>
+      ) : (
+      <>
       <div className="card p-6">
         <h2 className="text-xl font-semibold mb-4">Add Medicine Store Item</h2>
         <form onSubmit={onAdd} className="space-y-4">
@@ -336,6 +346,8 @@ const InventoryManager = () => {
           </table>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };
