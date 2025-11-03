@@ -23,7 +23,7 @@ const PatientRegistration: React.FC = () => {
     const patient_id = generatePatientId(form.contact, form.name);
     setLoading(true);
     try {
-      await createPatient({ patient_id, name: form.name, dob: form.dob, gender: form.gender, contact: form.contact, address: form.address, age });
+      await createPatient({ id: crypto.randomUUID(), patient_id, name: form.name, dob: form.dob, gender: form.gender, contact: form.contact, address: form.address, age });
       setSuccess(`Patient registered with ID ${patient_id}`);
       setLastId(patient_id);
       setForm({ name: '', dob: '', gender: 'Male', contact: '', address: '' });

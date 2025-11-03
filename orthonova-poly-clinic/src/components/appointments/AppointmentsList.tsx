@@ -40,7 +40,7 @@ const AppointmentsList: React.FC = () => {
       const matchesText = !txt || [r.patientName, r.doctorName, r.patientContact]
         .filter(Boolean)
         .some(v => String(v).toLowerCase().includes(txt));
-      const matchesDate = !date || (new Date(r.appointment_datetime).toISOString().slice(0,10) === date);
+      const matchesDate = !date || (r.appointment_datetime && new Date(r.appointment_datetime).toISOString().slice(0,10) === date);
       return matchesText && matchesDate;
     });
   }, [rows, searchText, searchDate]);

@@ -157,11 +157,11 @@ const AppointmentBooking: React.FC = () => {
           </div>
           <div>
             <label className="block text-sm font-medium">Doctor Name</label>
-            <input className="mt-1 w-full" placeholder="Search doctor" value={filterDoctorQuery} onChange={e => setFilterDoctorQuery(e.target.value)} />
-            {filterDoctorQuery.trim() && (
+            <input className="mt-1 w-full" placeholder="Search doctor" value={filterDoctorQuery} onChange={e => { setFilterDoctorQuery(e.target.value); if (filterDoctor && e.target.value !== filterDoctor.name) setFilterDoctor(null); }} />
+            {filterDoctorQuery.trim() && !filterDoctor && (
               <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100">
                 {filteredDoctors.map(d => (
-                  <div key={d.id} className={`px-3 py-2 cursor-pointer hover:bg-gray-50 ${doctor?.id === d.id ? 'bg-brand-50' : ''}`} onClick={() => setFilterDoctor(d)}>
+                  <div key={d.id} className={`px-3 py-2 cursor-pointer hover:bg-gray-50 ${doctor?.id === d.id ? 'bg-brand-50' : ''}`} onClick={() => { setFilterDoctor(d); setFilterDoctorQuery(d.name); }}>
                     {d.name}
                   </div>
                 ))}

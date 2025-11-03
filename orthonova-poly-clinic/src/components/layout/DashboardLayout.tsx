@@ -46,6 +46,9 @@ const Icon = {
   pill: (
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 14l7-7a4.95 4.95 0 1 1 7 7l-7 7a4.95 4.95 0 1 1-7-7z"/></svg>
   ),
+  reports: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v18h18"/><path d="M18 7l-5 5-4-4-3 3"/></svg>
+  ),
 };
 
 function usePageTitle(): string {
@@ -85,6 +88,7 @@ const DashboardLayout: React.FC = () => {
             <>
               <SectionTitle>Admin</SectionTitle>
               <NavLink to="/admin/users" className={navItemClass}><span>{Icon.users}</span><span>User Management</span></NavLink>
+              <NavLink to="/admin/reports" className={navItemClass}><span>{Icon.reports}</span><span>Reports</span></NavLink>
               <NavLink to="/billing/history" className={navItemClass}><span>{Icon.history}</span><span>Billing History</span></NavLink>
               <NavLink to="/appointments" className={navItemClass} end><span>{Icon.appointment}</span><span>Appointment History</span></NavLink>
               <NavLink to="/admin/services" className={navItemClass}><span>{Icon.services}</span><span>Manage Service</span></NavLink>

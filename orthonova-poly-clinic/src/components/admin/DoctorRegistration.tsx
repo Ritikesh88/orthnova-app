@@ -26,7 +26,7 @@ const DoctorRegistration: React.FC = () => {
     if (!form.name || !form.registration_number) { setError('Name and registration number are required'); return; }
     const doctor_id = generateDoctorId(form.registration_number, form.name);
     try {
-      await createDoctor({ doctor_id, name: form.name, contact: form.contact, registration_number: form.registration_number, opd_fees: Number(form.opd_fees) });
+      await createDoctor({ id: crypto.randomUUID(), doctor_id, name: form.name, contact: form.contact, registration_number: form.registration_number, opd_fees: Number(form.opd_fees) });
       setSuccess(`Doctor registered with ID ${doctor_id}`);
       setForm({ name: '', contact: '', registration_number: '', opd_fees: 0 });
       await refresh();

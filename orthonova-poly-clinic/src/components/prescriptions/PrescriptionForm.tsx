@@ -104,9 +104,9 @@ const PrescriptionForm: React.FC = () => {
                 placeholder="Type to search doctor by name"
                 className="mt-1 w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500"
                 value={doctorQuery}
-                onChange={e => setDoctorQuery(e.target.value)}
+                onChange={e => { setDoctorQuery(e.target.value); const selected = doctors.find(d => d.name === e.target.value); if (!selected) setDoctorId(''); }}
               />
-              {doctorQuery.trim().length > 0 && (
+              {doctorQuery.trim().length > 0 && !doctorId && (
                 <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100">
                   {filteredDoctors.map(d => (
                     <div key={d.id} className={`px-3 py-2 cursor-pointer hover:bg-gray-50 ${doctorId === d.id ? 'bg-brand-50' : ''}`} onClick={() => onSelectDoctor(d)}>

@@ -127,7 +127,12 @@ export async function getBillById(id: string): Promise<BillRow | null> {
 
 export async function listBills(): Promise<BillRow[]> {
   const res = await supabase.from('bills').select('*').order('created_at', { ascending: false });
-  return throwIfError<BillRow[]>(res);
+  if (res.error) {
+    console.error('Error fetching bills:', res.error);
+    throw new Error(res.error.message || 'Failed to fetch bills. Please check database permissions.');
+  }
+  console.log('Bills fetched:', res.data?.length || 0);
+  return res.data || [];
 }
 
 export async function listBillItems(billId: string): Promise<BillItemRow[]> {
@@ -274,4 +279,353 @@ export async function listAppointments(filters?: { doctor_id?: string; patient_i
   if (filters?.patient_id) q = q.eq('patient_id', filters.patient_id);
   const res = await q;
   return throwIfError<AppointmentRow[]>(res);
+}
+
+// Reports
+export interface SalesSummary {
+  date: string;
+  total_bills: number;
+  total_amount: number;
+  total_discount: number;
+  net_amount: number;
+}
+
+export interface DoctorSalesReport {
+  doctor_id: string;
+  doctor_name: string;
+  total_bills: number;
+  total_amount: number;
+  total_discount: number;
+  net_amount: number;
+}
+
+export interface ServiceSalesReport {
+  service_id: string | null;
+  service_name: string;
+  total_quantity: number;
+  total_amount: number;
+}
+
+export async function getSalesSummary(startDate: string, endDate: string, groupBy: 'day' | 'month' = 'day'): Promise<SalesSummary[]> {
+  const res = await supabase
+    .from('bills')
+    .select('created_at, net_amount, discount, total_amount')
+    .gte('created_at', startDate)
+    .lte('created_at', endDate)
+    .order('created_at', { ascending: true });
+
+  if (res.error) throw new Error(res.error.message);
+
+  const bills = res.data || [];
+  const grouped: Record<string, SalesSummary> = {};
+
+  bills.forEach(bill => {
+    const date = new Date(bill.created_at);
+    let key: string;
+    
+    if (groupBy === 'month') {
+      key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    } else {
+      key = date.toISOString().split('T')[0];
+    }
+
+    if (!grouped[key]) {
+      grouped[key] = {
+        date: key,
+        total_bills: 0,
+        total_amount: 0,
+        total_discount: 0,
+        net_amount: 0,
+      };
+    }
+
+    grouped[key].total_bills += 1;
+    grouped[key].total_amount += Number(bill.total_amount || 0);
+    grouped[key].total_discount += Number(bill.discount || 0);
+    grouped[key].net_amount += Number(bill.net_amount || 0);
+  });
+
+  return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export async function getDoctorSalesReport(startDate: string, endDate: string): Promise<DoctorSalesReport[]> {
+  const res = await supabase
+    .from('bills')
+    .select('doctor_id, net_amount, discount, total_amount')
+    .gte('created_at', startDate)
+    .lte('created_at', endDate)
+    .not('doctor_id', 'is', null)
+    .order('created_at', { ascending: false });
+
+  if (res.error) throw new Error(res.error.message);
+
+  const bills = res.data || [];
+  const doctorMap: Record<string, DoctorSalesReport> = {};
+  const doctorIds = new Set(bills.map(b => b.doctor_id).filter(Boolean));
+
+  // Fetch doctor names
+  if (doctorIds.size > 0) {
+    const doctorsRes = await supabase
+      .from('doctors')
+      .select('id, name')
+      .in('id', Array.from(doctorIds));
+    
+    if (!doctorsRes.error && doctorsRes.data) {
+      const doctorsMap: Record<string, string> = {};
+      doctorsRes.data.forEach((d: any) => {
+        doctorsMap[d.id] = d.name;
+      });
+
+      bills.forEach(bill => {
+        const doctorId = bill.doctor_id;
+        if (!doctorId) return;
+
+        if (!doctorMap[doctorId]) {
+          doctorMap[doctorId] = {
+            doctor_id: doctorId,
+            doctor_name: doctorsMap[doctorId] || 'Unknown',
+            total_bills: 0,
+            total_amount: 0,
+            total_discount: 0,
+            net_amount: 0,
+          };
+        }
+
+        doctorMap[doctorId].total_bills += 1;
+        doctorMap[doctorId].total_amount += Number(bill.total_amount || 0);
+        doctorMap[doctorId].total_discount += Number(bill.discount || 0);
+        doctorMap[doctorId].net_amount += Number(bill.net_amount || 0);
+      });
+    }
+  }
+
+  return Object.values(doctorMap).sort((a, b) => b.net_amount - a.net_amount);
+}
+
+export interface BillDetail {
+  id: string;
+  bill_number: string;
+  patient_id: string | null;
+  patient_name: string | null;
+  guest_name: string | null;
+  doctor_id: string | null;
+  doctor_name: string | null;
+  total_amount: number;
+  discount: number;
+  net_amount: number;
+  created_at: string;
+  status: string;
+  mode_of_payment: string;
+}
+
+export async function getBillsByDate(date: string): Promise<BillDetail[]> {
+  const startOfDay = `${date}T00:00:00`;
+  const endOfDay = `${date}T23:59:59`;
+
+  const res = await supabase
+    .from('bills')
+    .select('id, bill_number, patient_id, guest_name, doctor_id, total_amount, discount, net_amount, created_at, status, mode_of_payment')
+    .gte('created_at', startOfDay)
+    .lte('created_at', endOfDay)
+    .order('created_at', { ascending: false });
+
+  if (res.error) throw new Error(res.error.message);
+
+  const bills = res.data || [];
+  const doctorIds = new Set(bills.map(b => b.doctor_id).filter(Boolean));
+  const patientIds = new Set(bills.map(b => b.patient_id).filter(Boolean));
+
+  let doctorsMap: Record<string, string> = {};
+  let patientsMap: Record<string, string> = {};
+
+  if (doctorIds.size > 0) {
+    const doctorsRes = await supabase
+      .from('doctors')
+      .select('id, name')
+      .in('id', Array.from(doctorIds));
+    
+    if (!doctorsRes.error && doctorsRes.data) {
+      doctorsRes.data.forEach((d: any) => {
+        doctorsMap[d.id] = d.name;
+      });
+    }
+  }
+
+  if (patientIds.size > 0) {
+    const patientsRes = await supabase
+      .from('patients')
+      .select('id, name')
+      .in('id', Array.from(patientIds));
+    
+    if (!patientsRes.error && patientsRes.data) {
+      patientsRes.data.forEach((p: any) => {
+        patientsMap[p.id] = p.name;
+      });
+    }
+  }
+
+  return bills.map(bill => ({
+    ...bill,
+    patient_name: bill.patient_id ? (patientsMap[bill.patient_id] || 'Unknown') : null,
+    doctor_name: bill.doctor_id ? (doctorsMap[bill.doctor_id] || 'Unknown') : null,
+  }));
+}
+
+export async function getBillsByMonth(year: number, month: number): Promise<BillDetail[]> {
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01T00:00:00`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}T23:59:59`;
+
+  const res = await supabase
+    .from('bills')
+    .select('id, bill_number, patient_id, guest_name, doctor_id, total_amount, discount, net_amount, created_at, status, mode_of_payment')
+    .gte('created_at', startDate)
+    .lte('created_at', endDate)
+    .order('created_at', { ascending: false });
+
+  if (res.error) throw new Error(res.error.message);
+
+  const bills = res.data || [];
+  const doctorIds = new Set(bills.map(b => b.doctor_id).filter(Boolean));
+  const patientIds = new Set(bills.map(b => b.patient_id).filter(Boolean));
+
+  let doctorsMap: Record<string, string> = {};
+  let patientsMap: Record<string, string> = {};
+
+  if (doctorIds.size > 0) {
+    const doctorsRes = await supabase
+      .from('doctors')
+      .select('id, name')
+      .in('id', Array.from(doctorIds));
+    
+    if (!doctorsRes.error && doctorsRes.data) {
+      doctorsRes.data.forEach((d: any) => {
+        doctorsMap[d.id] = d.name;
+      });
+    }
+  }
+
+  if (patientIds.size > 0) {
+    const patientsRes = await supabase
+      .from('patients')
+      .select('id, name')
+      .in('id', Array.from(patientIds));
+    
+    if (!patientsRes.error && patientsRes.data) {
+      patientsRes.data.forEach((p: any) => {
+        patientsMap[p.id] = p.name;
+      });
+    }
+  }
+
+  return bills.map(bill => ({
+    ...bill,
+    patient_name: bill.patient_id ? (patientsMap[bill.patient_id] || 'Unknown') : null,
+    doctor_name: bill.doctor_id ? (doctorsMap[bill.doctor_id] || 'Unknown') : null,
+  }));
+}
+
+export async function getBillsByDoctor(doctorId: string, startDate: string, endDate: string): Promise<BillDetail[]> {
+  const res = await supabase
+    .from('bills')
+    .select('id, bill_number, patient_id, guest_name, doctor_id, total_amount, discount, net_amount, created_at, status, mode_of_payment')
+    .eq('doctor_id', doctorId)
+    .gte('created_at', startDate)
+    .lte('created_at', endDate)
+    .order('created_at', { ascending: false });
+
+  if (res.error) throw new Error(res.error.message);
+
+  const bills = res.data || [];
+  const patientIds = new Set(bills.map(b => b.patient_id).filter(Boolean));
+
+  const doctorRes = await supabase
+    .from('doctors')
+    .select('name')
+    .eq('id', doctorId)
+    .single();
+
+  const doctorName = doctorRes.data?.name || 'Unknown';
+
+  let patientsMap: Record<string, string> = {};
+  if (patientIds.size > 0) {
+    const patientsRes = await supabase
+      .from('patients')
+      .select('id, name')
+      .in('id', Array.from(patientIds));
+    
+    if (!patientsRes.error && patientsRes.data) {
+      patientsRes.data.forEach((p: any) => {
+        patientsMap[p.id] = p.name;
+      });
+    }
+  }
+
+  return bills.map(bill => ({
+    ...bill,
+    patient_name: bill.patient_id ? (patientsMap[bill.patient_id] || 'Unknown') : null,
+    doctor_name: doctorName,
+  }));
+}
+
+export async function getServiceSalesReport(startDate: string, endDate: string): Promise<ServiceSalesReport[]> {
+  // Get bill items within date range
+  const billsRes = await supabase
+    .from('bills')
+    .select('id')
+    .gte('created_at', startDate)
+    .lte('created_at', endDate);
+
+  if (billsRes.error) throw new Error(billsRes.error.message);
+
+  const billIds = (billsRes.data || []).map(b => b.id);
+  
+  if (billIds.length === 0) return [];
+
+  const itemsRes = await supabase
+    .from('bill_items')
+    .select('service_id, item_name, quantity, total')
+    .in('bill_id', billIds)
+    .not('service_id', 'is', null);
+
+  if (itemsRes.error) throw new Error(itemsRes.error.message);
+
+  const items = itemsRes.data || [];
+  const serviceMap: Record<string, ServiceSalesReport> = {};
+
+  items.forEach(item => {
+    const serviceId = item.service_id || 'other';
+    const serviceName = item.item_name || 'Unknown Service';
+
+    if (!serviceMap[serviceId]) {
+      serviceMap[serviceId] = {
+        service_id: serviceId,
+        service_name: serviceName,
+        total_quantity: 0,
+        total_amount: 0,
+      };
+    }
+
+    serviceMap[serviceId].total_quantity += Number(item.quantity || 0);
+    serviceMap[serviceId].total_amount += Number(item.total || 0);
+  });
+
+  // Fetch actual service names from services table
+  const serviceIds = Object.keys(serviceMap).filter(id => id !== 'other');
+  if (serviceIds.length > 0) {
+    const servicesRes = await supabase
+      .from('services')
+      .select('id, service_name')
+      .in('id', serviceIds);
+
+    if (!servicesRes.error && servicesRes.data) {
+      servicesRes.data.forEach((s: any) => {
+        if (serviceMap[s.id]) {
+          serviceMap[s.id].service_name = s.service_name;
+        }
+      });
+    }
+  }
+
+  return Object.values(serviceMap).sort((a, b) => b.total_amount - a.total_amount);
 }

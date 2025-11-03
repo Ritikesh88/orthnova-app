@@ -21,6 +21,7 @@ import AppointmentsCalendar from './components/appointments/AppointmentsCalendar
 import InventoryManager from './components/admin/InventoryManager';
 import StockPurchase from './components/admin/StockPurchase';
 import PharmacyBilling from './components/billing/PharmacyBilling';
+import Reports from './components/admin/Reports';
 
 import AdminDashboard from './components/dashboard/AdminDashboard';
 const DashboardHome: React.FC = () => (
@@ -47,6 +48,7 @@ const AppRoutes: React.FC = () => {
         <Route path="admin/users" element={<ProtectedRoute allowedRoles={["admin"] as any}><UserManagement /></ProtectedRoute>} />
         <Route path="admin/doctors" element={<ProtectedRoute allowedRoles={["admin"] as any}><DoctorRegistration /></ProtectedRoute>} />
         <Route path="admin/services" element={<ProtectedRoute allowedRoles={["admin"] as any}><ServicesCatalog /></ProtectedRoute>} />
+        <Route path="admin/reports" element={<ProtectedRoute allowedRoles={["admin"] as any}><Reports /></ProtectedRoute>} />
         <Route path="admin/inventory" element={<ProtectedRoute allowedRoles={["admin", "store_manager"] as any}><InventoryManager /></ProtectedRoute>} />
         <Route path="admin/stock-purchase" element={<ProtectedRoute allowedRoles={["admin", "store_manager"] as any}><StockPurchase /></ProtectedRoute>} />
         {/* Receptionist/Admin/Store Manager */}
