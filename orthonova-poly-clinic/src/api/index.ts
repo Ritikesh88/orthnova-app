@@ -629,3 +629,102 @@ export async function getServiceSalesReport(startDate: string, endDate: string):
 
   return Object.values(serviceMap).sort((a, b) => b.total_amount - a.total_amount);
 }
+
+// Payment update function
+export async function recordPayment(
+  billId: string,
+  paidAmount: number,
+  paymentMode?: 'Cash' | 'UPI' | 'Card',
+  transactionReference?: string | null
+): Promise<BillRow> {
+  const bill = await getBillById(billId);
+  if (!bill) throw new Error('Bill not found');
+
+  const currentPaidAmount = Number(bill.net_amount || 0) - Number((bill as any).balance || bill.net_amount);
+  const newPaidAmount = currentPaidAmount + paidAmount;
+  const balance = Number(bill.net_amount) - newPaidAmount;
+
+  let status: 'paid' | 'pending' | 'partial' = 'pending';
+  if (balance <= 0) {
+    status = 'paid';
+  } else if (newPaidAmount > 0) {
+    status = 'partial';
+  }
+
+  const updates: any = {
+    status,
+  };
+
+  if (paymentMode) {
+    updates.mode_of_payment = paymentMode;
+  }
+  if (transactionReference) {
+    updates.transaction_reference = transactionReference;
+  }
+
+  const res = await supabase
+    .from('bills')
+    .update(updates)
+    .eq('id', billId)
+    .select('*')
+    .single();
+
+  return throwIfError<BillRow>(res);
+}
+
+// Admin summary function
+export interface AdminSummary {
+  total_bills: number;
+  total_amount: number;
+  total_discount: number;
+  net_amount: number;
+  total_appointments: number;
+  pending_appointments: number;
+}
+
+export async function adminSummary(date?: string): Promise<AdminSummary> {
+  const targetDate = date || new Date().toISOString().split('T')[0];
+  const startOfDay = `${targetDate}T00:00:00`;
+  const endOfDay = `${targetDate}T23:59:59`;
+
+  // Get bills summary
+  const billsRes = await supabase
+    .from('bills')
+    .select('total_amount, discount, net_amount')
+    .gte('created_at', startOfDay)
+    .lte('created_at', endOfDay);
+
+  if (billsRes.error) throw new Error(billsRes.error.message);
+
+  const bills = billsRes.data || [];
+  const billsSummary = bills.reduce(
+    (acc, bill) => ({
+      total_bills: acc.total_bills + 1,
+      total_amount: acc.total_amount + Number(bill.total_amount || 0),
+      total_discount: acc.total_discount + Number(bill.discount || 0),
+      net_amount: acc.net_amount + Number(bill.net_amount || 0),
+    }),
+    { total_bills: 0, total_amount: 0, total_discount: 0, net_amount: 0 }
+  );
+
+  // Get appointments summary
+  const appointmentsRes = await supabase
+    .from('appointments')
+    .select('status')
+    .gte('appointment_datetime', startOfDay)
+    .lte('appointment_datetime', endOfDay);
+
+  if (appointmentsRes.error) throw new Error(appointmentsRes.error.message);
+
+  const appointments = appointmentsRes.data || [];
+  const total_appointments = appointments.length;
+  const pending_appointments = appointments.filter(
+    (a) => a.status === 'booked'
+  ).length;
+
+  return {
+    ...billsSummary,
+    total_appointments,
+    pending_appointments,
+  };
+}
