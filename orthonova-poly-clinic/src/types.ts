@@ -9,7 +9,8 @@ export interface UserRow {
 }
 
 export interface PatientRow {
-  id: string; // custom id per spec
+  id: string; // UUID primary key (auto-generated)
+  patient_id: string; // custom patient id per spec (YY-XXXX-NAME)
   name: string;
   dob: string; // ISO date
   gender: 'Male' | 'Female' | 'Other';
@@ -20,7 +21,8 @@ export interface PatientRow {
 }
 
 export interface DoctorRow {
-  id: string; // custom id per spec
+  id: string; // UUID primary key (auto-generated)
+  doctor_id: string; // custom doctor id per spec (DOC-YYYY-XXXX-XXX)
   name: string;
   contact: string;
   registration_number: string;

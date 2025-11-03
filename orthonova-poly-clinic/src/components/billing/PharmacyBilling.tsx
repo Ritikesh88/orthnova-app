@@ -448,7 +448,7 @@ const PharmacyBilling: React.FC = () => {
                   <div className="font-medium">
                     {p.name} <span className="text-xs text-gray-500">({p.age} / {p.gender})</span>
                   </div>
-                  <div className="text-xs text-gray-500">{p.id} • {p.contact}</div>
+                  <div className="text-xs text-gray-500">{p.patient_id} • {p.contact}</div>
                 </div>
                 <button 
                   className="btn btn-secondary" 

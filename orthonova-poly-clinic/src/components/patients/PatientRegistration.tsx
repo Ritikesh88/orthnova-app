@@ -20,12 +20,12 @@ const PatientRegistration: React.FC = () => {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setError(null); setSuccess(null);
     if (!form.name || !form.dob || !form.contact) { setError('Name, DOB and Contact are required'); return; }
-    const id = generatePatientId(form.contact, form.name);
+    const patient_id = generatePatientId(form.contact, form.name);
     setLoading(true);
     try {
-      await createPatient({ id, name: form.name, dob: form.dob, gender: form.gender, contact: form.contact, address: form.address, age });
-      setSuccess(`Patient registered with ID ${id}`);
-      setLastId(id);
+      await createPatient({ patient_id, name: form.name, dob: form.dob, gender: form.gender, contact: form.contact, address: form.address, age });
+      setSuccess(`Patient registered with ID ${patient_id}`);
+      setLastId(patient_id);
       setForm({ name: '', dob: '', gender: 'Male', contact: '', address: '' });
       setAge(0);
     } catch (e: any) { setError(e.message); }

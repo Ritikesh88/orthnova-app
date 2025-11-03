@@ -24,10 +24,10 @@ const DoctorRegistration: React.FC = () => {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setError(null); setSuccess(null);
     if (!form.name || !form.registration_number) { setError('Name and registration number are required'); return; }
-    const id = generateDoctorId(form.registration_number, form.name);
+    const doctor_id = generateDoctorId(form.registration_number, form.name);
     try {
-      await createDoctor({ id, name: form.name, contact: form.contact, registration_number: form.registration_number, opd_fees: Number(form.opd_fees) });
-      setSuccess(`Doctor registered with ID ${id}`);
+      await createDoctor({ doctor_id, name: form.name, contact: form.contact, registration_number: form.registration_number, opd_fees: Number(form.opd_fees) });
+      setSuccess(`Doctor registered with ID ${doctor_id}`);
       setForm({ name: '', contact: '', registration_number: '', opd_fees: 0 });
       await refresh();
     } catch (e: any) { setError(e.message); }
@@ -81,7 +81,7 @@ const DoctorRegistration: React.FC = () => {
             <tbody>
               {doctors.map(d => (
                 <tr key={d.id} className="border-t border-gray-100">
-                  <td className="py-2 pr-4">{d.id}</td>
+                  <td className="py-2 pr-4">{d.doctor_id}</td>
                   <td className="py-2 pr-4">{d.name}</td>
                   <td className="py-2 pr-4">{d.contact}</td>
                   <td className="py-2 pr-4">{d.registration_number}</td>

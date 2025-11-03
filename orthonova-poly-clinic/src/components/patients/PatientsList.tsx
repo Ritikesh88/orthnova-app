@@ -55,7 +55,7 @@ const PatientsList: React.FC = () => {
           <tbody>
             {patients.map(p => (
               <tr key={p.id} className="border-t border-gray-100">
-                <td className="py-2 pr-4 font-mono">{p.id}</td>
+                <td className="py-2 pr-4 font-mono">{p.patient_id}</td>
                 <td className="py-2 pr-4">{p.name}</td>
                 <td className="py-2 pr-4">{p.age}</td>
                 <td className="py-2 pr-4">{p.gender}</td>

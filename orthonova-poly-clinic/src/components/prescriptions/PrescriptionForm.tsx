@@ -138,7 +138,7 @@ const PrescriptionForm: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-medium">{p.name} <span className="text-xs text-gray-500">({p.age} / {p.gender})</span></div>
-                  <div className="text-xs text-gray-500">{p.id} • {p.contact}</div>
+                  <div className="text-xs text-gray-500">{p.patient_id} • {p.contact}</div>
                 </div>
                 <button className="btn btn-secondary" onClick={() => { setPatientId(p.id); setSelectedPatient(p); setPatientModalOpen(false); setPatientMatches([]); }}>Select</button>
               </div>
