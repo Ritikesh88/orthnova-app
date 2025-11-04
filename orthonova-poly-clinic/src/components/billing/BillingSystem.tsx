@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createBill, listDoctors, listServices, searchPatientsByContact } from '../../api';
+import { createPatient, createAppointment, createBill, recordPayment, listDoctors, listServices, searchPatientsByContact } from '../../api';
 import { BillItemRow, DoctorRow, PatientRow, ServiceRow } from '../../types';
 import { formatCurrency, generateBillNumber } from '../../utils/format';
+import { calculateAge, generatePatientId } from '../../utils/idGenerators';
 import Modal from '../common/Modal';
 
 const MODES = ['Cash', 'UPI', 'Card'] as const;
@@ -27,6 +28,7 @@ const BillingSystem: React.FC = () => {
 
   const [doctorQuery, setDoctorQuery] = useState('');
   const [doctorId, setDoctorId] = useState('');
+  const [appointmentId, setAppointmentId] = useState<string | null>(null);
 
   const [items, setItems] = useState<SelectedItem[]>([]);
   const [discount, setDiscount] = useState<number>(0);
@@ -97,17 +99,67 @@ const BillingSystem: React.FC = () => {
   };
 
   const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); setMessage(null);
-    if ((!patientId && !isGuest) || !doctorId) { setMessage('Select patient and doctor'); return; }
-    if (isGuest && (!guestName.trim() || !guestContact.trim())) { setMessage('Enter guest name and contact'); return; }
-    if ((mode === 'UPI' || mode === 'Card') && !txnRef.trim()) { setMessage('Transaction reference required for UPI/Card'); return; }
-    if (items.length === 0 && opdFee === 0) { setMessage('Add at least one service or select a doctor with OPD fee'); return; }
+    e.preventDefault();
+    setMessage(null);
+    
+    if ((!patientId && !isGuest) || !doctorId) {
+      setMessage('Select patient and doctor');
+      return;
+    }
+    if (isGuest && (!guestName.trim() || !guestContact.trim())) {
+      setMessage('Enter guest name and contact');
+      return;
+    }
+    if ((mode === 'UPI' || mode === 'Card') && !txnRef.trim()) {
+      setMessage('Transaction reference required for UPI/Card');
+      return;
+    }
+    if (items.length === 0 && opdFee === 0) {
+      setMessage('Add at least one service or select a doctor with OPD fee');
+      return;
+    }
 
     setSubmitting(true);
     try {
+      let finalPatientId = patientId;
+
+      // Step 1: Create guest patient if needed
+      if (isGuest && guestName.trim() && guestContact.trim()) {
+        const patient_id = generatePatientId(guestContact.trim(), guestName.trim());
+        const age = 0; // Guest patients don't have DOB, default to 0
+        const createdPatient = await createPatient({
+          id: crypto.randomUUID(),
+          patient_id,
+          name: guestName.trim(),
+          dob: new Date().toISOString().split('T')[0], // Default to today
+          gender: 'Other',
+          contact: guestContact.trim(),
+          address: '',
+          age,
+        });
+        finalPatientId = createdPatient.id;
+      }
+
+      // Step 2: Create appointment if needed
+      let finalAppointmentId = appointmentId;
+      if (!finalAppointmentId && finalPatientId && doctorId) {
+        const appointment = await createAppointment({
+          patient_id: finalPatientId,
+          doctor_id: doctorId,
+          appointment_datetime: new Date().toISOString(),
+          status: 'completed',
+          notes: 'Created during billing',
+          guest_name: isGuest ? guestName.trim() : null,
+          guest_contact: isGuest ? guestContact.trim() : null,
+        });
+        finalAppointmentId = appointment.id;
+        setAppointmentId(finalAppointmentId);
+      }
+
+      // Step 3: Create bill
       const bill_number = generateBillNumber();
-      const billInsert = {
-        patient_id: isGuest ? null : patientId,
+      const billPayload = {
+        patient_id: finalPatientId,
         doctor_id: doctorId,
         total_amount: total,
         discount: Number(discount || 0),
@@ -118,9 +170,8 @@ const BillingSystem: React.FC = () => {
         transaction_reference: (mode === 'UPI' || mode === 'Card') ? txnRef : null,
         guest_name: isGuest ? guestName.trim() : null,
         guest_contact: isGuest ? guestContact.trim() : null,
-        bill_type: 'services',
-        created_at: new Date().toISOString(),
-      } as const;
+        bill_type: 'services' as const,
+      };
 
       const itemsInsert: Array<Omit<BillItemRow, 'id'>> = items.map(it => ({
         bill_id: '',
@@ -130,13 +181,44 @@ const BillingSystem: React.FC = () => {
         total: Number(it.service.price) * it.quantity,
       }));
 
-      const inserted = await createBill(billInsert as any, itemsInsert);
+      const inserted = await createBill(billPayload as any, itemsInsert);
+
+      // Step 4: Record payment if status is paid or partial
+      if (status === 'paid' && net > 0) {
+        await recordPayment(
+          inserted.id,
+          net,
+          mode,
+          (mode === 'UPI' || mode === 'Card') ? txnRef : null
+        );
+      } else if (status === 'partial' && net > 0) {
+        // For partial payments, you could add a payment amount field
+        // For now, we'll record it as paid to update the status
+        await recordPayment(
+          inserted.id,
+          net * 0.5, // Example: 50% payment
+          mode,
+          (mode === 'UPI' || mode === 'Card') ? txnRef : null
+        );
+      }
+
       localStorage.setItem('orthonova_last_bill_id', inserted.id);
       setMessage('Bill generated successfully');
+      
+      // Open print window
       const printUrl = `${window.location.origin}/print/bill/${inserted.id}`;
       const win = window.open(printUrl, '_blank');
-      if (win) { win.focus(); }
-      setItems([]); setDiscount(0); setMode('Cash'); setTxnRef(''); setStatus('paid');
+      if (win) {
+        win.focus();
+      }
+      
+      // Reset form
+      setItems([]);
+      setDiscount(0);
+      setMode('Cash');
+      setTxnRef('');
+      setStatus('paid');
+      setAppointmentId(null);
     } catch (e: any) {
       setMessage(e.message);
     } finally {

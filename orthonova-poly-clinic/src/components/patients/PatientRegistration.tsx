@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import { createPatient } from '../../api';
+import { PatientRow } from '../../types';
 import { calculateAge, generatePatientId } from '../../utils/idGenerators';
 
-const PatientRegistration: React.FC = () => {
+interface PatientRegistrationProps {
+  onPatientCreated?: (patient: PatientRow) => void;
+}
+
+const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onPatientCreated }) => {
   const [form, setForm] = useState<{ name: string; dob: string; gender: 'Male' | 'Female' | 'Other'; contact: string; address: string }>({
     name: '', dob: '', gender: 'Male', contact: '', address: ''
   });
@@ -18,18 +23,46 @@ const PatientRegistration: React.FC = () => {
   };
 
   const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(null); setSuccess(null);
-    if (!form.name || !form.dob || !form.contact) { setError('Name, DOB and Contact are required'); return; }
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    
+    if (!form.name || !form.dob || !form.contact) {
+      setError('Name, DOB and Contact are required');
+      return;
+    }
+    
     const patient_id = generatePatientId(form.contact, form.name);
     setLoading(true);
+    
     try {
-      await createPatient({ id: crypto.randomUUID(), patient_id, name: form.name, dob: form.dob, gender: form.gender, contact: form.contact, address: form.address, age });
+      const createdPatient = await createPatient({
+        id: crypto.randomUUID(),
+        patient_id,
+        name: form.name,
+        dob: form.dob,
+        gender: form.gender,
+        contact: form.contact,
+        address: form.address,
+        age
+      });
+      
       setSuccess(`Patient registered with ID ${patient_id}`);
       setLastId(patient_id);
+      
+      // Emit the created patient to parent component if callback provided
+      if (onPatientCreated) {
+        onPatientCreated(createdPatient);
+      }
+      
+      // Reset form
       setForm({ name: '', dob: '', gender: 'Male', contact: '', address: '' });
       setAge(0);
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
