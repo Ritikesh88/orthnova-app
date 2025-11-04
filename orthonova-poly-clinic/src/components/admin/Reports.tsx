@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getSalesSummary, getDoctorSalesReport, getServiceSalesReport, getBillsByDate, getBillsByMonth, getBillsByDoctor, SalesSummary, DoctorSalesReport, ServiceSalesReport, BillDetail } from '../../api';
+import { getSalesSummary, getDoctorSalesReport, getServiceSalesReport, getBillsByDate, getBillsByMonth, getBillsByDoctor, getBillById, listBillItems, getDoctorById, SalesSummary, DoctorSalesReport, ServiceSalesReport, BillDetail } from '../../api';
+import { BillRow, BillItemRow } from '../../types';
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/format';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-type ReportTab = 'sales' | 'doctor' | 'service';
+type ReportTab = 'sales' | 'doctor' | 'service' | 'doctorServices';
 
 const Reports: React.FC = () => {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<ReportTab>('sales');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -25,6 +24,20 @@ const Reports: React.FC = () => {
   const [showDeepDive, setShowDeepDive] = useState(false);
   const [deepDiveData, setDeepDiveData] = useState<BillDetail[]>([]);
   const [deepDiveTitle, setDeepDiveTitle] = useState('');
+
+  // Bill detail modal states
+  const [showBillDetail, setShowBillDetail] = useState(false);
+  const [selectedBill, setSelectedBill] = useState<BillRow | null>(null);
+  const [billItems, setBillItems] = useState<BillItemRow[]>([]);
+  const [loadingBillDetail, setLoadingBillDetail] = useState(false);
+
+  // Doctor-Service analysis
+  const [doctorServiceData, setDoctorServiceData] = useState<Array<{
+    doctor_id: string;
+    doctor_name: string;
+    services: Array<{ service_name: string; quantity: number; amount: number }>;
+    total_amount: number;
+  }>>([]);
 
   // Set default dates (today and 30 days ago)
   useEffect(() => {
@@ -55,12 +68,29 @@ const Reports: React.FC = () => {
       } else if (activeTab === 'service') {
         const data = await getServiceSalesReport(startDate, endDate);
         setServiceData(data);
+      } else if (activeTab === 'doctorServices') {
+        // Fetch doctor-service analysis
+        await fetchDoctorServiceAnalysis();
       }
     } catch (e: any) {
       console.error('Error fetching reports:', e);
       setError(e.message || 'Failed to fetch report data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDoctorServiceAnalysis = async () => {
+    try {
+      const bills = await getBillsByDate(startDate); // Get all bills in date range
+      // You'll need to implement a proper API function to get bills with items by date range
+      // For now, this is a placeholder
+      const doctorServiceMap = new Map<string, any>();
+      
+      // This is simplified - in production, you'd need a dedicated API endpoint
+      setDoctorServiceData([]);
+    } catch (e: any) {
+      console.error('Error fetching doctor-service analysis:', e);
     }
   };
 
@@ -195,7 +225,19 @@ const Reports: React.FC = () => {
       body: data,
       startY: 28,
       theme: 'grid',
-      headStyles: { fillColor: [41, 128, 185] },
+      headStyles: { fillColor: [41, 128, 185], halign: 'center' },
+      styles: { fontSize: 9 },
+      columnStyles: activeTab === 'sales' || activeTab === 'doctor' ? {
+        0: { halign: 'left' },
+        1: { halign: 'right' },
+        2: { halign: 'right' },
+        3: { halign: 'right' },
+        4: { halign: 'right' },
+      } : {
+        0: { halign: 'left' },
+        1: { halign: 'right' },
+        2: { halign: 'right' },
+      },
     });
 
     doc.save(`${title.replace(/ /g, '_')}_${startDate}_to_${endDate}.pdf`);
@@ -284,20 +326,148 @@ const Reports: React.FC = () => {
       body: data,
       startY: 28,
       theme: 'grid',
-      headStyles: { fillColor: [41, 128, 185] },
+      headStyles: { fillColor: [41, 128, 185], halign: 'center' },
       styles: { fontSize: 8 },
+      columnStyles: {
+        0: { halign: 'left', cellWidth: 20 },
+        1: { halign: 'left', cellWidth: 30 },
+        2: { halign: 'left', cellWidth: 30 },
+        3: { halign: 'left', cellWidth: 25 },
+        4: { halign: 'right', cellWidth: 22 },
+        5: { halign: 'right', cellWidth: 22 },
+        6: { halign: 'right', cellWidth: 22 },
+        7: { halign: 'center', cellWidth: 18 },
+      },
     });
 
     doc.save(`${deepDiveTitle.replace(/ /g, '_')}.pdf`);
   };
 
-  const handleViewBill = (billId: string) => {
-    // Navigate to bill history page
-    navigate('/billing/history');
+  const handleViewBill = async (billId: string) => {
+    setLoadingBillDetail(true);
+    try {
+      const [bill, items] = await Promise.all([
+        getBillById(billId),
+        listBillItems(billId)
+      ]);
+      if (bill) {
+        // Fetch doctor details if doctor_id exists
+        if (bill.doctor_id) {
+          const doctor = await getDoctorById(bill.doctor_id);
+          (bill as any).opd_fees = doctor?.opd_fees || 0;
+        }
+        setSelectedBill(bill);
+        setBillItems(items);
+        setShowBillDetail(true);
+      }
+    } catch (e: any) {
+      console.error('Error loading bill details:', e);
+      setError(e.message || 'Failed to load bill details');
+    } finally {
+      setLoadingBillDetail(false);
+    }
   };
 
   return (
     <div className="space-y-4">
+      {/* Bill Detail Modal */}
+      {showBillDetail && selectedBill && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Bill Details - {selectedBill.bill_number}</h3>
+              <button
+                onClick={() => { setShowBillDetail(false); setSelectedBill(null); setBillItems([]); }}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-6 overflow-auto flex-1">
+              <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                <div>
+                  <p className="text-gray-500">Patient:</p>
+                  <p className="font-medium">{(selectedBill as any).patient_name || (selectedBill as any).guest_name || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Doctor:</p>
+                  <p className="font-medium">{(selectedBill as any).doctor_name || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Date:</p>
+                  <p className="font-medium">{formatDateTime(selectedBill.created_at)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Payment Mode:</p>
+                  <p className="font-medium">{selectedBill.mode_of_payment}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Status:</p>
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    selectedBill.status === 'paid' ? 'bg-green-100 text-green-800' :
+                    selectedBill.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {selectedBill.status}
+                  </span>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="font-semibold mb-3">Bill Items</h4>
+                {billItems.length > 0 ? (
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-left border-b">
+                        <th className="py-2">Service</th>
+                        <th className="py-2 text-right">Qty</th>
+                        <th className="py-2 text-right">Price</th>
+                        <th className="py-2 text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {billItems.map((item, idx) => (
+                        <tr key={idx} className="border-b">
+                          <td className="py-2">{(item as any).service_name || 'Service'}</td>
+                          <td className="py-2 text-right">{item.quantity}</td>
+                          <td className="py-2 text-right">{formatCurrency(item.price)}</td>
+                          <td className="py-2 text-right">{formatCurrency(item.total)}</td>
+                        </tr>
+                      ))}
+                      {(selectedBill as any).doctor_id && (
+                        <tr className="border-b bg-blue-50">
+                          <td className="py-2 font-medium">Consultation Fee</td>
+                          <td className="py-2 text-right">1</td>
+                          <td className="py-2 text-right">{formatCurrency((selectedBill as any).opd_fees || 0)}</td>
+                          <td className="py-2 text-right">{formatCurrency((selectedBill as any).opd_fees || 0)}</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="text-gray-500 text-center py-4">No items found</p>
+                )}
+              </div>
+
+              <div className="border-t pt-4 mt-4 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Total Amount:</span>
+                  <span className="font-semibold">{formatCurrency(selectedBill.total_amount)}</span>
+                </div>
+                <div className="flex justify-between text-red-600">
+                  <span>Discount:</span>
+                  <span className="font-semibold">-{formatCurrency(selectedBill.discount)}</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold border-t pt-2">
+                  <span>Net Amount:</span>
+                  <span>{formatCurrency(selectedBill.net_amount)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Deep Dive Modal */}
       {showDeepDive && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -342,9 +512,9 @@ const Reports: React.FC = () => {
                       <th className="py-2 pr-4">Date</th>
                       <th className="py-2 pr-4">Patient</th>
                       <th className="py-2 pr-4">Doctor</th>
-                      <th className="py-2 pr-4 text-right">Total</th>
-                      <th className="py-2 pr-4 text-right">Discount</th>
-                      <th className="py-2 pr-4 text-right">Net Amount</th>
+                      <th className="py-2 pr-4 text-right w-24">Total</th>
+                      <th className="py-2 pr-4 text-right w-24">Discount</th>
+                      <th className="py-2 pr-4 text-right w-24">Net Amount</th>
                       <th className="py-2 pr-4">Payment</th>
                       <th className="py-2 pr-4">Status</th>
                     </tr>
@@ -439,6 +609,16 @@ const Reports: React.FC = () => {
             onClick={() => setActiveTab('service')}
           >
             Service Sales
+          </button>
+          <button
+            className={`px-4 py-2 font-medium ${
+              activeTab === 'doctorServices'
+                ? 'border-b-2 border-brand-500 text-brand-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => setActiveTab('doctorServices')}
+          >
+            Doctor-Services
           </button>
         </div>
 
@@ -663,6 +843,12 @@ const Reports: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        ) : activeTab === 'doctorServices' ? (
+          <div className="text-center py-8 text-gray-500">
+            <p className="mb-2">Doctor-Services Analysis</p>
+            <p className="text-sm">This feature shows which doctors prescribed which services.</p>
+            <p className="text-sm text-gray-400 mt-4">Coming soon - requires bill items to be linked with service names</p>
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">

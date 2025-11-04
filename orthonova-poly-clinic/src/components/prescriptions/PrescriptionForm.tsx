@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createPrescription, listDoctors, listPatients, searchPatientsByContact } from '../../api';
-import { DoctorRow, PatientRow } from '../../types';
+import { createPrescription, listDoctors, listPatients, searchPatientsByContact, listPrescriptions, listAppointments } from '../../api';
+import { DoctorRow, PatientRow, PrescriptionRow, AppointmentRow } from '../../types';
 import Modal from '../common/Modal';
 
 const PrescriptionForm: React.FC = () => {
@@ -17,6 +17,9 @@ const PrescriptionForm: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  const [previousVisits, setPreviousVisits] = useState<{ prescription: PrescriptionRow; appointment?: AppointmentRow }[]>([]);
+  const [loadingVisits, setLoadingVisits] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -52,13 +55,41 @@ const PrescriptionForm: React.FC = () => {
       setPatientId(rows[0].id);
       setSelectedPatient(rows[0]);
       setPatientMatches([]);
+      await loadPreviousVisits(rows[0].id);
     } else if (rows.length > 1) {
       setPatientMatches(rows);
       setPatientModalOpen(true);
     } else {
       setSelectedPatient(null);
       setPatientId('');
+      setPreviousVisits([]);
       setMessage('No patients found for that contact');
+    }
+  };
+
+  const loadPreviousVisits = async (patId: string) => {
+    setLoadingVisits(true);
+    try {
+      const [prescriptions, appointments] = await Promise.all([
+        listPrescriptions(),
+        listAppointments({ patient_id: patId })
+      ]);
+      
+      const patientPrescriptions = prescriptions.filter(p => p.patient_id === patId);
+      const visits = patientPrescriptions.map(prescription => {
+        const appointment = appointments.find(a => 
+          a.patient_id === patId && 
+          a.doctor_id === prescription.doctor_id &&
+          new Date(a.created_at).toDateString() === new Date(prescription.created_at).toDateString()
+        );
+        return { prescription, appointment };
+      }).slice(0, 5); // Show last 5 visits
+      
+      setPreviousVisits(visits);
+    } catch (e: any) {
+      console.error('Error loading previous visits:', e);
+    } finally {
+      setLoadingVisits(false);
     }
   };
 
@@ -131,6 +162,73 @@ const PrescriptionForm: React.FC = () => {
         </form>
       </div>
 
+      {selectedPatient && (
+        <div className="card p-6">
+          <h3 className="text-lg font-semibold mb-4">Previous Visit Details</h3>
+          {loadingVisits ? (
+            <p className="text-sm text-gray-500">Loading previous visits...</p>
+          ) : previousVisits.length > 0 ? (
+            <div className="space-y-3">
+              {previousVisits.map((visit, idx) => (
+                <div key={visit.prescription.id} className="border border-gray-200 rounded-xl p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Visit #{previousVisits.length - idx}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(visit.prescription.created_at).toLocaleDateString('en-IN', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                    {visit.appointment && (
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        visit.appointment.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        visit.appointment.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                        'bg-blue-100 text-blue-700'
+                      }`}>
+                        {visit.appointment.status}
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    {visit.prescription.diagnosis && (
+                      <div>
+                        <span className="font-medium text-gray-600">Diagnosis: </span>
+                        <span className="text-gray-800">{visit.prescription.diagnosis}</span>
+                      </div>
+                    )}
+                    {visit.prescription.medicines && (
+                      <div>
+                        <span className="font-medium text-gray-600">Medicines: </span>
+                        <span className="text-gray-800">{visit.prescription.medicines}</span>
+                      </div>
+                    )}
+                    {visit.prescription.advice && (
+                      <div>
+                        <span className="font-medium text-gray-600">Advice: </span>
+                        <span className="text-gray-800">{visit.prescription.advice}</span>
+                      </div>
+                    )}
+                    {visit.appointment?.notes && (
+                      <div>
+                        <span className="font-medium text-gray-600">Notes: </span>
+                        <span className="text-gray-800">{visit.appointment.notes}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">No previous visits found for this patient.</p>
+          )}
+        </div>
+      )}
+
       <Modal open={patientModalOpen} title="Select Patient" onClose={() => setPatientModalOpen(false)}>
         <div className="divide-y divide-gray-100">
           {patientMatches.map(p => (
@@ -140,7 +238,13 @@ const PrescriptionForm: React.FC = () => {
                   <div className="font-medium">{p.name} <span className="text-xs text-gray-500">({p.age} / {p.gender})</span></div>
                   <div className="text-xs text-gray-500">{p.patient_id} • {p.contact}</div>
                 </div>
-                <button className="btn btn-secondary" onClick={() => { setPatientId(p.id); setSelectedPatient(p); setPatientModalOpen(false); setPatientMatches([]); }}>Select</button>
+                <button className="btn btn-secondary" onClick={async () => { 
+                  setPatientId(p.id); 
+                  setSelectedPatient(p); 
+                  setPatientModalOpen(false); 
+                  setPatientMatches([]);
+                  await loadPreviousVisits(p.id);
+                }}>Select</button>
               </div>
             </div>
           ))}

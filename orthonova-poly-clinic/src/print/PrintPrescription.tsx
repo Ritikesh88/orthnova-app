@@ -40,7 +40,7 @@ const PrintPrescription: React.FC = () => {
 
           <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
             <div className="space-y-1">
-              <div><span className="font-medium">Patient ID:</span> {patient?.id}</div>
+              <div><span className="font-medium">Patient ID:</span> {patient?.patient_id}</div>
               <div><span className="font-medium">Date:</span> {formatDate(presc.created_at)}</div>
               <div><span className="font-medium">Name:</span> {patient?.name}</div>
               <div><span className="font-medium">Age/Gender:</span> {patient?.age} / {patient?.gender}</div>

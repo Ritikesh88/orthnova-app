@@ -112,7 +112,7 @@ const AppointmentBooking: React.FC = () => {
     const set = new Set<string>();
     appointments.forEach(a => {
       if (a.doctor_id !== doctor.id) return;
-      const dt = new Date(a.appointment_datetime);
+      const dt = new Date(a.created_at);
       if (dt >= dayStart && dt <= dayEnd) {
         dt.setSeconds(0, 0); const minutes = dt.getMinutes(); const rounded = new Date(dt);
         const roundedMinutes = Math.floor(minutes / 15) * 15; rounded.setMinutes(roundedMinutes);
@@ -136,11 +136,8 @@ const AppointmentBooking: React.FC = () => {
       await createAppointment({
         patient_id: mode === 'guest' ? null : (patient?.id || null),
         doctor_id: doctor.id,
-        appointment_datetime: dt.toISOString(),
+        appointment_date: date, // YYYY-MM-DD format
         status: 'booked',
-        notes,
-        guest_name: mode === 'guest' ? guestName.trim() : null,
-        guest_contact: mode === 'guest' ? guestContact.trim() : null,
       });
       setMessage('Appointment booked'); setNotes('');
     } catch (e: any) { setMessage(e.message); }

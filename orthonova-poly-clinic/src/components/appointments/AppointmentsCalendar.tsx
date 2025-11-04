@@ -66,7 +66,7 @@ const AppointmentsCalendar: React.FC = () => {
     const set = new Set<string>();
     appointments.forEach(a => {
       if (a.doctor_id !== selectedDoctorId) return;
-      const dt = new Date(a.appointment_datetime);
+      const dt = new Date(a.created_at);
       if (dt >= dayStart && dt <= dayEnd) {
         dt.setSeconds(0, 0);
         const minutes = dt.getMinutes();

@@ -40,7 +40,7 @@ const AppointmentsList: React.FC = () => {
       const matchesText = !txt || [r.patientName, r.doctorName, r.patientContact]
         .filter(Boolean)
         .some(v => String(v).toLowerCase().includes(txt));
-      const matchesDate = !date || (r.appointment_datetime && new Date(r.appointment_datetime).toISOString().slice(0,10) === date);
+      const matchesDate = !date || (r.created_at && new Date(r.created_at).toISOString().slice(0,10) === date);
       return matchesText && matchesDate;
     });
   }, [rows, searchText, searchDate]);
@@ -84,7 +84,7 @@ const AppointmentsList: React.FC = () => {
             <tbody>
               {filtered.map(r => (
                 <tr key={r.id} className="border-t border-gray-100">
-                  <td className="py-2 pr-4">{formatDateTime(r.appointment_datetime)}</td>
+                  <td className="py-2 pr-4">{formatDateTime(r.created_at)}</td>
                   <td className="py-2 pr-4">{r.patientName || '-'}</td>
                   <td className="py-2 pr-4">{r.patientContact || '-'}</td>
                   <td className="py-2 pr-4">{r.doctorName || r.doctor_id}</td>

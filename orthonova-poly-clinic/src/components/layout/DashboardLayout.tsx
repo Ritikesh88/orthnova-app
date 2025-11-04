@@ -49,6 +49,9 @@ const Icon = {
   reports: (
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3v18h18"/><path d="M18 7l-5 5-4-4-3 3"/></svg>
   ),
+  dashboard: (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+  ),
 };
 
 function usePageTitle(): string {
@@ -82,11 +85,10 @@ const DashboardLayout: React.FC = () => {
           <Link to="/" className="text-lg font-bold tracking-wide text-gray-900">OrthoNova</Link>
         </div>
         <nav className="space-y-1">
-          <NavLink to="/" className={navItemClass} end><span>{Icon.home}</span><span>Dashboard</span></NavLink>
-
           {user?.role === 'admin' && (
             <>
               <SectionTitle>Admin</SectionTitle>
+              <NavLink to="/admin/dashboard" className={navItemClass}><span>{Icon.dashboard}</span><span>Admin Dashboard</span></NavLink>
               <NavLink to="/admin/users" className={navItemClass}><span>{Icon.users}</span><span>User Management</span></NavLink>
               <NavLink to="/admin/reports" className={navItemClass}><span>{Icon.reports}</span><span>Reports</span></NavLink>
               <NavLink to="/billing/history" className={navItemClass}><span>{Icon.history}</span><span>Billing History</span></NavLink>
@@ -99,6 +101,9 @@ const DashboardLayout: React.FC = () => {
 
           {user?.role === 'receptionist' && (
             <>
+              <SectionTitle>Dashboard</SectionTitle>
+              <NavLink to="/receptionist/dashboard" className={navItemClass}><span>{Icon.home}</span><span>Today's Overview</span></NavLink>
+
               <SectionTitle>Patient Registration</SectionTitle>
               <NavLink to="/patients/register" className={navItemClass}><span>{Icon.patient}</span><span>Register Patient</span></NavLink>
 

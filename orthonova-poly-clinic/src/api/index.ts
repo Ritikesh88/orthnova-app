@@ -711,8 +711,8 @@ export async function adminSummary(date?: string): Promise<AdminSummary> {
   const appointmentsRes = await supabase
     .from('appointments')
     .select('status')
-    .gte('appointment_datetime', startOfDay)
-    .lte('appointment_datetime', endOfDay);
+    .gte('created_at', startOfDay)
+    .lte('created_at', endOfDay);
 
   if (appointmentsRes.error) throw new Error(appointmentsRes.error.message);
 
@@ -727,4 +727,137 @@ export async function adminSummary(date?: string): Promise<AdminSummary> {
     total_appointments,
     pending_appointments,
   };
+}
+
+// Dashboard Analytics
+export interface TopDoctor {
+  doctor_id: string;
+  doctor_name: string;
+  total_revenue: number;
+  total_bills: number;
+}
+
+export interface TopService {
+  service_id: string | null;
+  service_name: string;
+  usage_count: number;
+  total_revenue: number;
+}
+
+export async function getTopDoctors(startDate: string, endDate: string, limit: number = 5): Promise<TopDoctor[]> {
+  const billsRes = await supabase
+    .from('bills')
+    .select('doctor_id, net_amount')
+    .gte('created_at', startDate)
+    .lte('created_at', endDate)
+    .not('doctor_id', 'is', null);
+
+  if (billsRes.error) throw new Error(billsRes.error.message);
+
+  const bills = billsRes.data || [];
+  const doctorMap = new Map<string, { revenue: number; count: number }>();
+
+  bills.forEach(bill => {
+    const existing = doctorMap.get(bill.doctor_id!);
+    if (existing) {
+      existing.revenue += Number(bill.net_amount || 0);
+      existing.count += 1;
+    } else {
+      doctorMap.set(bill.doctor_id!, {
+        revenue: Number(bill.net_amount || 0),
+        count: 1
+      });
+    }
+  });
+
+  // Fetch doctor names
+  const doctorIds = Array.from(doctorMap.keys());
+  const doctorsRes = await supabase
+    .from('doctors')
+    .select('id, name')
+    .in('id', doctorIds);
+
+  const doctorsNameMap: Record<string, string> = {};
+  if (!doctorsRes.error && doctorsRes.data) {
+    doctorsRes.data.forEach((d: any) => {
+      doctorsNameMap[d.id] = d.name;
+    });
+  }
+
+  const topDoctors: TopDoctor[] = Array.from(doctorMap.entries())
+    .map(([doctor_id, data]) => ({
+      doctor_id,
+      doctor_name: doctorsNameMap[doctor_id] || 'Unknown',
+      total_revenue: data.revenue,
+      total_bills: data.count,
+    }))
+    .sort((a, b) => b.total_revenue - a.total_revenue)
+    .slice(0, limit);
+
+  return topDoctors;
+}
+
+export async function getTopServices(startDate: string, endDate: string, limit: number = 5): Promise<TopService[]> {
+  // Get all bills in date range
+  const billsRes = await supabase
+    .from('bills')
+    .select('id, created_at')
+    .gte('created_at', startDate)
+    .lte('created_at', endDate);
+
+  if (billsRes.error) throw new Error(billsRes.error.message);
+
+  const billIds = (billsRes.data || []).map(b => b.id);
+  if (billIds.length === 0) return [];
+
+  // Get bill items for these bills
+  const itemsRes = await supabase
+    .from('bill_items')
+    .select('service_id, quantity, total')
+    .in('bill_id', billIds);
+
+  if (itemsRes.error) throw new Error(itemsRes.error.message);
+
+  const items = itemsRes.data || [];
+  const serviceMap = new Map<string, { count: number; revenue: number }>();
+
+  items.forEach(item => {
+    if (!item.service_id) return;
+    const existing = serviceMap.get(item.service_id);
+    if (existing) {
+      existing.count += item.quantity;
+      existing.revenue += Number(item.total || 0);
+    } else {
+      serviceMap.set(item.service_id, {
+        count: item.quantity,
+        revenue: Number(item.total || 0)
+      });
+    }
+  });
+
+  // Fetch service names
+  const serviceIds = Array.from(serviceMap.keys());
+  const servicesRes = await supabase
+    .from('services')
+    .select('id, service_name')
+    .in('id', serviceIds);
+
+  const servicesNameMap: Record<string, string> = {};
+  if (!servicesRes.error && servicesRes.data) {
+    servicesRes.data.forEach((s: any) => {
+      servicesNameMap[s.id] = s.service_name;
+    });
+  }
+
+  const topServices: TopService[] = Array.from(serviceMap.entries())
+    .map(([service_id, data]) => ({
+      service_id,
+      service_name: servicesNameMap[service_id] || 'Unknown Service',
+      usage_count: data.count,
+      total_revenue: data.revenue,
+    }))
+    .sort((a, b) => b.usage_count - a.usage_count)
+    .slice(0, limit);
+
+  return topServices;
 }

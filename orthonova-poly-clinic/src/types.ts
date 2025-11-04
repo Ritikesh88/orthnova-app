@@ -86,11 +86,12 @@ export interface AppointmentRow {
   id: string; // UUID
   patient_id: string | null;
   doctor_id: string;
-  appointment_datetime: string; // ISO datetime
+  appointment_date: string; // Required date field in database
+  appointment_datetime?: string; // ISO datetime - optional, may not exist in DB
   status: 'booked' | 'completed' | 'cancelled';
-  notes: string | null;
-  guest_name: string | null;
-  guest_contact: string | null;
+  notes?: string | null; // Optional - may not exist in DB
+  guest_name?: string | null; // Optional - may not exist in DB
+  guest_contact?: string | null; // Optional - may not exist in DB
   created_at: string;
 }
 
