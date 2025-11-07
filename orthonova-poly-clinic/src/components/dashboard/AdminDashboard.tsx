@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { listUsers, listPatients, listPrescriptions } from '../../api';
+import { Link } from 'react-router-dom';
 
 const StatCard: React.FC<{ title: string; value: number; icon?: React.ReactNode }> = ({ title, value, icon }) => (
   <div className="card p-5 flex items-center gap-4">
@@ -36,7 +37,10 @@ const AdminDashboard: React.FC = () => {
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Recent Activities</h2>
-          <button className="btn btn-secondary">View All</button>
+          <div className="flex gap-2">
+            <Link to="/admin/doctor-availability" className="btn btn-secondary">Manage My Availability</Link>
+            <button className="btn btn-secondary">View All</button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">

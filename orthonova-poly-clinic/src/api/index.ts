@@ -3,6 +3,7 @@ import {
   BillItemRow,
   BillRow,
   DoctorRow,
+  DoctorAvailabilityRow,
   InventoryItemRow,
   PatientRow,
   PrescriptionRow,
@@ -860,4 +861,70 @@ export async function getTopServices(startDate: string, endDate: string, limit: 
     .slice(0, limit);
 
   return topServices;
+}
+
+// Doctor Availability
+
+export async function listDoctorAvailability(doctorId: string): Promise<DoctorAvailabilityRow[]> {
+  const res = await supabase
+    .from('doctor_availability')
+    .select('*')
+    .eq('doctor_id', doctorId)
+    .order('day_of_week', { ascending: true })
+    .order('start_time', { ascending: true });
+  return throwIfError<DoctorAvailabilityRow[]>(res);
+}
+
+export async function setDoctorAvailability(
+  doctorId: string,
+  availability: Omit<DoctorAvailabilityRow, 'id' | 'created_at' | 'updated_at'>
+): Promise<DoctorAvailabilityRow> {
+  // For recurring availability, check if there's already an entry for this day/time
+  if (availability.day_of_week !== null) {
+    const existingRes = await supabase
+      .from('doctor_availability')
+      .select('id')
+      .eq('doctor_id', doctorId)
+      .eq('day_of_week', availability.day_of_week)
+      .eq('start_time', availability.start_time)
+      .eq('end_time', availability.end_time)
+      .maybeSingle();
+    
+    if (existingRes.error) throw new Error(existingRes.error.message);
+    
+    if (existingRes.data) {
+      // Update existing entry
+      const res = await supabase
+        .from('doctor_availability')
+        .update({
+          ...availability,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingRes.data.id)
+        .select('*')
+        .single();
+      return throwIfError<DoctorAvailabilityRow>(res);
+    }
+  }
+  
+  // For specific dates or new recurring entries, always create a new entry
+  const res = await supabase
+    .from('doctor_availability')
+    .insert({
+      ...availability,
+      doctor_id: doctorId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    } as any)
+    .select('*')
+    .single();
+  return throwIfError<DoctorAvailabilityRow>(res);
+}
+
+export async function deleteDoctorAvailability(id: string): Promise<void> {
+  const res = await supabase
+    .from('doctor_availability')
+    .delete()
+    .eq('id', id);
+  await throwIfError(res as any);
 }

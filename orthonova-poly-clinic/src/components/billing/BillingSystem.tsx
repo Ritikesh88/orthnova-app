@@ -32,7 +32,7 @@ const BillingSystem: React.FC = () => {
 
   const [items, setItems] = useState<SelectedItem[]>([]);
   const [serviceSearch, setServiceSearch] = useState('');
-  const [discount, setDiscount] = useState<number>(0);
+  const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [mode, setMode] = useState<Mode>('Cash');
   const [txnRef, setTxnRef] = useState('');
   const [status, setStatus] = useState<'paid' | 'pending' | 'partial'>('paid');
@@ -52,7 +52,8 @@ const BillingSystem: React.FC = () => {
 
   const servicesTotal = useMemo(() => items.reduce((sum, it) => sum + Number(it.service.price) * it.quantity, 0), [items]);
   const total = useMemo(() => servicesTotal + opdFee, [servicesTotal, opdFee]);
-  const net = useMemo(() => Math.max(0, total - Number(discount || 0)), [total, discount]);
+  const discountAmount = useMemo(() => (total * Number(discountPercent || 0)) / 100, [total, discountPercent]);
+  const net = useMemo(() => Math.max(0, total - discountAmount), [total, discountAmount]);
 
   const addItem = (service: ServiceRow) => {
     setItems(prev => {
@@ -169,7 +170,7 @@ const BillingSystem: React.FC = () => {
         patient_id: finalPatientId,
         doctor_id: doctorId,
         total_amount: total,
-        discount: Number(discount || 0),
+        discount: discountAmount,
         net_amount: net,
         status,
         bill_number,
@@ -221,7 +222,7 @@ const BillingSystem: React.FC = () => {
       
       // Reset form
       setItems([]);
-      setDiscount(0);
+      setDiscountPercent(0);
       setMode('Cash');
       setTxnRef('');
       setStatus('paid');
@@ -355,18 +356,20 @@ const BillingSystem: React.FC = () => {
                 <div className="flex justify-between"><span>Consultation Fee</span><span>{formatCurrency(opdFee)}</span></div>
                 <div className="flex justify-between"><span>Services Total</span><span>{formatCurrency(servicesTotal)}</span></div>
                 <div className="flex justify-between font-medium"><span>Gross Total</span><span>{formatCurrency(total)}</span></div>
-                <div className="border-t border-gray-100 pt-2 mt-2">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Discount (₹)</label>
+                <div className="border-t border-gray-100 pt-2 mt-2 flex justify-between items-center">
+                  <label className="text-xs font-medium text-gray-600">Discount (%)</label>
                   <input 
                     type="number" 
                     step="0.01" 
-                    className="w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500 text-sm" 
-                    value={discount} 
-                    onChange={e => setDiscount(Number(e.target.value))} 
-                    placeholder="Enter discount amount"
+                    min="0"
+                    max="100"
+                    className="w-32 rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500 text-sm text-right" 
+                    value={discountPercent} 
+                    onChange={e => setDiscountPercent(Math.min(100, Math.max(0, Number(e.target.value))))} 
+                    placeholder="0"
                   />
                 </div>
-                <div className="flex justify-between text-red-600"><span>Discount Applied</span><span>-{formatCurrency(Number(discount || 0))}</span></div>
+                <div className="flex justify-between text-red-600"><span>Discount Applied ({discountPercent}%)</span><span>-{formatCurrency(discountAmount)}</span></div>
                 <div className="flex justify-between text-lg font-semibold border-t border-gray-200 pt-2 mt-2"><span>Net Amount</span><span>{formatCurrency(net)}</span></div>
               </div>
             </div>

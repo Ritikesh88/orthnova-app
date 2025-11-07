@@ -58,6 +58,7 @@ function usePageTitle(): string {
   const { pathname } = useLocation();
   if (pathname === '/' || pathname === '') return 'Dashboard';
   if (pathname.startsWith('/admin/users')) return 'User Management';
+  if (pathname.startsWith('/admin/doctor-availability')) return 'Doctor Availability';
   if (pathname.startsWith('/patients/register')) return 'Patient Registration';
   if (pathname.startsWith('/patients')) return 'Patients';
   if (pathname.startsWith('/admin/services')) return 'Manage Service';
@@ -65,7 +66,6 @@ function usePageTitle(): string {
   if (pathname.startsWith('/billing')) return 'Billing';
   if (pathname.startsWith('/admin/inventory')) return 'Inventory';
   if (pathname.startsWith('/physician/dispense')) return 'Physician Dispense';
-  if (pathname.startsWith('/prescriptions/list')) return 'Prescription History';
   if (pathname.startsWith('/prescriptions')) return 'Generate Prescription';
   if (pathname.startsWith('/appointments/book')) return 'Book Appointment';
   if (pathname.startsWith('/appointments/calendar')) return 'Calendar';
@@ -91,6 +91,7 @@ const DashboardLayout: React.FC = () => {
               <NavLink to="/admin/dashboard" className={navItemClass}><span>{Icon.dashboard}</span><span>Admin Dashboard</span></NavLink>
               <NavLink to="/admin/users" className={navItemClass}><span>{Icon.users}</span><span>User Management</span></NavLink>
               <NavLink to="/admin/reports" className={navItemClass}><span>{Icon.reports}</span><span>Reports</span></NavLink>
+              <NavLink to="/admin/doctor-availability" className={navItemClass}><span>{Icon.doctor}</span><span>Doctor Availability</span></NavLink>
               <NavLink to="/billing/history" className={navItemClass}><span>{Icon.history}</span><span>Billing History</span></NavLink>
               <NavLink to="/appointments" className={navItemClass} end><span>{Icon.appointment}</span><span>Appointment History</span></NavLink>
               <NavLink to="/admin/services" className={navItemClass}><span>{Icon.services}</span><span>Manage Service</span></NavLink>
@@ -109,7 +110,6 @@ const DashboardLayout: React.FC = () => {
 
               <SectionTitle>Prescription</SectionTitle>
               <NavLink to="/prescriptions" className={navItemClass} end><span>{Icon.prescription}</span><span>Generate Prescription</span></NavLink>
-              <NavLink to="/prescriptions/list" className={navItemClass}><span>{Icon.history}</span><span>Prescription History</span></NavLink>
 
               <SectionTitle>Billing</SectionTitle>
               <NavLink to="/billing" className={navItemClass} end><span>{Icon.billing}</span><span>Billing</span></NavLink>

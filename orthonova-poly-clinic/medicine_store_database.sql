@@ -200,7 +200,36 @@ CREATE INDEX IF NOT EXISTS idx_stock_purchases_supplier ON stock_purchases(suppl
 CREATE INDEX IF NOT EXISTS idx_stock_purchases_invoice ON stock_purchases(invoice_number);
 CREATE INDEX IF NOT EXISTS idx_stock_purchases_date ON stock_purchases(invoice_date);
 
--- 15. Create views for common queries
+-- 15. Create doctor availability table for managing doctor schedules
+CREATE TABLE IF NOT EXISTS doctor_availability (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  doctor_id UUID REFERENCES doctors(id) ON DELETE CASCADE,
+  day_of_week INTEGER, -- NULL for specific dates, 0-6 for recurring weekly availability
+  specific_date DATE, -- NULL for recurring availability, specific date for one-time availability
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  is_available BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  CONSTRAINT valid_availability_type CHECK (
+    (day_of_week IS NOT NULL AND specific_date IS NULL) OR 
+    (day_of_week IS NULL AND specific_date IS NOT NULL)
+  )
+);
+
+-- 16. Create indexes for doctor availability
+CREATE INDEX IF NOT EXISTS idx_doctor_availability_doctor_id ON doctor_availability(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_doctor_availability_day ON doctor_availability(day_of_week);
+CREATE INDEX IF NOT EXISTS idx_doctor_availability_date ON doctor_availability(specific_date);
+
+-- 17. Insert default availability for all doctors (9 AM to 9 PM, all days)
+-- This will need to be run after doctors are created
+-- INSERT INTO doctor_availability (doctor_id, day_of_week, start_time, end_time, is_available)
+-- SELECT id, generate_series(0,6) as day_of_week, '09:00'::time, '21:00'::time, true
+-- FROM doctors
+-- ON CONFLICT DO NOTHING;
+
+-- 18. Create views for common queries
 CREATE OR REPLACE VIEW inventory_summary AS
 SELECT 
   i.id,
@@ -223,7 +252,7 @@ SELECT
   END as expiry_status
 FROM inventory_items i;
 
--- 16. Create view for sales summary
+-- 19. Create view for sales summary
 CREATE OR REPLACE VIEW medicine_sales_summary AS
 SELECT 
   DATE_TRUNC('day', b.created_at) as sale_date,
@@ -237,49 +266,58 @@ WHERE b.is_medicine_store_bill = TRUE
 GROUP BY DATE_TRUNC('day', b.created_at)
 ORDER BY sale_date DESC;
 
--- 17. Enable Row Level Security (RLS)
+-- 20. Enable Row Level Security (RLS)
 ALTER TABLE medicine_store_bills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE medicine_store_bill_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE stock_purchases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE stock_purchase_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE suppliers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE doctor_availability ENABLE ROW LEVEL SECURITY;
 
--- 18. Create RLS policies
+-- 21. Create RLS policies
 -- Allow authenticated users to read medicine store bills
-CREATE POLICY "Allow authenticated users to read medicine store bills" ON medicine_store_bills
+CREATE POLICY "Allow authenticated users to read medicine_store_bills" ON medicine_store_bills
   FOR SELECT USING (auth.role() = 'authenticated');
 
 -- Allow store managers and admins to manage medicine store bills
-CREATE POLICY "Allow store managers and admins to manage medicine store bills" ON medicine_store_bills
+CREATE POLICY "Allow store managers and admins to manage medicine_store_bills" ON medicine_store_bills
   FOR ALL USING (auth.role() IN ('store_manager', 'admin'));
 
 -- Allow authenticated users to read bill items
-CREATE POLICY "Allow authenticated users to read bill items" ON medicine_store_bill_items
+CREATE POLICY "Allow authenticated users to read medicine_store_bill_items" ON medicine_store_bill_items
   FOR SELECT USING (auth.role() = 'authenticated');
 
 -- Allow store managers and admins to manage bill items
-CREATE POLICY "Allow store managers and admins to manage bill items" ON medicine_store_bill_items
+CREATE POLICY "Allow store managers and admins to manage medicine_store_bill_items" ON medicine_store_bill_items
   FOR ALL USING (auth.role() IN ('store_manager', 'admin'));
 
 -- Allow store managers and admins to manage stock purchases
-CREATE POLICY "Allow store managers and admins to manage stock purchases" ON stock_purchases
+CREATE POLICY "Allow store managers and admins to manage stock_purchases" ON stock_purchases
   FOR ALL USING (auth.role() IN ('store_manager', 'admin'));
 
 -- Allow store managers and admins to manage purchase items
-CREATE POLICY "Allow store managers and admins to manage purchase items" ON stock_purchase_items
+CREATE POLICY "Allow store managers and admins to manage stock_purchase_items" ON stock_purchase_items
   FOR ALL USING (auth.role() IN ('store_manager', 'admin'));
 
 -- Allow store managers and admins to manage suppliers
 CREATE POLICY "Allow store managers and admins to manage suppliers" ON suppliers
   FOR ALL USING (auth.role() IN ('store_manager', 'admin'));
 
--- 19. Insert sample data for testing
+-- Allow authenticated users to read doctor availability
+CREATE POLICY "Allow authenticated users to read doctor_availability" ON doctor_availability
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Allow authenticated users to manage doctor availability
+CREATE POLICY "Allow authenticated users to manage doctor_availability" ON doctor_availability
+  FOR ALL USING (true);
+
+-- 22. Insert sample data for testing
 INSERT INTO suppliers (name, contact_person, phone, email, address, gst_number) VALUES
 ('MediPharm Distributors', 'Rajesh Kumar', '+91-98765-43210', 'rajesh@medipharm.com', 'Mumbai, Maharashtra', '27ABCDE1234F1Z5'),
 ('HealthCare Supplies', 'Priya Sharma', '+91-98765-43211', 'priya@healthcare.com', 'Delhi, NCR', '07FGHIJ5678K9L2'),
 ('Pharma Solutions', 'Amit Patel', '+91-98765-43212', 'amit@pharma.com', 'Ahmedabad, Gujarat', '24MNOPQ9012R3S6');
 
--- 20. Create trigger to update stock when medicine store bill is created
+-- 23. Create trigger to update stock when medicine store bill is created
 CREATE OR REPLACE FUNCTION update_stock_on_medicine_sale()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -298,7 +336,7 @@ CREATE TRIGGER trigger_update_stock_on_sale
   FOR EACH ROW
   EXECUTE FUNCTION update_stock_on_medicine_sale();
 
--- 21. Create trigger to log stock changes
+-- 24. Create trigger to log stock changes
 CREATE OR REPLACE FUNCTION log_stock_change()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -328,13 +366,13 @@ CREATE TRIGGER trigger_log_stock_change
   WHEN (OLD.current_stock IS DISTINCT FROM NEW.current_stock)
   EXECUTE FUNCTION log_stock_change();
 
--- 22. Grant necessary permissions
+-- 25. Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
 
--- 23. Create comments for documentation
+-- 26. Create comments for documentation
 COMMENT ON TABLE medicine_store_bills IS 'Medicine store billing information';
 COMMENT ON TABLE medicine_store_bill_items IS 'Individual items in medicine store bills';
 COMMENT ON TABLE stock_purchases IS 'Inventory purchase records from suppliers';
@@ -347,7 +385,7 @@ COMMENT ON FUNCTION calculate_gst_amount IS 'Calculate GST amount based on price
 COMMENT ON FUNCTION get_low_stock_items IS 'Get items with stock below threshold';
 COMMENT ON FUNCTION get_expiring_items IS 'Get items expiring within specified days';
 
--- 24. Final verification queries
+-- 27. Final verification queries
 -- Check if all tables were created successfully
 SELECT 
   schemaname,
@@ -361,7 +399,8 @@ WHERE schemaname = 'public'
     'stock_purchases',
     'stock_purchase_items',
     'suppliers',
-    'medicine_categories'
+    'medicine_categories',
+    'doctor_availability'
   );
 
 -- Check if all functions were created successfully

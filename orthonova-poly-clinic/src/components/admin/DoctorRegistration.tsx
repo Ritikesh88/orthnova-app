@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createDoctor, listDoctors } from '../../api';
 import { DoctorRow } from '../../types';
 import { generateDoctorId } from '../../utils/idGenerators';
+import { Link } from 'react-router-dom';
 
 const DoctorRegistration: React.FC = () => {
   const [doctors, setDoctors] = useState<DoctorRow[]>([]);
@@ -65,7 +66,10 @@ const DoctorRegistration: React.FC = () => {
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Doctors</h2>
-          <button className="btn btn-secondary" onClick={refresh} disabled={loading}>Refresh</button>
+          <div className="flex gap-2">
+            <Link to="/admin/doctor-availability" className="btn btn-secondary">Manage Availability</Link>
+            <button className="btn btn-secondary" onClick={refresh} disabled={loading}>Refresh</button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">

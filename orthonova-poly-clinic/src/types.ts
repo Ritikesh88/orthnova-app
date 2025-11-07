@@ -30,6 +30,18 @@ export interface DoctorRow {
   created_at: string;
 }
 
+export interface DoctorAvailabilityRow {
+  id: string;
+  doctor_id: string;
+  day_of_week: number | null; // 0 = Sunday, 6 = Saturday, null for specific dates
+  specific_date: string | null; // YYYY-MM-DD format, null for recurring availability
+  start_time: string; // HH:MM format
+  end_time: string; // HH:MM format
+  is_available: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ServiceRow {
   id: string; // UUID
   service_name: string;

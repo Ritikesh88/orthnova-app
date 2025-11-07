@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createAppointment, listAppointments, listDoctors, listServices, searchPatientsByContact } from '../../api';
-import { DoctorRow, PatientRow, ServiceRow } from '../../types';
+import { createAppointment, listAppointments, listDoctors, listServices, searchPatientsByContact, listDoctorAvailability } from '../../api';
+import { DoctorRow, PatientRow, ServiceRow, DoctorAvailabilityRow } from '../../types';
 import Modal from '../common/Modal';
 
 function formatTime(date: Date): string {
@@ -50,6 +50,9 @@ const AppointmentBooking: React.FC = () => {
   // Calendar
   const [appointments, setAppointments] = useState([] as Awaited<ReturnType<typeof listAppointments>>);
 
+  // Add doctor availability state
+  const [doctorAvailability, setDoctorAvailability] = useState<DoctorAvailabilityRow[]>([]);
+
   // Selected service (dropdown)
   const [serviceQuery, setServiceQuery] = useState('');
   const [selectedService, setSelectedService] = useState<ServiceRow | null>(null);
@@ -87,9 +90,22 @@ const AppointmentBooking: React.FC = () => {
   // Load appointments when doctor changes
   useEffect(() => {
     (async () => {
-      if (!doctor) { setAppointments([]); return; }
+      if (!doctor) { 
+        setAppointments([]); 
+        setDoctorAvailability([]);
+        return; 
+      }
       const list = await listAppointments({ doctor_id: doctor.id });
       setAppointments(list);
+      
+      // Load doctor availability
+      try {
+        const availability = await listDoctorAvailability(doctor.id);
+        setDoctorAvailability(availability);
+      } catch (err) {
+        console.error('Failed to load doctor availability:', err);
+        setDoctorAvailability([]);
+      }
     })();
   }, [doctor]);
 
@@ -100,9 +116,74 @@ const AppointmentBooking: React.FC = () => {
     const arr: { time: string; date: Date }[] = [];
     const end = new Date(y, (m - 1), d, END_HOUR, 0, 0, 0);
     let cur = new Date(base);
-    while (cur <= end) { arr.push({ time: formatTime(cur), date: new Date(cur) }); cur = new Date(cur.getTime() + 15 * 60 * 1000); }
+    while (cur <= end) { 
+      arr.push({ time: formatTime(cur), date: new Date(cur) }); 
+      cur = new Date(cur.getTime() + 15 * 60 * 1000); 
+    }
     return arr;
   }, [date]);
+
+  // Check if a time slot is available based on doctor's availability settings
+  const isTimeSlotAvailable = (slotTime: string, slotDate: Date): boolean => {
+    // If no availability data, assume doctor is available from 9 AM to 9 PM (default behavior)
+    if (doctorAvailability.length === 0) {
+      const [slotHours, slotMinutes] = slotTime.split(':').map(Number);
+      const slotTimeInMinutes = slotHours * 60 + slotMinutes;
+      
+      // Default availability: 9 AM (540 minutes) to 9 PM (1260 minutes)
+      const defaultStartTime = 9 * 60; // 9 AM
+      const defaultEndTime = 21 * 60; // 9 PM
+      
+      return slotTimeInMinutes >= defaultStartTime && slotTimeInMinutes < defaultEndTime;
+    }
+    
+    const slotDateString = slotDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const dayOfWeek = slotDate.getDay(); // 0 = Sunday, 6 = Saturday
+    
+    // Check for specific date availability first (higher priority)
+    const specificDateAvailability = doctorAvailability.filter(a => 
+      a.specific_date === slotDateString && a.is_available
+    );
+    
+    if (specificDateAvailability.length > 0) {
+      // Check if the time falls within any of the specific date availability ranges
+      return isTimeWithinAvailability(slotTime, specificDateAvailability);
+    }
+    
+    // Check for recurring availability
+    const recurringAvailability = doctorAvailability.filter(a => 
+      a.day_of_week === dayOfWeek && a.is_available && a.specific_date === null
+    );
+    
+    if (recurringAvailability.length > 0) {
+      // Check if the time falls within any of the recurring availability ranges
+      return isTimeWithinAvailability(slotTime, recurringAvailability);
+    }
+    
+    // No availability found for this date/time
+    return false;
+  };
+  
+  // Helper function to check if a time is within availability ranges
+  const isTimeWithinAvailability = (slotTime: string, availabilityList: DoctorAvailabilityRow[]): boolean => {
+    const [slotHours, slotMinutes] = slotTime.split(':').map(Number);
+    const slotTimeInMinutes = slotHours * 60 + slotMinutes;
+    
+    for (const availability of availabilityList) {
+      const [startHours, startMinutes] = availability.start_time.split(':').map(Number);
+      const [endHours, endMinutes] = availability.end_time.split(':').map(Number);
+      
+      const startTimeInMinutes = startHours * 60 + startMinutes;
+      const endTimeInMinutes = endHours * 60 + endMinutes;
+      
+      // Check if slot time falls within this availability range
+      if (slotTimeInMinutes >= startTimeInMinutes && slotTimeInMinutes < endTimeInMinutes) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
 
   const bookedTimes = useMemo(() => {
     if (!doctor) return new Set<string>();
@@ -229,34 +310,52 @@ const AppointmentBooking: React.FC = () => {
               </div>
               <div className="flex items-center gap-3">
                 <span className="inline-flex items-center gap-1 text-sm"><span className="w-3 h-3 inline-block rounded bg-green-200 border border-green-400" /> Available</span>
-                <span className="inline-flex items-center gap-1 text-sm"><span className="w-3 h-3 inline-block rounded bg-amber-200 border border-amber-400" /> Booked</span>
+                <span className="inline-flex items-center gap-1 text-sm"><span className="w-3 h-3 inline-block rounded bg-red-200 border border-red-400" /> Booked</span>
               </div>
             </div>
           </div>
           <div className="card p-5 max-h-[620px] overflow-y-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr>
-                  <th className="text-left text-gray-500 py-2 pr-4">Time</th>
-                  <th className="text-left text-gray-500 py-2 pr-4">Slot</th>
-                </tr>
-              </thead>
-              <tbody>
-                {slots.map(({ time }) => {
-                  const isBooked = bookedTimes.has(time);
-                  return (
-                    <tr key={time} className="border-t border-gray-100">
-                      <td className="py-2 pr-4 font-mono text-gray-600">{time}</td>
-                      <td className="py-2 pr-4">
-                        <button type="button" onClick={() => !isBooked && onPickSlot(time)} className={`w-full h-8 rounded-md border transition ${isBooked ? 'bg-amber-100 border-amber-300 text-amber-800 cursor-not-allowed' : 'bg-green-100 border-green-300 text-green-800 hover:bg-green-200'}`}>
-                          {isBooked ? 'Booked' : (timeValue === time ? 'Selected' : 'Available')}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {slots.map(({ time, date }) => {
+                // Calculate the end time for this slot (15 minutes later)
+                const [hours, minutes] = time.split(':').map(Number);
+                const startTime = new Date();
+                startTime.setHours(hours, minutes, 0, 0);
+                const endTime = new Date(startTime.getTime() + 15 * 60000);
+                const endTimeString = formatTime(endTime);
+                
+                // Check if slot is available based on doctor's schedule
+                const isAvailable = isTimeSlotAvailable(time, date);
+                const isBooked = bookedTimes.has(time);
+                const isSelected = timeValue === time;
+                
+                // Slot is available only if it's within doctor's availability and not already booked
+                const slotAvailable = isAvailable && !isBooked;
+                
+                return (
+                  <button 
+                    key={time} 
+                    type="button" 
+                    onClick={() => slotAvailable && onPickSlot(time)} 
+                    className={`p-3 rounded-lg border transition text-center ${
+                      !isAvailable ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed' :
+                      isBooked ? 'bg-red-100 border-red-300 text-red-800 cursor-not-allowed' :
+                      isSelected ? 'bg-blue-100 border-blue-300 text-blue-800' :
+                      'bg-green-100 border-green-300 text-green-800 hover:bg-green-200'
+                    }`}
+                    disabled={!slotAvailable}
+                  >
+                    <div className="font-medium">{time} - {endTimeString}</div>
+                    <div className="text-xs mt-1">
+                      {!isAvailable ? 'Not Available' :
+                       isBooked ? 'Booked' :
+                       isSelected ? 'Selected' :
+                       'Available'}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@ import DashboardLayout from './components/layout/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserManagement from './components/admin/UserManagement';
 import DoctorRegistration from './components/admin/DoctorRegistration';
+import DoctorAvailability from './components/admin/DoctorAvailability';
 import ServicesCatalog from './components/admin/ServicesCatalog';
 import PatientRegistration from './components/patients/PatientRegistration';
 import BillingSystem from './components/billing/BillingSystem';
@@ -61,6 +62,7 @@ const AppRoutes: React.FC = () => {
         <Route path="receptionist/dashboard" element={<ProtectedRoute allowedRoles={["receptionist"] as any}><ReceptionistDashboard /></ProtectedRoute>} />
         <Route path="admin/users" element={<ProtectedRoute allowedRoles={["admin"] as any}><UserManagement /></ProtectedRoute>} />
         <Route path="admin/doctors" element={<ProtectedRoute allowedRoles={["admin"] as any}><DoctorRegistration /></ProtectedRoute>} />
+        <Route path="admin/doctor-availability" element={<ProtectedRoute allowedRoles={["admin", "doctor"] as any}><DoctorAvailability /></ProtectedRoute>} />
         <Route path="admin/services" element={<ProtectedRoute allowedRoles={["admin"] as any}><ServicesCatalog /></ProtectedRoute>} />
         <Route path="admin/reports" element={<ProtectedRoute allowedRoles={["admin"] as any}><Reports /></ProtectedRoute>} />
         <Route path="admin/inventory" element={<ProtectedRoute allowedRoles={["admin", "store_manager"] as any}><InventoryManager /></ProtectedRoute>} />
@@ -78,7 +80,7 @@ const AppRoutes: React.FC = () => {
         <Route path="billing/history" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "doctor"] as any}><BillHistory /></ProtectedRoute>} />
         {/* Doctor + Receptionist */}
         <Route path="prescriptions" element={<ProtectedRoute allowedRoles={["doctor", "receptionist", "admin"] as any}><PrescriptionForm /></ProtectedRoute>} />
-        <Route path="prescriptions/list" element={<ProtectedRoute allowedRoles={["doctor", "receptionist", "admin"] as any}><PrescriptionsList /></ProtectedRoute>} />
+        <Route path="prescriptions/list" element={<ProtectedRoute allowedRoles={["doctor", "admin"] as any}><PrescriptionsList /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
