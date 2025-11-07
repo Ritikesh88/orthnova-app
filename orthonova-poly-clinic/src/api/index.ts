@@ -274,10 +274,11 @@ export async function createAppointment(row: Omit<AppointmentRow, 'id' | 'create
   const res = await supabase.from('appointments').insert(row).select('*').single();
   return throwIfError<AppointmentRow>(res);
 }
-export async function listAppointments(filters?: { doctor_id?: string; patient_id?: string }): Promise<AppointmentRow[]> {
+export async function listAppointments(filters?: { doctor_id?: string; patient_id?: string; appointment_date?: string }): Promise<AppointmentRow[]> {
   let q = supabase.from('appointments').select('*').order('created_at', { ascending: true });
   if (filters?.doctor_id) q = q.eq('doctor_id', filters.doctor_id);
   if (filters?.patient_id) q = q.eq('patient_id', filters.patient_id);
+  if (filters?.appointment_date) q = q.eq('appointment_date', filters.appointment_date);
   const res = await q;
   return throwIfError<AppointmentRow[]>(res);
 }

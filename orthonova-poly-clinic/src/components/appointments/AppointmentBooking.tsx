@@ -4,7 +4,9 @@ import { DoctorRow, PatientRow, ServiceRow, DoctorAvailabilityRow } from '../../
 import Modal from '../common/Modal';
 
 function formatTime(date: Date): string {
-  return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
 }
 
 function toDateInputValue(d: Date): string {
@@ -87,7 +89,7 @@ const AppointmentBooking: React.FC = () => {
     else { setPatient(null); setMessage('No patients found for that contact'); }
   };
 
-  // Load appointments when doctor changes
+  // Load appointments when doctor or date changes
   useEffect(() => {
     (async () => {
       if (!doctor) { 
@@ -95,7 +97,7 @@ const AppointmentBooking: React.FC = () => {
         setDoctorAvailability([]);
         return; 
       }
-      const list = await listAppointments({ doctor_id: doctor.id });
+      const list = await listAppointments({ doctor_id: doctor.id, appointment_date: date });
       setAppointments(list);
       
       // Load doctor availability
@@ -107,7 +109,7 @@ const AppointmentBooking: React.FC = () => {
         setDoctorAvailability([]);
       }
     })();
-  }, [doctor]);
+  }, [doctor, date]);
 
   // Slots for chosen booking date
   const slots: { time: string; date: Date }[] = useMemo(() => {
@@ -125,14 +127,14 @@ const AppointmentBooking: React.FC = () => {
 
   // Check if a time slot is available based on doctor's availability settings
   const isTimeSlotAvailable = (slotTime: string, slotDate: Date): boolean => {
-    // If no availability data, assume doctor is available from 9 AM to 9 PM (default behavior)
+    // If no availability data, assume doctor is available from START_HOUR to END_HOUR (default behavior)
     if (doctorAvailability.length === 0) {
       const [slotHours, slotMinutes] = slotTime.split(':').map(Number);
       const slotTimeInMinutes = slotHours * 60 + slotMinutes;
       
-      // Default availability: 9 AM (540 minutes) to 9 PM (1260 minutes)
-      const defaultStartTime = 9 * 60; // 9 AM
-      const defaultEndTime = 21 * 60; // 9 PM
+      // Default availability: START_HOUR to END_HOUR
+      const defaultStartTime = START_HOUR * 60;
+      const defaultEndTime = END_HOUR * 60;
       
       return slotTimeInMinutes >= defaultStartTime && slotTimeInMinutes < defaultEndTime;
     }
@@ -185,21 +187,40 @@ const AppointmentBooking: React.FC = () => {
     return false;
   };
 
-  const bookedTimes = useMemo(() => {
+  const bookedSlots = useMemo(() => {
     if (!doctor) return new Set<string>();
-    const [y, m, d] = date.split('-').map(Number);
-    const dayStart = new Date(y, m - 1, d, 0, 0, 0, 0);
-    const dayEnd = new Date(y, m - 1, d, 23, 59, 59, 999);
     const set = new Set<string>();
+    
+    // For each appointment, find which slot it belongs to
     appointments.forEach(a => {
       if (a.doctor_id !== doctor.id) return;
-      const dt = new Date(a.created_at);
-      if (dt >= dayStart && dt <= dayEnd) {
-        dt.setSeconds(0, 0); const minutes = dt.getMinutes(); const rounded = new Date(dt);
-        const roundedMinutes = Math.floor(minutes / 15) * 15; rounded.setMinutes(roundedMinutes);
-        set.add(formatTime(rounded));
+      
+      // Use appointment_date if available, otherwise fall back to created_at
+      let appointmentDate: Date;
+      if (a.appointment_date) {
+        // Parse the appointment_date (YYYY-MM-DD format)
+        const [ay, am, ad] = a.appointment_date.split('-').map(Number);
+        // Use the time from created_at
+        const timePart = new Date(a.created_at).toTimeString().split(' ')[0]; // Get HH:MM:SS
+        appointmentDate = new Date(`${a.appointment_date}T${timePart}`);
+      } else {
+        appointmentDate = new Date(a.created_at);
       }
+      
+      // Find the slot that this appointment belongs to by checking which 15-minute window it falls in
+      appointmentDate.setSeconds(0, 0);
+      const appointmentMinutes = appointmentDate.getHours() * 60 + appointmentDate.getMinutes();
+      
+      // Round down to the nearest 15-minute slot
+      const slotMinutes = Math.floor(appointmentMinutes / 15) * 15;
+      const slotHours = Math.floor(slotMinutes / 60);
+      const slotMinute = slotMinutes % 60;
+      
+      // Format as HH:MM
+      const slotTime = `${slotHours.toString().padStart(2, '0')}:${slotMinute.toString().padStart(2, '0')}`;
+      set.add(slotTime);
     });
+    
     return set;
   }, [appointments, doctor, date]);
 
@@ -221,6 +242,12 @@ const AppointmentBooking: React.FC = () => {
         status: 'booked',
       });
       setMessage('Appointment booked'); setNotes('');
+      
+      // Refresh appointments to show the newly booked appointment
+      if (doctor) {
+        const list = await listAppointments({ doctor_id: doctor.id, appointment_date: date });
+        setAppointments(list);
+      }
     } catch (e: any) { setMessage(e.message); }
   };
 
@@ -319,14 +346,14 @@ const AppointmentBooking: React.FC = () => {
               {slots.map(({ time, date }) => {
                 // Calculate the end time for this slot (15 minutes later)
                 const [hours, minutes] = time.split(':').map(Number);
-                const startTime = new Date();
-                startTime.setHours(hours, minutes, 0, 0);
-                const endTime = new Date(startTime.getTime() + 15 * 60000);
+                const slotDate = new Date(date);
+                slotDate.setHours(hours, minutes, 0, 0);
+                const endTime = new Date(slotDate.getTime() + 15 * 60000);
                 const endTimeString = formatTime(endTime);
                 
                 // Check if slot is available based on doctor's schedule
                 const isAvailable = isTimeSlotAvailable(time, date);
-                const isBooked = bookedTimes.has(time);
+                const isBooked = bookedSlots.has(time);
                 const isSelected = timeValue === time;
                 
                 // Slot is available only if it's within doctor's availability and not already booked
