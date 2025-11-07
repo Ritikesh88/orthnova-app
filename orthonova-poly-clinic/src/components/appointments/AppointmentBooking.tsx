@@ -97,7 +97,7 @@ const AppointmentBooking: React.FC = () => {
         setDoctorAvailability([]);
         return; 
       }
-      const list = await listAppointments({ doctor_id: doctor.id, appointment_date: date });
+      const list = await listAppointments({ doctor_id: doctor.id, appointment_date_exact: date });
       setAppointments(list);
       
       // Load doctor availability
@@ -195,21 +195,37 @@ const AppointmentBooking: React.FC = () => {
     appointments.forEach(a => {
       if (a.doctor_id !== doctor.id) return;
       
-      // Use appointment_date if available, otherwise fall back to created_at
+      // Use appointment_datetime if available, otherwise use appointment_date with time from created_at
       let appointmentDate: Date;
-      if (a.appointment_date) {
-        // Parse the appointment_date (YYYY-MM-DD format)
-        const [ay, am, ad] = a.appointment_date.split('-').map(Number);
+      if (a.appointment_datetime) {
+        // Use the full datetime if available
+        appointmentDate = new Date(a.appointment_datetime);
+      } else if (a.appointment_date) {
+        // Parse the appointment_date (YYYY-MM-DD format) and combine with time from created_at
+        const datePart = a.appointment_date; // Already in YYYY-MM-DD format
         // Use the time from created_at
         const timePart = new Date(a.created_at).toTimeString().split(' ')[0]; // Get HH:MM:SS
-        appointmentDate = new Date(`${a.appointment_date}T${timePart}`);
+        appointmentDate = new Date(`${datePart}T${timePart}`);
       } else {
         appointmentDate = new Date(a.created_at);
       }
       
+      // Validate that we have a valid date
+      if (isNaN(appointmentDate.getTime())) {
+        return;
+      }
+      
       // Find the slot that this appointment belongs to by checking which 15-minute window it falls in
       appointmentDate.setSeconds(0, 0);
-      const appointmentMinutes = appointmentDate.getHours() * 60 + appointmentDate.getMinutes();
+      const hours = appointmentDate.getHours();
+      const minutes = appointmentDate.getMinutes();
+      
+      // Validate that hours and minutes are valid numbers
+      if (isNaN(hours) || isNaN(minutes)) {
+        return;
+      }
+      
+      const appointmentMinutes = hours * 60 + minutes;
       
       // Round down to the nearest 15-minute slot
       const slotMinutes = Math.floor(appointmentMinutes / 15) * 15;
@@ -239,13 +255,16 @@ const AppointmentBooking: React.FC = () => {
         patient_id: mode === 'guest' ? null : (patient?.id || null),
         doctor_id: doctor.id,
         appointment_date: date, // YYYY-MM-DD format
+        appointment_datetime: dt.toISOString(), // Full datetime
         status: 'booked',
       });
       setMessage('Appointment booked'); setNotes('');
       
       // Refresh appointments to show the newly booked appointment
       if (doctor) {
-        const list = await listAppointments({ doctor_id: doctor.id, appointment_date: date });
+        // Add a small delay to ensure the database has time to update
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const list = await listAppointments({ doctor_id: doctor.id, appointment_date_exact: date });
         setAppointments(list);
       }
     } catch (e: any) { setMessage(e.message); }
@@ -355,6 +374,11 @@ const AppointmentBooking: React.FC = () => {
                 const isAvailable = isTimeSlotAvailable(time, date);
                 const isBooked = bookedSlots.has(time);
                 const isSelected = timeValue === time;
+                
+                // Check if slot is booked
+                if (isBooked) {
+                  console.log('Slot', time, 'is booked');
+                }
                 
                 // Slot is available only if it's within doctor's availability and not already booked
                 const slotAvailable = isAvailable && !isBooked;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { adminSummary, getTopDoctors, getTopServices, AdminSummary, TopDoctor, TopService } from '../../api';
+import { adminSummary, getTopDoctors, getTopServices, getPendingAppointments, listPatients, listDoctors, AdminSummary, TopDoctor, TopService } from '../../api';
 import { formatCurrency } from '../../utils/format';
 
 const AdminDashboard: React.FC = () => {
@@ -10,6 +10,10 @@ const AdminDashboard: React.FC = () => {
   const [summary, setSummary] = useState<AdminSummary | null>(null);
   const [topDoctors, setTopDoctors] = useState<TopDoctor[]>([]);
   const [topServices, setTopServices] = useState<TopService[]>([]);
+  const [pendingAppointments, setPendingAppointments] = useState<any[]>([]);
+  const [showPendingModal, setShowPendingModal] = useState(false);
+  const [patientDetails, setPatientDetails] = useState<Record<string, any>>({});
+  const [doctorDetails, setDoctorDetails] = useState<Record<string, any>>({});
 
   // Set default date to today
   useEffect(() => {
@@ -33,15 +37,54 @@ const AdminDashboard: React.FC = () => {
       const endDate = `${selectedDate}T23:59:59`;
       const startDate = `${selectedDate}T00:00:00`;
 
-      const [summaryData, doctors, services] = await Promise.all([
+      const [summaryData, doctors, services, pending] = await Promise.all([
         adminSummary(selectedDate),
         getTopDoctors(startDate, endDate, 5),
         getTopServices(startDate, endDate, 5),
+        getPendingAppointments(selectedDate)
       ]);
 
       setSummary(summaryData);
       setTopDoctors(doctors);
       setTopServices(services);
+      setPendingAppointments(pending);
+      
+      // Fetch patient and doctor details for pending appointments
+      if (pending.length > 0) {
+        // Get unique patient and doctor IDs
+        const patientIds: string[] = [];
+        const doctorIds: string[] = [];
+        
+        pending.forEach((a: any) => {
+          if (a.patient_id && !patientIds.includes(a.patient_id)) {
+            patientIds.push(a.patient_id);
+          }
+          if (a.doctor_id && !doctorIds.includes(a.doctor_id)) {
+            doctorIds.push(a.doctor_id);
+          }
+        });
+        
+        // Fetch details in parallel
+        const [patients, doctors] = await Promise.all([
+          patientIds.length > 0 ? listPatients() : Promise.resolve([]),
+          doctorIds.length > 0 ? listDoctors() : Promise.resolve([])
+        ]);
+        
+        // Create lookup maps
+        const patientMap: Record<string, any> = {};
+        const doctorMap: Record<string, any> = {};
+        
+        patients.forEach((p: any) => {
+          patientMap[p.id] = p;
+        });
+        
+        doctors.forEach((d: any) => {
+          doctorMap[d.id] = d;
+        });
+        
+        setPatientDetails(patientMap);
+        setDoctorDetails(doctorMap);
+      }
     } catch (e: any) {
       console.error('Error fetching dashboard data:', e);
       setError(e.message || 'Failed to load dashboard data');
@@ -52,6 +95,13 @@ const AdminDashboard: React.FC = () => {
 
   const handleDateChange = (date: string) => {
     setSelectedDate(date);
+  };
+  
+  const handleAppointmentAction = (appointmentId: string, action: string) => {
+    console.log(`Appointment ${appointmentId} marked as ${action}`);
+    // TODO: Implement actual appointment action handling
+    // This would involve updating the appointment status in the database
+    alert(`Appointment action: ${action} - This would be implemented in a real application`);
   };
 
   // Calculate paid vs pending from summary
@@ -126,6 +176,14 @@ const AdminDashboard: React.FC = () => {
                   <p className="text-sm opacity-90 font-medium">Total Appointments</p>
                   <p className="text-3xl font-bold mt-2">{summary.total_appointments}</p>
                   <p className="text-xs opacity-75 mt-1">{summary.pending_appointments} pending</p>
+                  {summary.pending_appointments > 0 && (
+                    <button 
+                      onClick={() => setShowPendingModal(true)}
+                      className="text-xs underline mt-1"
+                    >
+                      View Details
+                    </button>
+                  )}
                 </div>
                 <div className="bg-white bg-opacity-20 rounded-full p-3">
                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -253,6 +311,97 @@ const AdminDashboard: React.FC = () => {
             </div>
           </div>
         </>
+      )}
+      
+      {/* Pending Appointments Modal */}
+      {showPendingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Pending Appointments</h3>
+              <button 
+                onClick={() => setShowPendingModal(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1">
+              {pendingAppointments.length > 0 ? (
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doctor</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {pendingAppointments.map((appointment) => (
+                      <tr key={appointment.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {appointment.patient_id 
+                              ? (patientDetails[appointment.patient_id]?.name || 'Unknown Patient')
+                              : (appointment.guest_name || 'Guest')}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {appointment.patient_id 
+                              ? (patientDetails[appointment.patient_id]?.contact || 'N/A')
+                              : (appointment.guest_contact || 'N/A')}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {new Date(appointment.appointment_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {doctorDetails[appointment.doctor_id]?.name || 'Unknown Doctor'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button 
+                            onClick={() => handleAppointmentAction(appointment.id, 'attended')}
+                            className="text-green-600 hover:text-green-900 mr-3"
+                          >
+                            Attended
+                          </button>
+                          <button 
+                            onClick={() => handleAppointmentAction(appointment.id, 'reschedule')}
+                            className="text-blue-600 hover:text-blue-900 mr-3"
+                          >
+                            Reschedule
+                          </button>
+                          <button 
+                            onClick={() => handleAppointmentAction(appointment.id, 'cancel')}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Cancel
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No pending appointments found</p>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+              <button 
+                onClick={() => setShowPendingModal(false)}
+                className="btn btn-secondary"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

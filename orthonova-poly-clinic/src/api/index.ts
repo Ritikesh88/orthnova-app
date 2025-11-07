@@ -274,13 +274,27 @@ export async function createAppointment(row: Omit<AppointmentRow, 'id' | 'create
   const res = await supabase.from('appointments').insert(row).select('*').single();
   return throwIfError<AppointmentRow>(res);
 }
-export async function listAppointments(filters?: { doctor_id?: string; patient_id?: string; appointment_date?: string }): Promise<AppointmentRow[]> {
+export async function listAppointments(filters?: { doctor_id?: string; patient_id?: string; appointment_date?: string; appointment_date_exact?: string }): Promise<AppointmentRow[]> {
   let q = supabase.from('appointments').select('*').order('created_at', { ascending: true });
   if (filters?.doctor_id) q = q.eq('doctor_id', filters.doctor_id);
   if (filters?.patient_id) q = q.eq('patient_id', filters.patient_id);
   if (filters?.appointment_date) q = q.eq('appointment_date', filters.appointment_date);
+  // Filter by exact date using appointment_datetime when available
+  if (filters?.appointment_date_exact) {
+    const startOfDay = `${filters.appointment_date_exact}T00:00:00`;
+    const endOfDay = `${filters.appointment_date_exact}T23:59:59`;
+    q = q.or(
+      `and(appointment_datetime.gte.${startOfDay},appointment_datetime.lte.${endOfDay}),` +
+      `appointment_date.eq.${filters.appointment_date_exact}`
+    );
+  }
   const res = await q;
   return throwIfError<AppointmentRow[]>(res);
+}
+
+export async function updateAppointment(id: string, updates: Partial<Omit<AppointmentRow, 'id' | 'created_at'>>): Promise<AppointmentRow> {
+  const res = await supabase.from('appointments').update(updates).eq('id', id).select('*').single();
+  return throwIfError<AppointmentRow>(res);
 }
 
 // Reports
@@ -710,11 +724,14 @@ export async function adminSummary(date?: string): Promise<AdminSummary> {
   );
 
   // Get appointments summary
+  // Check both appointment_datetime and appointment_date to ensure we catch all appointments for the date
   const appointmentsRes = await supabase
     .from('appointments')
     .select('status')
-    .gte('created_at', startOfDay)
-    .lte('created_at', endOfDay);
+    .or(
+      `and(appointment_datetime.gte.${startOfDay},appointment_datetime.lte.${endOfDay}),` +
+      `appointment_date.eq.${targetDate}`
+    );
 
   if (appointmentsRes.error) throw new Error(appointmentsRes.error.message);
 
@@ -729,6 +746,24 @@ export async function adminSummary(date?: string): Promise<AdminSummary> {
     total_appointments,
     pending_appointments,
   };
+}
+
+// Get pending appointments for a specific date
+export async function getPendingAppointments(date: string): Promise<AppointmentRow[]> {
+  const startOfDay = `${date}T00:00:00`;
+  const endOfDay = `${date}T23:59:59`;
+  
+  const res = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('status', 'booked')
+    .or(
+      `and(appointment_datetime.gte.${startOfDay},appointment_datetime.lte.${endOfDay}),` +
+      `appointment_date.eq.${date}`
+    )
+    .order('appointment_datetime', { ascending: true });
+  
+  return throwIfError<AppointmentRow[]>(res);
 }
 
 // Dashboard Analytics

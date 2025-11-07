@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getDoctorById, getPatientById, listAppointments } from '../../api';
+import { getDoctorById, getPatientById, listAppointments, updateAppointment } from '../../api';
 import { AppointmentRow } from '../../types';
 import { formatDateTime } from '../../utils/format';
 import { useAuth } from '../../context/AuthContext';
@@ -18,6 +18,52 @@ const AppointmentsList: React.FC = () => {
     const today = new Date();
     return today.toISOString().slice(0, 10);
   });
+  
+  const [showActionModal, setShowActionModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentRow | null>(null);
+  const [actionType, setActionType] = useState('');
+  
+  const handleAppointmentAction = async (appointmentId: string, action: string) => {
+    try {
+      let status: 'completed' | 'cancelled' | 'booked' | undefined;
+      switch (action) {
+        case 'attended':
+          status = 'completed';
+          break;
+        case 'cancel':
+          status = 'cancelled';
+          break;
+        case 'reschedule':
+          // For reschedule, we would typically open a modal or redirect to booking page
+          alert('Reschedule functionality would be implemented here');
+          return;
+        default:
+          return;
+      }
+      
+      await updateAppointment(appointmentId, { status });
+      
+      // Refresh the appointment list
+      const filters: { doctor_id?: string; appointment_date_exact?: string } = {};
+      if (user?.role === 'doctor' && user?.userId) {
+        filters.doctor_id = user?.userId;
+      }
+      if (searchDate) {
+        filters.appointment_date_exact = searchDate;
+      }
+      const list = await listAppointments(filters);
+      const enriched: Row[] = await Promise.all(list.map(async r => {
+        const [p, d] = await Promise.all([
+          r.patient_id ? getPatientById(r.patient_id) : Promise.resolve(null),
+          getDoctorById(r.doctor_id)
+        ]);
+        return { ...r, patientName: p?.name || r.guest_name || undefined, doctorName: d?.name, patientContact: r.patient_id ? p?.contact ?? null : (r.guest_contact ?? null) };
+      }));
+      setRows(enriched);
+    } catch (e: any) {
+      setError(e.message || 'Failed to update appointment');
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -25,7 +71,15 @@ const AppointmentsList: React.FC = () => {
       try {
         // For receptionist and admin, fetch all appointments
         // For doctor, fetch only their appointments
-        const list = await listAppointments(user?.role === 'doctor' ? { doctor_id: user?.userId } : undefined);
+        // Filter by exact date when appointment_datetime is available
+        let filters: { doctor_id?: string; appointment_date_exact?: string } = {};
+        if (user?.role === 'doctor' && user?.userId) {
+          filters = { ...filters, doctor_id: user?.userId };
+        }
+        if (searchDate) {
+          filters = { ...filters, appointment_date_exact: searchDate };
+        }
+        const list = await listAppointments(filters);
         const enriched: Row[] = await Promise.all(list.map(async r => {
           const [p, d] = await Promise.all([
             r.patient_id ? getPatientById(r.patient_id) : Promise.resolve(null),
@@ -37,7 +91,7 @@ const AppointmentsList: React.FC = () => {
       } catch (e: any) { setError(e.message); }
       finally { setLoading(false); }
     })();
-  }, [user]);
+  }, [user, searchDate]);
 
   const filtered = useMemo(() => {
     const txt = searchText.trim().toLowerCase();
@@ -47,9 +101,12 @@ const AppointmentsList: React.FC = () => {
         .filter(Boolean)
         .some(v => String(v).toLowerCase().includes(txt));
       
-      // For date matching, we'll use appointment_date field if available, otherwise fall back to created_at
+      // For date matching, we'll use appointment_datetime if available, otherwise appointment_date field, otherwise fall back to created_at
       let appointmentDate = '';
-      if (r.appointment_date) {
+      if (r.appointment_datetime) {
+        // Extract date from appointment_datetime timestamp
+        appointmentDate = new Date(r.appointment_datetime).toISOString().slice(0,10);
+      } else if (r.appointment_date) {
         // appointment_date is already in YYYY-MM-DD format
         appointmentDate = r.appointment_date;
       } else if (r.created_at) {
@@ -63,10 +120,12 @@ const AppointmentsList: React.FC = () => {
     
     // Sort by appointment datetime
     return filteredRows.sort((a, b) => {
-      // Use appointment_date + created_at time, or just created_at if appointment_date is not available
+      // Use appointment_datetime if available, otherwise appointment_date + created_at time, or just created_at if neither is available
       let aDateTime, bDateTime;
       
-      if (a.appointment_date && a.created_at) {
+      if (a.appointment_datetime) {
+        aDateTime = new Date(a.appointment_datetime);
+      } else if (a.appointment_date && a.created_at) {
         // Combine appointment date with time from created_at
         const aTime = new Date(a.created_at).toTimeString().split(' ')[0]; // Get HH:MM:SS
         aDateTime = new Date(`${a.appointment_date}T${aTime}`);
@@ -74,7 +133,9 @@ const AppointmentsList: React.FC = () => {
         aDateTime = new Date(a.created_at);
       }
       
-      if (b.appointment_date && b.created_at) {
+      if (b.appointment_datetime) {
+        bDateTime = new Date(b.appointment_datetime);
+      } else if (b.appointment_date && b.created_at) {
         // Combine appointment date with time from created_at
         const bTime = new Date(b.created_at).toTimeString().split(' ')[0]; // Get HH:MM:SS
         bDateTime = new Date(`${b.appointment_date}T${bTime}`);
@@ -124,21 +185,46 @@ const AppointmentsList: React.FC = () => {
                 <th className="py-2 pr-4">Doctor</th>
                 <th className="py-2 pr-4">Status</th>
                 <th className="py-2 pr-4">Notes</th>
+                <th className="py-2 pr-4">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(r => (
                 <tr key={r.id} className="border-t border-gray-100">
-                  <td className="py-2 pr-4">{formatDateTime(r.created_at)}</td>
+                  <td className="py-2 pr-4">{formatDateTime(r.appointment_datetime || r.created_at)}</td>
                   <td className="py-2 pr-4">{r.patientName || '-'}</td>
                   <td className="py-2 pr-4">{r.patientContact || '-'}</td>
                   <td className="py-2 pr-4">{r.doctorName || r.doctor_id}</td>
                   <td className="py-2 pr-4 capitalize">{r.status}</td>
                   <td className="py-2 pr-4">{r.notes || '-'}</td>
+                  <td className="py-2 pr-4">
+                    {r.status === 'booked' && (
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={() => handleAppointmentAction(r.id, 'attended')}
+                          className="text-green-600 hover:text-green-900 text-sm"
+                        >
+                          Attended
+                        </button>
+                        <button 
+                          onClick={() => handleAppointmentAction(r.id, 'reschedule')}
+                          className="text-blue-600 hover:text-blue-900 text-sm"
+                        >
+                          Reschedule
+                        </button>
+                        <button 
+                          onClick={() => handleAppointmentAction(r.id, 'cancel')}
+                          className="text-red-600 hover:text-red-900 text-sm"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td className="py-4 text-gray-500" colSpan={6}>{loading ? 'Loading...' : 'No appointments found.'}</td></tr>
+                <tr><td className="py-4 text-gray-500" colSpan={7}>{loading ? 'Loading...' : 'No appointments found.'}</td></tr>
               )}
             </tbody>
           </table>
