@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { listAppointments, listDoctors } from '../../api';
+import { listAppointments, listDoctors, getPendingAppointments, listPatients } from '../../api';
 import { AppointmentRow, DoctorRow } from '../../types';
 import { formatDate, formatDateTime } from '../../utils/format';
 
@@ -8,6 +8,9 @@ const ReceptionistDashboard: React.FC = () => {
   const [doctors, setDoctors] = useState<DoctorRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPendingModal, setShowPendingModal] = useState(false);
+  const [pendingApptsData, setPendingApptsData] = useState<AppointmentRow[]>([]);
+  const [patientDetails, setPatientDetails] = useState<Record<string, any>>({});
 
   useEffect(() => {
     fetchDashboardData();
@@ -20,19 +23,46 @@ const ReceptionistDashboard: React.FC = () => {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      const [appointments, allDoctors] = await Promise.all([
+      const [appointments, allDoctors, pending] = await Promise.all([
         listAppointments(),
-        listDoctors()
+        listDoctors(),
+        getPendingAppointments(today)
       ]);
 
       // Filter today's appointments
       const todaysAppts = appointments.filter(apt => {
-        const aptDate = apt.created_at ? new Date(apt.created_at).toISOString().split('T')[0] : '';
+        // Use appointment_datetime if available, otherwise appointment_date, fallback to created_at
+        let aptDate = '';
+        if (apt.appointment_datetime) {
+          aptDate = new Date(apt.appointment_datetime).toISOString().split('T')[0];
+        } else if (apt.appointment_date) {
+          aptDate = apt.appointment_date;
+        } else if (apt.created_at) {
+          aptDate = new Date(apt.created_at).toISOString().split('T')[0];
+        }
         return aptDate === today;
       });
 
       setTodayAppointments(todaysAppts);
       setDoctors(allDoctors);
+      setPendingApptsData(pending);
+      
+      // Fetch patient details for pending appointments
+      if (pending.length > 0) {
+        const patientIds = pending
+          .filter(a => a.patient_id)
+          .map(a => a.patient_id)
+          .filter((id, index, arr) => arr.indexOf(id) === index); // Get unique IDs
+        
+        if (patientIds.length > 0) {
+          const patients = await listPatients();
+          const patientMap: Record<string, any> = {};
+          patients.forEach((p: any) => {
+            patientMap[p.id] = p;
+          });
+          setPatientDetails(patientMap);
+        }
+      }
     } catch (e: any) {
       console.error('Error fetching dashboard data:', e);
       setError(e.message || 'Failed to load dashboard data');
@@ -42,7 +72,7 @@ const ReceptionistDashboard: React.FC = () => {
   };
 
   // Calculate pending appointments
-  const pendingAppointments = todayAppointments.filter(apt => apt.status === 'booked');
+  const pendingAppts = todayAppointments.filter(apt => apt.status === 'booked');
   const completedAppointments = todayAppointments.filter(apt => apt.status === 'completed');
 
   // Calculate doctor slots - only include doctors who have appointments today
@@ -117,8 +147,16 @@ const ReceptionistDashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm opacity-90 font-medium">Pending</p>
-                  <p className="text-3xl font-bold mt-2">{pendingAppointments.length}</p>
+                  <p className="text-3xl font-bold mt-2">{pendingAppts.length}</p>
                   <p className="text-xs opacity-75 mt-1">Waiting to be seen</p>
+                  {pendingAppts.length > 0 && (
+                    <button 
+                      onClick={() => setShowPendingModal(true)}
+                      className="text-xs underline mt-1"
+                    >
+                      View Details
+                    </button>
+                  )}
                 </div>
                 <div className="bg-white bg-opacity-20 rounded-full p-3">
                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -157,13 +195,13 @@ const ReceptionistDashboard: React.FC = () => {
                   Pending Appointments Today
                 </h3>
                 <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                  {pendingAppointments.length}
+                  {pendingAppts.length}
                 </span>
               </div>
 
-              {pendingAppointments.length > 0 ? (
+              {pendingAppts.length > 0 ? (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {pendingAppointments.map((apt) => {
+                  {pendingAppts.map((apt: any) => {
                     const doctor = doctors.find(d => d.id === apt.doctor_id);
                     return (
                       <div key={apt.id} className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl hover:bg-yellow-100 transition-colors">
@@ -174,7 +212,9 @@ const ReceptionistDashboard: React.FC = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                               </svg>
                               <p className="font-medium text-gray-900">
-                                {apt.guest_name || 'Patient'}
+                                {apt.patient_id 
+                                  ? (patientDetails[apt.patient_id]?.name || 'Unknown Patient')
+                                  : (apt.guest_name || 'Guest')}
                               </p>
                             </div>
                             <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
@@ -184,7 +224,9 @@ const ReceptionistDashboard: React.FC = () => {
                               <span>Dr. {doctor?.name || 'Unknown'}</span>
                             </div>
                             <p className="text-xs text-gray-500">
-                              {formatDateTime(apt.created_at)}
+                              {apt.appointment_datetime 
+                                ? new Date(apt.appointment_datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                                : formatDateTime(apt.created_at)}
                             </p>
                             {apt.notes && (
                               <p className="text-xs text-gray-600 mt-1 italic">Note: {apt.notes}</p>
@@ -267,6 +309,97 @@ const ReceptionistDashboard: React.FC = () => {
             </div>
           </div>
         </>
+      )}
+      
+      {/* Pending Appointments Modal */}
+      {showPendingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Pending Appointments</h3>
+              <button 
+                onClick={() => setShowPendingModal(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1">
+              {pendingApptsData.length > 0 ? (
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doctor</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {pendingApptsData.map((appointment) => (
+                      <tr key={appointment.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {appointment.patient_id 
+                              ? (patientDetails[appointment.patient_id]?.name || 'Unknown Patient')
+                              : (appointment.guest_name || 'Guest')}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {appointment.patient_id 
+                              ? (patientDetails[appointment.patient_id]?.contact || 'N/A')
+                              : (appointment.guest_contact || 'N/A')}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {new Date(appointment.appointment_datetime || appointment.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {doctors.find(d => d.id === appointment.doctor_id)?.name || 'Unknown Doctor'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button 
+                            onClick={() => console.log(`Mark appointment ${appointment.id} as attended`)}
+                            className="text-green-600 hover:text-green-900 mr-3"
+                          >
+                            Attended
+                          </button>
+                          <button 
+                            onClick={() => console.log(`Reschedule appointment ${appointment.id}`)}
+                            className="text-blue-600 hover:text-blue-900 mr-3"
+                          >
+                            Reschedule
+                          </button>
+                          <button 
+                            onClick={() => console.log(`Cancel appointment ${appointment.id}`)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Cancel
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No pending appointments found</p>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+              <button 
+                onClick={() => setShowPendingModal(false)}
+                className="btn btn-secondary"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

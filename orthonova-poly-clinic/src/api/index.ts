@@ -584,6 +584,59 @@ export async function getBillsByDoctor(doctorId: string, startDate: string, endD
   }));
 }
 
+export async function getBillsByDateRange(startDate: string, endDate: string): Promise<BillDetail[]> {
+  const startOfDay = `${startDate}T00:00:00`;
+  const endOfDay = `${endDate}T23:59:59`;
+
+  const res = await supabase
+    .from('bills')
+    .select('id, bill_number, patient_id, guest_name, doctor_id, total_amount, discount, net_amount, created_at, status, mode_of_payment')
+    .gte('created_at', startOfDay)
+    .lte('created_at', endOfDay)
+    .order('created_at', { ascending: false });
+
+  if (res.error) throw new Error(res.error.message);
+
+  const bills = res.data || [];
+  const doctorIds = new Set(bills.map(b => b.doctor_id).filter(Boolean));
+  const patientIds = new Set(bills.map(b => b.patient_id).filter(Boolean));
+
+  let doctorsMap: Record<string, string> = {};
+  let patientsMap: Record<string, string> = {};
+
+  if (doctorIds.size > 0) {
+    const doctorsRes = await supabase
+      .from('doctors')
+      .select('id, name')
+      .in('id', Array.from(doctorIds));
+    
+    if (!doctorsRes.error && doctorsRes.data) {
+      doctorsRes.data.forEach((d: any) => {
+        doctorsMap[d.id] = d.name;
+      });
+    }
+  }
+
+  if (patientIds.size > 0) {
+    const patientsRes = await supabase
+      .from('patients')
+      .select('id, name')
+      .in('id', Array.from(patientIds));
+    
+    if (!patientsRes.error && patientsRes.data) {
+      patientsRes.data.forEach((p: any) => {
+        patientsMap[p.id] = p.name;
+      });
+    }
+  }
+
+  return bills.map(bill => ({
+    ...bill,
+    patient_name: bill.patient_id ? (patientsMap[bill.patient_id] || 'Unknown') : null,
+    doctor_name: bill.doctor_id ? (doctorsMap[bill.doctor_id] || 'Unknown') : null,
+  }));
+}
+
 export async function getServiceSalesReport(startDate: string, endDate: string): Promise<ServiceSalesReport[]> {
   // Get bill items within date range
   const billsRes = await supabase

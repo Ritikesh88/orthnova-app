@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSalesSummary, getDoctorSalesReport, getServiceSalesReport, getBillsByDate, getBillsByMonth, getBillsByDoctor, getBillById, listBillItems, getDoctorById, SalesSummary, DoctorSalesReport, ServiceSalesReport, BillDetail } from '../../api';
+import { getSalesSummary, getDoctorSalesReport, getServiceSalesReport, getBillsByDate, getBillsByMonth, getBillsByDoctor, getBillById, listBillItems, getDoctorById, SalesSummary, DoctorSalesReport, ServiceSalesReport, BillDetail, listBills } from '../../api';
 import { BillRow, BillItemRow } from '../../types';
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/format';
 import * as XLSX from 'xlsx';
@@ -174,6 +174,95 @@ const Reports: React.FC = () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
     XLSX.writeFile(workbook, `${sheetName}_${startDate}_to_${endDate}.xlsx`);
+  };
+
+  // Export Complete Billing Data to Excel
+  const exportCompleteBillingDataToExcel = async () => {
+    setLoading(true);
+    try {
+      // Fetch all bills in the selected date range
+      const allBills = await getBillsByDateRange(startDate, endDate);
+      
+      // Export to Excel
+      const data = allBills.map(bill => ({
+        'Bill Number': bill.bill_number,
+        'Date': formatDateTime(bill.created_at),
+        'Patient': bill.patient_name || bill.guest_name || 'N/A',
+        'Doctor': bill.doctor_name || 'N/A',
+        'Total Amount': bill.total_amount,
+        'Discount': bill.discount,
+        'Net Amount': bill.net_amount,
+        'Payment Mode': bill.mode_of_payment,
+        'Status': bill.status,
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Complete Billing Data');
+      XLSX.writeFile(workbook, `Complete_Billing_Data_${startDate}_to_${endDate}.xlsx`);
+    } catch (e: any) {
+      console.error('Error exporting complete billing data:', e);
+      setError(e.message || 'Failed to export complete billing data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Export Complete Billing Data to PDF
+  const exportCompleteBillingDataToPDF = async () => {
+    setLoading(true);
+    try {
+      // Fetch all bills in the selected date range
+      const allBills = await getBillsByDateRange(startDate, endDate);
+      
+      // Export to PDF
+      const doc = new jsPDF();
+      
+      doc.setFontSize(16);
+      doc.text('Complete Billing Data', 14, 15);
+      doc.setFontSize(10);
+      doc.text(`Period: ${formatDate(startDate)} to ${formatDate(endDate)}`, 14, 22);
+      
+      const headers = [['Bill #', 'Date', 'Patient', 'Doctor', 'Total', 'Discount', 'Net', 'Payment', 'Status']];
+      const data = allBills.map(bill => [
+        bill.bill_number,
+        formatDateTime(bill.created_at),
+        bill.patient_name || bill.guest_name || 'N/A',
+        bill.doctor_name || 'N/A',
+        formatCurrency(bill.total_amount),
+        formatCurrency(bill.discount),
+        formatCurrency(bill.net_amount),
+        bill.mode_of_payment,
+        bill.status,
+      ]);
+
+      autoTable(doc, {
+        head: headers,
+        body: data,
+        startY: 28,
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185], halign: 'center' },
+        styles: { fontSize: 8 },
+        columnStyles: {
+          0: { halign: 'left', cellWidth: 20 },
+          1: { halign: 'left', cellWidth: 30 },
+          2: { halign: 'left', cellWidth: 30 },
+          3: { halign: 'left', cellWidth: 25 },
+          4: { halign: 'right', cellWidth: 22 },
+          5: { halign: 'right', cellWidth: 22 },
+          6: { halign: 'right', cellWidth: 22 },
+          7: { halign: 'center', cellWidth: 20 },
+          8: { halign: 'center', cellWidth: 18 },
+        },
+      });
+
+      doc.save(`Complete_Billing_Data_${startDate}_to_${endDate}.pdf`);
+    } catch (e: any) {
+      console.error('Error exporting complete billing data to PDF:', e);
+      setError(e.message || 'Failed to export complete billing data to PDF');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Export to PDF
@@ -732,6 +821,31 @@ const Reports: React.FC = () => {
         {/* Export Buttons */}
         {!loading && ((activeTab === 'sales' && salesData.length > 0) || (activeTab === 'doctor' && doctorData.length > 0) || (activeTab === 'service' && serviceData.length > 0)) && (
           <div className="mb-4 flex gap-2 justify-end">
+            <div className="relative group">
+              <button
+                className="btn btn-primary px-4 py-2 text-sm flex items-center gap-2"
+                disabled={loading}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Export Complete Billing Data
+              </button>
+              <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block z-10">
+                <button
+                  onClick={exportCompleteBillingDataToExcel}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Excel
+                </button>
+                <button
+                  onClick={exportCompleteBillingDataToPDF}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  PDF
+                </button>
+              </div>
+            </div>
             <button
               onClick={exportToExcel}
               className="btn btn-secondary px-4 py-2 text-sm flex items-center gap-2"
@@ -739,7 +853,7 @@ const Reports: React.FC = () => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              Export to Excel
+              Export Summary to Excel
             </button>
             <button
               onClick={exportToPDF}
@@ -748,7 +862,7 @@ const Reports: React.FC = () => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
-              Export to PDF
+              Export Summary to PDF
             </button>
           </div>
         )}
