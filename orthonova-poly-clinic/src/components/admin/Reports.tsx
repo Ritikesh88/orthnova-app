@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSalesSummary, getDoctorSalesReport, getServiceSalesReport, getBillsByDate, getBillsByMonth, getBillsByDoctor, getBillById, listBillItems, getDoctorById, SalesSummary, DoctorSalesReport, ServiceSalesReport, BillDetail, listBills } from '../../api';
+import { getSalesSummary, getDoctorSalesReport, getServiceSalesReport, getBillsByDate, getBillsByMonth, getBillsByDoctor, getBillsByDateRange, getBillById, listBillItems, getDoctorById, SalesSummary, DoctorSalesReport, ServiceSalesReport, BillDetail, listBills } from '../../api';
 import { BillRow, BillItemRow } from '../../types';
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/format';
 import * as XLSX from 'xlsx';
@@ -184,7 +184,7 @@ const Reports: React.FC = () => {
       const allBills = await getBillsByDateRange(startDate, endDate);
       
       // Export to Excel
-      const data = allBills.map(bill => ({
+      const data = allBills.map((bill: BillDetail) => ({
         'Bill Number': bill.bill_number,
         'Date': formatDateTime(bill.created_at),
         'Patient': bill.patient_name || bill.guest_name || 'N/A',
@@ -224,7 +224,7 @@ const Reports: React.FC = () => {
       doc.text(`Period: ${formatDate(startDate)} to ${formatDate(endDate)}`, 14, 22);
       
       const headers = [['Bill #', 'Date', 'Patient', 'Doctor', 'Total', 'Discount', 'Net', 'Payment', 'Status']];
-      const data = allBills.map(bill => [
+      const data = allBills.map((bill: BillDetail) => [
         bill.bill_number,
         formatDateTime(bill.created_at),
         bill.patient_name || bill.guest_name || 'N/A',
