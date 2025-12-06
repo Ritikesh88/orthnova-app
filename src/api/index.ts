@@ -92,6 +92,23 @@ export async function updateService(id: string, updates: Partial<Omit<ServiceRow
   return throwIfError<ServiceRow>(res);
 }
 export async function deleteService(id: string): Promise<void> {
+  // First check if the service is being used in any bill items
+  const usageCheck = await supabase
+    .from('bill_items')
+    .select('id')
+    .eq('service_id', id)
+    .limit(1);
+  
+  if (usageCheck.error) {
+    throw new Error(usageCheck.error.message || 'Failed to check service usage');
+  }
+  
+  // If there are any bill items using this service, we can't delete it
+  if (usageCheck.data && usageCheck.data.length > 0) {
+    throw new Error('Cannot delete service because it is being used in existing bills. To delete this service, first delete all bills that use this service.');
+  }
+  
+  // If no bills are using this service, we can safely delete it
   const res = await supabase.from('services').delete().eq('id', id);
   await throwIfError(res as any);
 }

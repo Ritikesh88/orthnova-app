@@ -315,7 +315,7 @@ const AppointmentBooking: React.FC = () => {
             <div className="mt-4 space-y-3">
               <div>
                 <label className="block text-sm font-medium">Name</label>
-                <input className="mt-1 w-full" value={mode === 'guest' ? guestName : (patient?.name || '')} onChange={e => setGuestName(e.target.value)} placeholder="Patient/Guest name" readOnly={mode === 'registered'} />
+                <input className="mt-1 w-full" value={mode === 'guest' ? guestName : (patient?.name || '')} onChange={e => mode === 'guest' ? setGuestName(e.target.value) : setPatientSearch(e.target.value)} placeholder="Patient/Guest name" readOnly={mode === 'registered' && !patient} />
               </div>
               <div>
                 <label className="block text-sm font-medium">Contact</label>

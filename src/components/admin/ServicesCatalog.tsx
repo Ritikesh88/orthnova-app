@@ -43,10 +43,16 @@ const ServicesCatalog: React.FC = () => {
   };
 
   const onDelete = async (id: string) => {
-    if (!window.confirm('Delete this service?')) return;
+    if (!window.confirm('Delete this service? This action cannot be undone.')) return;
     setError(null); setSuccess(null);
-    try { await deleteService(id); setSuccess('Service deleted'); await refresh(); }
-    catch (e: any) { setError(e.message); }
+    try { 
+      await deleteService(id); 
+      setSuccess('Service deleted successfully'); 
+      await refresh(); 
+    }
+    catch (e: any) { 
+      setError(e.message || 'Failed to delete service. Please try again.'); 
+    }
   };
 
   return (
