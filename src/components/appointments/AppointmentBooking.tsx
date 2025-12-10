@@ -59,6 +59,15 @@ const AppointmentBooking: React.FC = () => {
   const [serviceQuery, setServiceQuery] = useState('');
   const [selectedService, setSelectedService] = useState<ServiceRow | null>(null);
 
+  const refreshDoctors = async () => {
+    try {
+      const data = await listDoctors();
+      setDoctors(data);
+    } catch (e: any) {
+      console.error('Error refreshing doctors:', e);
+    }
+  };
+
   useEffect(() => {
     (async () => {
       const [d, s] = await Promise.all([listDoctors(), listServices()]);
@@ -143,23 +152,51 @@ const AppointmentBooking: React.FC = () => {
     const dayOfWeek = slotDate.getDay(); // 0 = Sunday, 6 = Saturday
     
     // Check for specific date availability first (higher priority)
-    const specificDateAvailability = doctorAvailability.filter(a => 
-      a.specific_date === slotDateString && a.is_available
+    const specificDateEntries = doctorAvailability.filter(a => 
+      a.specific_date === slotDateString
     );
     
-    if (specificDateAvailability.length > 0) {
-      // Check if the time falls within any of the specific date availability ranges
-      return isTimeWithinAvailability(slotTime, specificDateAvailability);
+    // If we have specific date entries, check those first
+    if (specificDateEntries.length > 0) {
+      // Check if any specific entry marks the doctor as unavailable
+      const unavailableEntry = specificDateEntries.find(a => !a.is_available);
+      if (unavailableEntry) {
+        // Doctor is explicitly marked as unavailable for this specific date
+        return false;
+      }
+      
+      // Check if any specific entry marks the doctor as available and the time falls within range
+      const availableEntries = specificDateEntries.filter(a => a.is_available);
+      if (availableEntries.length > 0) {
+        return isTimeWithinAvailability(slotTime, availableEntries);
+      }
+      
+      // If only unavailable entries exist for this specific date, doctor is not available
+      return false;
     }
     
     // Check for recurring availability
-    const recurringAvailability = doctorAvailability.filter(a => 
-      a.day_of_week === dayOfWeek && a.is_available && a.specific_date === null
+    const recurringEntries = doctorAvailability.filter(a => 
+      a.day_of_week === dayOfWeek && a.specific_date === null
     );
     
-    if (recurringAvailability.length > 0) {
-      // Check if the time falls within any of the recurring availability ranges
-      return isTimeWithinAvailability(slotTime, recurringAvailability);
+    // If we have recurring entries, check those
+    if (recurringEntries.length > 0) {
+      // Check if any recurring entry marks the doctor as unavailable
+      const unavailableEntry = recurringEntries.find(a => !a.is_available);
+      if (unavailableEntry) {
+        // Doctor is explicitly marked as unavailable for this day of week
+        return false;
+      }
+      
+      // Check if any recurring entry marks the doctor as available and the time falls within range
+      const availableEntries = recurringEntries.filter(a => a.is_available);
+      if (availableEntries.length > 0) {
+        return isTimeWithinAvailability(slotTime, availableEntries);
+      }
+      
+      // If only unavailable entries exist for this day of week, doctor is not available
+      return false;
     }
     
     // No availability found for this date/time
@@ -280,7 +317,16 @@ const AppointmentBooking: React.FC = () => {
             <input type="date" className="mt-1 w-full" value={filterDate} onChange={e => { setFilterDate(e.target.value); setDate(e.target.value); }} />
           </div>
           <div>
-            <label className="block text-sm font-medium">Doctor Name</label>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium">Doctor Name</label>
+              <button 
+                type="button" 
+                className="text-xs text-brand-600 hover:text-brand-800"
+                onClick={refreshDoctors}
+              >
+                Refresh List
+              </button>
+            </div>
             <input className="mt-1 w-full" placeholder="Search doctor" value={filterDoctorQuery} onChange={e => { setFilterDoctorQuery(e.target.value); if (filterDoctor && e.target.value !== filterDoctor.name) setFilterDoctor(null); }} />
             {filterDoctorQuery.trim() && !filterDoctor && (
               <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100">

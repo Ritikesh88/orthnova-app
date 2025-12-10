@@ -4,7 +4,7 @@ import { InventoryItemRow } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 
 // Feature flag to toggle Medicine Store UI
-const MEDICINE_STORE_ACTIVE = false;
+const MEDICINE_STORE_ACTIVE = true;
 
 const InventoryManager = () => {
   const { user } = useAuth();

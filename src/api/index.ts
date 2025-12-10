@@ -11,6 +11,8 @@ import {
   StockLedgerRow,
   UserRow,
   AppointmentRow,
+  StockPurchaseRow,
+  StockPurchaseItemRow
 } from '../types';
 
 async function throwIfError<T>(res: { data: T | null; error: any }) {
@@ -1033,4 +1035,30 @@ export async function deleteDoctorAvailability(id: string): Promise<void> {
     .delete()
     .eq('id', id);
   await throwIfError(res as any);
+}
+
+export async function listStockPurchases(): Promise<StockPurchaseRow[]> {
+  const res = await supabase
+    .from('stock_purchases')
+    .select('*')
+    .order('created_at', { ascending: false });
+  return throwIfError<StockPurchaseRow[]>(res);
+}
+
+export async function getStockPurchaseById(id: string): Promise<StockPurchaseRow | null> {
+  const res = await supabase
+    .from('stock_purchases')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+  if (res.error) throw new Error(res.error.message);
+  return res.data as any;
+}
+
+export async function listStockPurchaseItems(purchaseId: string): Promise<StockPurchaseItemRow[]> {
+  const res = await supabase
+    .from('stock_purchase_items')
+    .select('*')
+    .eq('purchase_id', purchaseId);
+  return throwIfError<StockPurchaseItemRow[]>(res);
 }

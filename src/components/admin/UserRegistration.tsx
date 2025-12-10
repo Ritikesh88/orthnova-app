@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { addUser, listUsers } from '../../api';
 import { UserRow, UserRole } from '../../types';
-import { Link } from 'react-router-dom';
 
 const UserRegistration: React.FC = () => {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -61,13 +60,6 @@ const UserRegistration: React.FC = () => {
     } catch (e: any) { 
       setError(e.message); 
     }
-  };
-
-  // Get unique roles from users
-  const getUniqueRoles = () => {
-    const roles = users.map(user => user.role);
-    // Convert Set to Array properly
-    return Array.from(new Set(roles));
   };
 
   return (

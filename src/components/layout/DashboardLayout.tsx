@@ -58,6 +58,7 @@ function usePageTitle(): string {
   const { pathname } = useLocation();
   if (pathname === '/' || pathname === '') return 'Dashboard';
   if (pathname.startsWith('/admin/users')) return 'User Management';
+  if (pathname.startsWith('/admin/user-registration')) return 'User Registration';
   if (pathname.startsWith('/admin/doctor-availability')) return 'Doctor Availability';
   if (pathname.startsWith('/patients/register')) return 'Patient Registration';
   if (pathname.startsWith('/patients')) return 'Patients';
@@ -69,6 +70,7 @@ function usePageTitle(): string {
   if (pathname.startsWith('/prescriptions')) return 'Generate Prescription';
   if (pathname.startsWith('/appointments/book')) return 'Book Appointment';
   if (pathname.startsWith('/appointments')) return 'Appointment History';
+  if (pathname.startsWith('/pharmacy')) return 'Pharmacy';
   return 'OrthoNova';
 }
 
@@ -87,50 +89,51 @@ const DashboardLayout: React.FC = () => {
           {user?.role === 'admin' && (
             <>
               <SectionTitle>Admin</SectionTitle>
-              <NavLink to="/admin/dashboard" className={navItemClass}><span>{Icon.dashboard}</span><span>Admin Dashboard</span></NavLink>
-              <NavLink to="/admin/users" className={navItemClass}><span>{Icon.users}</span><span>User Management</span></NavLink>
-              <NavLink to="/admin/reports" className={navItemClass}><span>{Icon.reports}</span><span>Reports</span></NavLink>
-              <NavLink to="/admin/doctor-availability" className={navItemClass}><span>{Icon.doctor}</span><span>Doctor Availability</span></NavLink>
-              <NavLink to="/billing/history" className={navItemClass}><span>{Icon.history}</span><span>Billing History</span></NavLink>
-              <NavLink to="/appointments" className={navItemClass} end><span>{Icon.appointment}</span><span>Appointment History</span></NavLink>
-              <NavLink to="/admin/services" className={navItemClass}><span>{Icon.services}</span><span>Manage Service</span></NavLink>
-              <NavLink to="/prescriptions/list" className={navItemClass}><span>{Icon.history}</span><span>Prescription History</span></NavLink>
-              <NavLink to="/admin/inventory" className={navItemClass}><span>{Icon.inventory}</span><span>Inventory</span></NavLink>
+              <NavLink to="/clinic/admin/dashboard" className={navItemClass}><span>{Icon.dashboard}</span><span>Admin Dashboard</span></NavLink>
+              <NavLink to="/clinic/admin/users" className={navItemClass}><span>{Icon.users}</span><span>User Management</span></NavLink>
+              <NavLink to="/clinic/admin/user-registration" className={navItemClass}><span>{Icon.users}</span><span>User Registration</span></NavLink>
+              <NavLink to="/clinic/admin/reports" className={navItemClass}><span>{Icon.reports}</span><span>Reports</span></NavLink>
+              <NavLink to="/clinic/admin/doctor-availability" className={navItemClass}><span>{Icon.doctor}</span><span>Doctor Availability</span></NavLink>
+              <NavLink to="/clinic/billing/history" className={navItemClass}><span>{Icon.history}</span><span>Billing History</span></NavLink>
+              <NavLink to="/clinic/appointments" className={navItemClass} end><span>{Icon.appointment}</span><span>Appointment History</span></NavLink>
+              <NavLink to="/clinic/admin/services" className={navItemClass}><span>{Icon.services}</span><span>Manage Service</span></NavLink>
+              <NavLink to="/clinic/prescriptions/list" className={navItemClass}><span>{Icon.history}</span><span>Prescription History</span></NavLink>
+              <NavLink to="/clinic/admin/inventory" className={navItemClass}><span>{Icon.inventory}</span><span>Inventory</span></NavLink>
             </>
           )}
 
           {user?.role === 'receptionist' && (
             <>
               <SectionTitle>Dashboard</SectionTitle>
-              <NavLink to="/receptionist/dashboard" className={navItemClass}><span>{Icon.home}</span><span>Today's Overview</span></NavLink>
+              <NavLink to="/clinic/receptionist/dashboard" className={navItemClass}><span>{Icon.home}</span><span>Today's Overview</span></NavLink>
 
               <SectionTitle>Patient Registration</SectionTitle>
-              <NavLink to="/patients/register" className={navItemClass}><span>{Icon.patient}</span><span>Register Patient</span></NavLink>
+              <NavLink to="/clinic/patients/register" className={navItemClass}><span>{Icon.patient}</span><span>Register Patient</span></NavLink>
 
               <SectionTitle>Prescription</SectionTitle>
-              <NavLink to="/prescriptions" className={navItemClass} end><span>{Icon.prescription}</span><span>Generate Prescription</span></NavLink>
+              <NavLink to="/clinic/prescriptions" className={navItemClass} end><span>{Icon.prescription}</span><span>Generate Prescription</span></NavLink>
 
               <SectionTitle>Billing</SectionTitle>
-              <NavLink to="/billing" className={navItemClass} end><span>{Icon.billing}</span><span>Billing</span></NavLink>
+              <NavLink to="/clinic/billing" className={navItemClass} end><span>{Icon.billing}</span><span>Billing</span></NavLink>
 
               <SectionTitle>Appointments</SectionTitle>
-              <NavLink to="/appointments/book" className={navItemClass}><span>{Icon.appointment}</span><span>Book Appointment</span></NavLink>
-              <NavLink to="/appointments" className={navItemClass} end><span>{Icon.history}</span><span>Appointment History</span></NavLink>
+              <NavLink to="/clinic/appointments/book" className={navItemClass}><span>{Icon.appointment}</span><span>Book Appointment</span></NavLink>
+              <NavLink to="/clinic/appointments" className={navItemClass} end><span>{Icon.history}</span><span>Appointment History</span></NavLink>
             </>
           )}
 
           {user?.role === 'doctor' && (
             <>
               <SectionTitle>Patient Registration</SectionTitle>
-              <NavLink to="/patients" className={navItemClass} end><span>{Icon.patient}</span><span>Patients</span></NavLink>
+              <NavLink to="/clinic/patients" className={navItemClass} end><span>{Icon.patient}</span><span>Patients</span></NavLink>
 
               <SectionTitle>Prescription</SectionTitle>
-              <NavLink to="/prescriptions" className={navItemClass} end><span>{Icon.prescription}</span><span>Generate Prescription</span></NavLink>
-              <NavLink to="/prescriptions/list" className={navItemClass}><span>{Icon.history}</span><span>Prescription History</span></NavLink>
+              <NavLink to="/clinic/prescriptions" className={navItemClass} end><span>{Icon.prescription}</span><span>Generate Prescription</span></NavLink>
+              <NavLink to="/clinic/prescriptions/list" className={navItemClass}><span>{Icon.history}</span><span>Prescription History</span></NavLink>
 
               <SectionTitle>Appointments</SectionTitle>
-              <NavLink to="/appointments" className={navItemClass} end><span>{Icon.history}</span><span>Appointment History</span></NavLink>
-              <NavLink to="/appointments/calendar" className={navItemClass}><span>{Icon.calendar}</span><span>Calendar</span></NavLink>
+              <NavLink to="/clinic/appointments" className={navItemClass} end><span>{Icon.history}</span><span>Appointment History</span></NavLink>
+              <NavLink to="/clinic/appointments/calendar" className={navItemClass}><span>{Icon.calendar}</span><span>Calendar</span></NavLink>
             </>
           )}
 
@@ -138,9 +141,10 @@ const DashboardLayout: React.FC = () => {
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Medicine Store</h3>
               <nav className="space-y-1">
-                <Link to="/admin/inventory" className="nav-link">Inventory Management</Link>
-                <Link to="/admin/stock-purchase" className="nav-link">Stock Purchase</Link>
-                <Link to="/billing/pharmacy" className="nav-link">Pharmacy Billing</Link>
+                <NavLink to="/pharmacy/inventory" className={navItemClass}>Inventory Management</NavLink>
+                <NavLink to="/pharmacy/stock-purchase" className={navItemClass}>Stock Purchase</NavLink>
+                <NavLink to="/pharmacy/billing" className={navItemClass}>Pharmacy Billing</NavLink>
+                <NavLink to="/pharmacy/reports" className={navItemClass}>Reports</NavLink>
               </nav>
             </div>
           )}

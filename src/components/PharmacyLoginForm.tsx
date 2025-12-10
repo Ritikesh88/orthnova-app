@@ -1,37 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 
-const LOGO_URL = '/orthonova-logo.png';
+const PHARMACY_LOGO_URL = '/orthonova-logo.png';
 
-const LoginForm: React.FC = () => {
-  const { login, loading, user } = useAuth();
-  const navigate = useNavigate();
+const PharmacyLoginForm: React.FC = () => {
+  const { login, loading } = useAuth();
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-
-  // Redirect based on user role after successful login
-  useEffect(() => {
-    if (user) {
-      if (user.role === 'admin') {
-        navigate('/clinic/admin/dashboard');
-      } else if (user.role === 'receptionist') {
-        navigate('/clinic/receptionist/dashboard');
-      } else if (user.role === 'doctor') {
-        navigate('/clinic/patients');
-      } else {
-        // For any other role, go to home
-        navigate('/');
-      }
-    }
-  }, [user, navigate]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     const res = await login(userId.trim(), password);
-    if (!res.ok) setError(res.error);
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
   };
 
   return (
@@ -39,13 +24,13 @@ const LoginForm: React.FC = () => {
       <div className="flex items-center justify-center p-6 bg-gradient-to-br from-brand-50 via-white to-brand-50">
         <div className="card w-full max-w-md p-8 shadow-xl">
           <div className="text-center">
-            <img src={LOGO_URL} alt="OrthoNova Logo" className="mx-auto w-full h-auto max-w-[320px] mb-4 object-contain" />
-            <h1 className="text-2xl font-bold text-gray-900">OrthoNova Poly Clinic</h1>
-            <p className="text-sm text-gray-500 mt-1">Sign in to continue</p>
+            <img src={PHARMACY_LOGO_URL} alt="OrthoNova Pharmacy" className="mx-auto w-full h-auto max-w-[320px] mb-4 object-contain" />
+            <h1 className="text-2xl font-bold text-gray-900">OrthoNova Pharmacy</h1>
+            <p className="text-sm text-gray-500 mt-1">Medicine Store Management System</p>
           </div>
           <form onSubmit={onSubmit} className="space-y-4 mt-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700">User ID</label>
+              <label className="block text-sm font-medium text-gray-700">Pharmacist ID</label>
               <div className="relative mt-1">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/></svg>
@@ -84,11 +69,11 @@ const LoginForm: React.FC = () => {
         </div>
       </div>
       <div className="hidden md:block relative">
-        <img src="https://images.unsplash.com/photo-1587411760036-6e7440b37a57?q=80&w=1600&auto=format&fit=crop" alt="Clinic" className="absolute inset-0 w-full h-full object-cover" />
+        <img src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=1600&auto=format&fit=crop" alt="Pharmacy" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-brand-500/20" />
       </div>
     </div>
   );
 };
 
-export default LoginForm;
+export default PharmacyLoginForm;

@@ -21,6 +21,15 @@ const PrescriptionForm: React.FC = () => {
   const [previousVisits, setPreviousVisits] = useState<{ prescription: PrescriptionRow; appointment?: AppointmentRow }[]>([]);
   const [loadingVisits, setLoadingVisits] = useState(false);
 
+  const refreshDoctors = async () => {
+    try {
+      const data = await listDoctors();
+      setDoctors(data);
+    } catch (e: any) {
+      console.error('Error refreshing doctors:', e);
+    }
+  };
+
   useEffect(() => {
     (async () => {
       const [p, d] = await Promise.all([listPatients(), listDoctors()]);
@@ -130,12 +139,21 @@ const PrescriptionForm: React.FC = () => {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium">Doctor</label>
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium">Doctor</label>
+                <button 
+                  type="button" 
+                  className="text-xs text-brand-600 hover:text-brand-800"
+                  onClick={refreshDoctors}
+                >
+                  Refresh List
+                </button>
+              </div>
               <input
                 placeholder="Type to search doctor by name"
                 className="mt-1 w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500"
                 value={doctorQuery}
-                onChange={e => { setDoctorQuery(e.target.value); const selected = doctors.find(d => d.name === e.target.value); if (!selected) setDoctorId(''); }}
+                onChange={e => { setDoctorQuery(e.target.value); setDoctorId(''); }}
               />
               {doctorQuery.trim().length > 0 && !doctorId && (
                 <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100">
