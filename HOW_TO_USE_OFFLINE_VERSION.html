@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrthoNova Clinic - Offline Version</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        h2 {
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        .step {
+            background-color: #ecf0f1;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        .note {
+            background-color: #fff3cd;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            border-left: 4px solid #ffc107;
+        }
+        code {
+            background-color: #f8f9fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .credentials {
+            background-color: #d4edda;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            border-left: 4px solid #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>OrthoNova Clinic - Offline Version</h1>
+        
+        <p>This is the offline version of the OrthoNova Poly Clinic management system. It uses your browser's localStorage instead of a remote database, allowing it to run completely offline.</p>
+        
+        <h2>How to Use the Offline Version</h2>
+        
+        <div class="step">
+            <h3>Step 1: Navigate to the Offline Folder</h3>
+            <p>Open your file explorer and navigate to the <code>orthnova-offline</code> folder.</p>
+        </div>
+        
+        <div class="step">
+            <h3>Step 2: Build the Application (if not already built)</h3>
+            <p>If you haven't built the application yet, open a terminal/command prompt in the <code>orthnova-offline</code> folder and run:</p>
+            <code>npm run build</code>
+        </div>
+        
+        <div class="step">
+            <h3>Step 3: Open the Application</h3>
+            <p>Navigate to the <code>build</code> subfolder and double-click on <code>index.html</code> to open it in your default browser.</p>
+            <p>Alternatively, you can right-click on <code>index.html</code> and choose "Open with" to select your preferred browser.</p>
+        </div>
+        
+        <div class="credentials">
+            <h3>Login Credentials</h3>
+            <p>On first run, the system creates a sample admin user:</p>
+            <ul>
+                <li><strong>Username:</strong> admin</li>
+                <li><strong>Password:</strong> admin123</li>
+            </ul>
+            <p>You can change this password or create new users within the application.</p>
+        </div>
+        
+        <div class="note">
+            <h3>Important Notes</h3>
+            <ul>
+                <li>All data is stored in your browser's localStorage and will persist between sessions</li>
+                <li>Data is only available in the browser where it was created</li>
+                <li>To clear all data, use your browser's developer tools to clear localStorage</li>
+                <li>This offline version has all the same features as the online version</li>
+            </ul>
+        </div>
+        
+        <h2>Troubleshooting</h2>
+        
+        <div class="step">
+            <h3>If the Application Doesn't Load</h3>
+            <p>Some browsers may block local files from accessing localStorage. If this happens:</p>
+            <ol>
+                <li>Try using a different browser (Chrome, Firefox, or Edge recommended)</li>
+                <li>Use a simple HTTP server instead of opening the file directly</li>
+            </ol>
+        </div>
+        
+        <div class="step">
+            <h3>Using a Local Server (Alternative Method)</h3>
+            <p>If opening the file directly doesn't work, you can use a simple HTTP server:</p>
+            <ol>
+                <li>Install Node.js if you haven't already</li>
+                <li>Open a terminal in the <code>orthnova-offline/build</code> folder</li>
+                <li>Run: <code>npx serve -s</code></li>
+                <li>Open your browser and go to <code>http://localhost:3000</code></li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>

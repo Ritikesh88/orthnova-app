@@ -25,14 +25,21 @@ export async function listUsers(): Promise<UserRow[]> {
   const res = await supabase.from('users').select('*').order('created_at', { ascending: false });
   return throwIfError<UserRow[]>(res);
 }
-export async function addUser(user: { user_id: string; password: string; role: UserRow['role'] }): Promise<UserRow> {
+
+export async function addUser(user: { 
+  user_id: string; 
+  password: string; 
+  role: UserRow['role'];
+}): Promise<UserRow> {
   const res = await supabase.from('users').insert(user).select('*').single();
   return throwIfError<UserRow>(res);
 }
+
 export async function updateUser(user_id: string, updates: Partial<Pick<UserRow, 'password' | 'role'>>): Promise<UserRow> {
   const res = await supabase.from('users').update(updates).eq('user_id', user_id).select('*').single();
   return throwIfError<UserRow>(res);
 }
+
 export async function deleteUser(user_id: string): Promise<void> {
   const res = await supabase.from('users').delete().eq('user_id', user_id);
   await throwIfError(res as any);
@@ -43,6 +50,7 @@ export async function createPatient(row: Omit<PatientRow, 'created_at'>): Promis
   const res = await supabase.from('patients').insert(row).select('*').single();
   return throwIfError<PatientRow>(res);
 }
+
 export async function listPatients(query?: string): Promise<PatientRow[]> {/** keep name search */
   let q = supabase.from('patients').select('*').order('created_at', { ascending: false });
   if (query && query.trim()) {
@@ -52,11 +60,13 @@ export async function listPatients(query?: string): Promise<PatientRow[]> {/** k
   const res = await q;
   return throwIfError<PatientRow[]>(res);
 }
+
 export async function getPatientById(id: string): Promise<PatientRow | null> {
   const res = await supabase.from('patients').select('*').eq('id', id).maybeSingle();
   if (res.error) throw new Error(res.error.message);
   return res.data as any;
 }
+
 export async function searchPatientsByContact(contact: string): Promise<PatientRow[]> {
   const clean = (contact || '').replace(/\D/g, '');
   if (!clean) return [];
@@ -69,6 +79,7 @@ export async function createDoctor(row: Omit<DoctorRow, 'created_at'>): Promise<
   const res = await supabase.from('doctors').insert(row).select('*').single();
   return throwIfError<DoctorRow>(res);
 }
+
 export async function listDoctors(query?: string): Promise<DoctorRow[]> {
   let q = supabase.from('doctors').select('*').order('created_at', { ascending: false });
   if (query && query.trim()) {
@@ -78,6 +89,7 @@ export async function listDoctors(query?: string): Promise<DoctorRow[]> {
   const res = await q;
   return throwIfError<DoctorRow[]>(res);
 }
+
 export async function getDoctorById(id: string): Promise<DoctorRow | null> {
   const res = await supabase.from('doctors').select('*').eq('id', id).maybeSingle();
   if (res.error) throw new Error(res.error.message);
@@ -89,10 +101,12 @@ export async function addService(row: Omit<ServiceRow, 'id' | 'created_at'>): Pr
   const res = await supabase.from('services').insert(row).select('*').single();
   return throwIfError<ServiceRow>(res);
 }
+
 export async function updateService(id: string, updates: Partial<Omit<ServiceRow, 'id' | 'created_at'>>): Promise<ServiceRow> {
   const res = await supabase.from('services').update(updates).eq('id', id).select('*').single();
   return throwIfError<ServiceRow>(res);
 }
+
 export async function deleteService(id: string): Promise<void> {
   // First check if the service is being used in any bill items
   const usageCheck = await supabase
@@ -114,6 +128,7 @@ export async function deleteService(id: string): Promise<void> {
   const res = await supabase.from('services').delete().eq('id', id);
   await throwIfError(res as any);
 }
+
 export async function listServices(query?: string): Promise<ServiceRow[]> {
   let q = supabase.from('services').select('*').order('created_at', { ascending: false });
   if (query && query.trim()) {
@@ -250,14 +265,41 @@ export async function createMedicineStoreBill(
   return insertedBill;
 }
 
-export async function getLowStockItems(): Promise<InventoryItemRow[]> {
+export interface LowStockItem {
+  id: string;
+  name: string;
+  current_stock: number;
+  low_stock_threshold: number;
+  category: string;
+  manufacturer: string;
+}
+
+export async function getLowStockItems(): Promise<LowStockItem[]> {
+  // Fetch all inventory items and filter on the client side
+  // since Supabase filter doesn't work with column-to-column comparisons
   const res = await supabase
     .from('inventory_items')
-    .select('*')
-    .not('low_stock_threshold', 'is', null)
-    .filter('current_stock', 'lte', 'low_stock_threshold')
-    .order('current_stock', { ascending: true });
-  return throwIfError<InventoryItemRow[]>(res);
+    .select('*');
+  
+  const items = await throwIfError<InventoryItemRow[]>(res);
+  
+  // Filter items with low stock on the client side
+  const lowStockItems: LowStockItem[] = items
+    .filter(item => 
+      item.low_stock_threshold !== null && 
+      item.current_stock <= item.low_stock_threshold
+    )
+    .map(item => ({
+      id: item.id,
+      name: item.name,
+      current_stock: item.current_stock,
+      low_stock_threshold: item.low_stock_threshold!,
+      category: item.category,
+      manufacturer: item.manufacturer
+    }))
+    .sort((a, b) => a.current_stock - b.current_stock);
+    
+  return lowStockItems;
 }
 
 export async function getExpiringItems(days: number = 30): Promise<InventoryItemRow[]> {
@@ -278,11 +320,13 @@ export async function createPrescription(row: Omit<PrescriptionRow, 'id' | 'crea
   const res = await supabase.from('prescriptions').insert(row).select('*').single();
   return throwIfError<PrescriptionRow>(res);
 }
+
 export async function getPrescriptionById(id: string): Promise<PrescriptionRow | null> {
   const res = await supabase.from('prescriptions').select('*').eq('id', id).maybeSingle();
   if (res.error) throw new Error(res.error.message);
   return res.data as any;
 }
+
 export async function listPrescriptions(): Promise<PrescriptionRow[]> {
   const res = await supabase.from('prescriptions').select('*').order('created_at', { ascending: false });
   return throwIfError<PrescriptionRow[]>(res);
@@ -293,6 +337,7 @@ export async function createAppointment(row: Omit<AppointmentRow, 'id' | 'create
   const res = await supabase.from('appointments').insert(row).select('*').single();
   return throwIfError<AppointmentRow>(res);
 }
+
 export async function listAppointments(filters?: { doctor_id?: string; patient_id?: string; appointment_date?: string; appointment_date_exact?: string }): Promise<AppointmentRow[]> {
   let q = supabase.from('appointments').select('*').order('created_at', { ascending: true });
   if (filters?.doctor_id) q = q.eq('doctor_id', filters.doctor_id);
