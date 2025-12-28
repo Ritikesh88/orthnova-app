@@ -18,7 +18,7 @@ const PathologyDashboard: React.FC = () => {
       <header className="bg-white shadow">
         <div className="px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <div className="flex items-center">
-            <h1 className="text-xl font-semibold text-gray-900">OrthoNova Pathology Lab</h1>
+            <h1 className="text-xl font-semibold text-gray-900">ORTHONOVA POLYCLINIC - Pathology Lab</h1>
             <span className="ml-4 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
               Pathologist
             </span>

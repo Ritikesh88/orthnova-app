@@ -18,7 +18,7 @@ const PharmacyDashboard: React.FC = () => {
       <header className="bg-white shadow">
         <div className="px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <div className="flex items-center">
-            <h1 className="text-xl font-semibold text-gray-900">OrthoNova Pharmacy</h1>
+            <h1 className="text-xl font-semibold text-gray-900">ORTHONOVA POLYCLINIC - Pharmacy</h1>
             <span className="ml-4 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
               Pharmacist
             </span>

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getBillById, getDoctorById, getPatientById, listBillItems, listServices } from '../api';
 import { BillItemRow, BillRow, DoctorRow, PatientRow, ServiceRow } from '../types';
-import { CLINIC_ADDRESS_LINE_1, CLINIC_ADDRESS_LINE_2, CLINIC_CONTACT, CLINIC_NAME, CLINIC_REG_NO } from '../config/clinic';
+import { CLINIC_ADDRESS_LINE_1, CLINIC_CONTACT, CLINIC_EMAIL, CLINIC_NAME, CLINIC_REG_NO } from '../config/clinic';
 import { formatCurrency, formatDateTime } from '../utils/format';
 
 const PrintBill: React.FC = () => {
@@ -46,7 +46,7 @@ const PrintBill: React.FC = () => {
           <h1 className="text-2xl font-bold">{CLINIC_NAME}</h1>
           <div className="text-sm">{CLINIC_REG_NO}</div>
           <div className="text-sm">{CLINIC_ADDRESS_LINE_1}</div>
-          <div className="text-sm">{CLINIC_ADDRESS_LINE_2}</div>
+          <div className="text-sm">Email: {CLINIC_EMAIL}</div>
           <div className="text-sm">{CLINIC_CONTACT}</div>
           <div className="text-xl font-semibold mt-2">BILL</div>
         </div>
@@ -61,7 +61,11 @@ const PrintBill: React.FC = () => {
           <div className="space-y-1">
             <div><span className="font-medium">Contact:</span> {patient?.contact || bill.guest_contact || '-'}</div>
             <div><span className="font-medium">Address:</span> {patient?.address || '-'}</div>
-            <div><span className="font-medium">Consultant:</span> {doctor?.name}</div>
+            {bill.bill_type === 'pharmacy' ? (
+              <div><span className="font-medium">Referred By:</span> {bill.referred_by || '-'}</div>
+            ) : (
+              <div><span className="font-medium">Consultant:</span> {doctor?.name}</div>
+            )}
           </div>
         </div>
 
@@ -72,6 +76,7 @@ const PrintBill: React.FC = () => {
                 <th className="border border-gray-300 px-2 py-1 text-left">Item Name</th>
                 <th className="border border-gray-300 px-2 py-1 text-right">Unit Price</th>
                 <th className="border border-gray-300 px-2 py-1 text-right">Quantity</th>
+                <th className="border border-gray-300 px-2 py-1 text-right">Batch/Exp</th>
                 <th className="border border-gray-300 px-2 py-1 text-right">Amount</th>
                 <th className="border border-gray-300 px-2 py-1 text-right">Discount</th>
                 <th className="border border-gray-300 px-2 py-1 text-right">Final Amount</th>
@@ -97,8 +102,12 @@ const PrintBill: React.FC = () => {
                     <td className="border border-gray-300 px-2 py-1">{displayName}</td>
                     <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(Number(it.price))}</td>
                     <td className="border border-gray-300 px-2 py-1 text-right">{it.quantity}</td>
+                    <td className="border border-gray-300 px-2 py-1 text-right">
+                      {it.batch_number || 'N/A'}<br/>
+                      <span className="text-xs">{it.expiry_date || 'N/A'}</span>
+                    </td>
                     <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(amount)}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-right">-</td>
+                    <td className="border border-gray-300 px-2 py-1 text-right">{it.discount_percentage ? `${it.discount_percentage}%` : '-'}</td>
                     <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(amount)}</td>
                   </tr>
                 );
@@ -114,7 +123,9 @@ const PrintBill: React.FC = () => {
           </div>
           <div className="space-y-1">
             <div className="flex justify-between"><span className="font-medium">Final Amount</span><span>{formatCurrency((bill.bill_type !== 'pharmacy' ? opdFee : 0) + servicesSubtotal)}</span></div>
-            <div className="flex justify-between"><span className="font-medium">Discount</span><span>-{formatCurrency(Number(bill.discount))}</span></div>
+            {bill.discount_percentage && (
+              <div className="flex justify-between"><span className="font-medium">Discount ({bill.discount_percentage}%)</span><span>-{formatCurrency(Number(bill.discount))}</span></div>
+            )}
             <div className="flex justify-between text-lg font-semibold"><span>Net Amount</span><span>{formatCurrency(bill.net_amount)}</span></div>
           </div>
         </div>

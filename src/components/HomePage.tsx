@@ -9,7 +9,7 @@ const HomePage: React.FC = () => {
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            OrthoNova Poly Clinic
+            ORTHONOVA POLYCLINIC
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Comprehensive healthcare management system with integrated pharmacy services

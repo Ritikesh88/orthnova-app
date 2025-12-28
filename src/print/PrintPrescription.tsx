@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getDoctorById, getPatientById, getPrescriptionById } from '../api';
 import { DoctorRow, PatientRow, PrescriptionRow } from '../types';
-import { CLINIC_ADDRESS_LINE_1, CLINIC_ADDRESS_LINE_2, CLINIC_CONTACT, CLINIC_NAME } from '../config/clinic';
+import { CLINIC_ADDRESS_LINE_1, CLINIC_CONTACT, CLINIC_EMAIL, CLINIC_NAME, CLINIC_REG_NO } from '../config/clinic';
 import { formatDate } from '../utils/format';
 
 const PrintPrescription: React.FC = () => {
@@ -30,7 +30,12 @@ const PrintPrescription: React.FC = () => {
     <div className="p-6 print:p-0">
       <div className="max-w-3xl mx-auto bg-white p-6 print:p-0" style={{ marginTop: '0.75in' }}>
         <div className="border-2 border-gray-700 rounded-md p-4">
-          <div className="text-center">
+          <div className="text-center mb-4">
+            <h1 className="text-xl font-bold">{CLINIC_NAME}</h1>
+            <div className="text-sm">{CLINIC_REG_NO}</div>
+            <div className="text-sm">{CLINIC_ADDRESS_LINE_1}</div>
+            <div className="text-sm">{CLINIC_CONTACT}</div>
+            <div className="text-sm">Email: {CLINIC_EMAIL}</div>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-4 text-sm">

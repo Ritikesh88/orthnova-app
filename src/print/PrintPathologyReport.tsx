@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { getPathologyReportById, getPathologyTestOrderById, listPathologyTestResults } from '../api';
 import { PathologyReportRow, PathologyTestOrderRow, PathologyTestResultRow } from '../types';
 import { format } from 'date-fns';
+import { CLINIC_ADDRESS_LINE_1, CLINIC_CONTACT, CLINIC_EMAIL, CLINIC_NAME, CLINIC_REG_NO } from '../config/clinic';
 
 const PrintPathologyReport: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -75,9 +76,13 @@ const PrintPathologyReport: React.FC = () => {
   return (
     <div className="p-8 max-w-4xl mx-auto bg-white">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold">ORTHONOVA PATHOLOGY LAB</h1>
-        <p className="text-gray-600">Diagnostic Laboratory Services</p>
-        <p className="text-sm text-gray-500">Report Generated: {format(new Date(report.report_date), 'dd/MM/yyyy HH:mm:ss')}</p>
+        <h1 className="text-2xl font-bold">{CLINIC_NAME}</h1>
+        <p className="text-gray-600">Pathology Laboratory Services</p>
+        <p className="text-sm">{CLINIC_REG_NO}</p>
+        <p className="text-sm">{CLINIC_ADDRESS_LINE_1}</p>
+        <p className="text-sm">{CLINIC_CONTACT}</p>
+        <p className="text-sm">Email: {CLINIC_EMAIL}</p>
+        <p className="text-sm text-gray-500 mt-2">Report Generated: {format(new Date(report.report_date), 'dd/MM/yyyy HH:mm:ss')}</p>
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4">

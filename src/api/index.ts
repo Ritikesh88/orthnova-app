@@ -336,6 +336,19 @@ export async function getExpiringItems(days: number = 30): Promise<InventoryItem
   return throwIfError<InventoryItemRow[]>(res);
 }
 
+export async function getExpiringItemsWithinMonths(months: number = 4): Promise<InventoryItemRow[]> {
+  const futureDate = new Date();
+  futureDate.setMonth(futureDate.getMonth() + months);
+  
+  const res = await supabase
+    .from('inventory_items')
+    .select('*')
+    .not('expiry_date', 'is', null)
+    .lte('expiry_date', futureDate.toISOString().split('T')[0])
+    .order('expiry_date', { ascending: true });
+  return throwIfError<InventoryItemRow[]>(res);
+}
+
 // Prescriptions
 
 export async function createPrescription(row: Omit<PrescriptionRow, 'id' | 'created_at' | 'serial_number'>): Promise<PrescriptionRow> {

@@ -12,7 +12,7 @@ const LandingPage: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="max-w-4xl w-full">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Welcome to OrthoNova</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Welcome to ORTHONOVA POLYCLINIC</h1>
           <p className="text-lg text-gray-600">Select a module to continue</p>
         </div>
         
@@ -67,7 +67,7 @@ const LandingPage: React.FC = () => {
         </div>
 
         <div className="mt-12 text-center text-gray-500 text-sm">
-          <p>© 2024 OrthoNova. All rights reserved.</p>
+          <p>© 2024 ORTHONOVA POLYCLINIC. All rights reserved.</p>
         </div>
       </div>
     </div>

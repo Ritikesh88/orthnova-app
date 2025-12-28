@@ -55,11 +55,13 @@ export interface BillRow {
   doctor_id: string | null; // Optional for medicine store bills
   total_amount: number;
   discount: number;
+  discount_percentage?: number;
   net_amount: number;
   status: 'paid' | 'pending' | 'partial';
   bill_number: string;
   mode_of_payment: 'Cash' | 'UPI' | 'Card';
   transaction_reference: string | null;
+  referred_by?: string | null;
   // Support for non-registered/guest patients
   guest_name?: string | null;
   guest_contact?: string | null;
@@ -81,6 +83,8 @@ export interface BillItemRow {
   quantity: number;
   price: number;
   total: number;
+  batch_number?: string | null;
+  expiry_date?: string | null;
 }
 
 export interface PrescriptionRow {

@@ -71,7 +71,7 @@ function usePageTitle(): string {
   if (pathname.startsWith('/appointments/book')) return 'Book Appointment';
   if (pathname.startsWith('/appointments')) return 'Appointment History';
   if (pathname.startsWith('/pharmacy')) return 'Pharmacy';
-  return 'OrthoNova';
+  return 'ORTHONOVA POLYCLINIC';
 }
 
 const DashboardLayout: React.FC = () => {
@@ -83,7 +83,7 @@ const DashboardLayout: React.FC = () => {
       <aside className="col-span-12 md:col-span-3 lg:col-span-2 bg-white border-r border-gray-100 sticky top-0 h-screen overflow-y-auto p-4">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-9 h-9 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold">O</div>
-          <Link to="/" className="text-lg font-bold tracking-wide text-gray-900">OrthoNova</Link>
+          <Link to="/" className="text-lg font-bold tracking-wide text-gray-900">ORTHONOVA</Link>
         </div>
         <nav className="space-y-1">
           {user?.role === 'admin' && (
