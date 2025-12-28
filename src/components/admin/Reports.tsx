@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getSalesSummary, getDoctorSalesReport, getServiceSalesReport, getBillsByDate, getBillsByMonth, getBillsByDoctor, getBillsByDateRange, getBillById, listBillItems, getDoctorById, SalesSummary, DoctorSalesReport, ServiceSalesReport, BillDetail, listBills } from '../../api';
 import { BillRow, BillItemRow } from '../../types';
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/format';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx'; // Using type assertion for utils to avoid TypeScript issues
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -170,9 +170,9 @@ const Reports: React.FC = () => {
       }));
     }
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    const worksheet = (XLSX as any).utils.json_to_sheet(data);
+    const workbook = (XLSX as any).utils.book_new();
+    (XLSX as any).utils.book_append_sheet(workbook, worksheet, sheetName);
     XLSX.writeFile(workbook, `${sheetName}_${startDate}_to_${endDate}.xlsx`);
   };
 
@@ -196,9 +196,9 @@ const Reports: React.FC = () => {
         'Status': bill.status,
       }));
 
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Complete Billing Data');
+      const worksheet = (XLSX as any).utils.json_to_sheet(data);
+      const workbook = (XLSX as any).utils.book_new();
+      (XLSX as any).utils.book_append_sheet(workbook, worksheet, 'Complete Billing Data');
       XLSX.writeFile(workbook, `Complete_Billing_Data_${startDate}_to_${endDate}.xlsx`);
     } catch (e: any) {
       console.error('Error exporting complete billing data:', e);
@@ -384,9 +384,9 @@ const Reports: React.FC = () => {
       'Status': bill.status,
     }));
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Bill Details');
+    const worksheet = (XLSX as any).utils.json_to_sheet(data);
+    const workbook = (XLSX as any).utils.book_new();
+    (XLSX as any).utils.book_append_sheet(workbook, worksheet, 'Bill Details');
     XLSX.writeFile(workbook, `${deepDiveTitle.replace(/ /g, '_')}.xlsx`);
   };
 
