@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const LOGO_URL = '/orthonova-logo.png';
 
 const LoginForm: React.FC = () => {
   const { login, loading, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -14,18 +15,28 @@ const LoginForm: React.FC = () => {
   // Redirect based on user role after successful login
   useEffect(() => {
     if (user) {
-      if (user.role === 'admin') {
-        navigate('/clinic/admin/dashboard');
-      } else if (user.role === 'receptionist') {
-        navigate('/clinic/receptionist/dashboard');
-      } else if (user.role === 'doctor') {
-        navigate('/clinic/patients');
+      // Check for redirect parameter in the URL
+      const searchParams = new URLSearchParams(location.search);
+      const redirectPath = searchParams.get('redirect');
+      
+      if (redirectPath) {
+        // If there's a redirect parameter, use it
+        navigate(redirectPath);
       } else {
-        // For any other role, go to home
-        navigate('/');
+        // Otherwise, redirect based on user role
+        if (user.role === 'admin') {
+          navigate('/clinic/admin/dashboard');
+        } else if (user.role === 'receptionist') {
+          navigate('/clinic/receptionist/dashboard');
+        } else if (user.role === 'doctor') {
+          navigate('/clinic/patients');
+        } else {
+          // For any other role, go to home
+          navigate('/');
+        }
       }
     }
-  }, [user, navigate]);
+  }, [user, navigate, location]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

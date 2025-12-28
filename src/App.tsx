@@ -17,6 +17,7 @@ import PrescriptionsList from './components/prescriptions/PrescriptionsList';
 import PatientsList from './components/patients/PatientsList';
 import PrintBill from './print/PrintBill';
 import PrintPrescription from './print/PrintPrescription';
+import PrintPathologyReport from './print/PrintPathologyReport';
 import AppointmentBooking from './components/appointments/AppointmentBooking';
 import AppointmentsList from './components/appointments/AppointmentsList';
 import AppointmentsCalendar from './components/appointments/AppointmentsCalendar';
@@ -34,19 +35,27 @@ import PharmacyInventory from './components/pharmacy/PharmacyInventory';
 import PharmacyStockPurchase from './components/pharmacy/PharmacyStockPurchase';
 import PharmacyReports from './components/pharmacy/PharmacyReports';
 
+// Pathology Components
+import PathologyDashboard from './components/pathology/PathologyDashboard';
+import PathologyTests from './components/pathology/PathologyTests';
+import PathologyOrders from './components/pathology/PathologyOrders';
+import PathologyResults from './components/pathology/PathologyResults';
+import PathologyReports from './components/pathology/PathologyReports';
+
 // Home Page
-import HomePage from './components/HomePage';
+import LandingPage from './components/LandingPage';
 
 const AppRoutes: React.FC = () => {
   useAuth();
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/" element={<HomePage />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginForm />} />
       <Route path="/pharmacy/login" element={<PharmacyLoginForm />} />
       <Route path="/print/bill/:id" element={<PrintBill />} />
       <Route path="/print/prescription/:id" element={<PrintPrescription />} />
+      <Route path="/print/pathology-report/:id" element={<PrintPathologyReport />} />
       
       {/* Clinic Routes - Protected */}
       <Route
@@ -102,6 +111,23 @@ const AppRoutes: React.FC = () => {
         <Route path="stock-purchase" element={<PharmacyStockPurchase />} />
         <Route path="reports" element={<PharmacyReports />} />
         <Route path="*" element={<PharmacyBillingPage />} />
+      </Route>
+      
+      {/* Pathology Routes - Protected */}
+      <Route
+        path="/pathology/*"
+        element={
+          <ProtectedRoute allowedRoles={["admin", "doctor"]}>
+            <PathologyDashboard />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<PathologyTests />} />
+        <Route path="tests" element={<PathologyTests />} />
+        <Route path="orders" element={<PathologyOrders />} />
+        <Route path="results" element={<PathologyResults />} />
+        <Route path="reports" element={<PathologyReports />} />
+        <Route path="*" element={<PathologyTests />} />
       </Route>
       
       {/* Catch all - redirect to home */}

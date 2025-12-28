@@ -25,12 +25,10 @@ export function formatDate(iso: string | Date | null | undefined): string {
 export function generateBillNumber(): string {
   const now = new Date();
   const pad = (n: number) => n.toString().padStart(2, '0');
-  const y = now.getFullYear();
+  const y = now.getFullYear().toString().slice(-2); // Get last 2 digits of year
   const m = pad(now.getMonth() + 1);
   const d = pad(now.getDate());
-  const h = pad(now.getHours());
-  const min = pad(now.getMinutes());
-  const s = pad(now.getSeconds());
-  const rand = Math.floor(Math.random() * 900 + 100); // 3-digit
-  return `INV-${y}${m}${d}-${h}${min}${s}-${rand}`;
+  // Generate a 4-digit sequential number (replace with actual sequential logic if needed)
+  const seq = Math.floor(Math.random() * 9000 + 1000); // 4-digit random for now
+  return `ON-${y}${m}${d}-${seq}`;
 }

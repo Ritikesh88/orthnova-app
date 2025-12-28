@@ -145,17 +145,16 @@ const BillingSystem: React.FC = () => {
 
       // Step 1: Create guest patient if needed
       if (isGuest && guestName.trim() && guestContact.trim()) {
-        const patient_id = generatePatientId(guestContact.trim(), guestName.trim());
+        const patient_id = await generatePatientId();
         const age = 0; // Guest patients don't have DOB, default to 0
         const createdPatient = await createPatient({
           id: crypto.randomUUID(),
           patient_id,
           name: guestName.trim(),
-          dob: new Date().toISOString().split('T')[0], // Default to today
+          age: age,
           gender: 'Other',
           contact: guestContact.trim(),
           address: '',
-          age,
         });
         finalPatientId = createdPatient.id;
       }

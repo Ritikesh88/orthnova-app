@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createBill, listInventoryItems, searchPatientsByContact } from '../../api';
+import { createMedicineStoreBill, listInventoryItems, searchPatientsByContact } from '../../api';
 import { BillItemRow, InventoryItemRow, PatientRow } from '../../types';
-import { formatCurrency, generateBillNumber } from '../../utils/format';
+import { formatCurrency } from '../../utils/format';
+import { generatePharmacyBillNumber } from '../../utils/idGenerators';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../common/Modal';
 
@@ -155,7 +156,7 @@ const PharmacyBilling: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const bill_number = generateBillNumber();
+      const bill_number = await generatePharmacyBillNumber();
       const billInsert = {
         patient_id: isGuest ? null : patientId,
         doctor_id: null, // No doctor for medicine store bills
@@ -182,7 +183,7 @@ const PharmacyBilling: React.FC = () => {
         total: Number(s.item.sale_price) * s.quantity,
       }));
 
-      const inserted = await createBill(billInsert as any, itemsInsert);
+      const inserted = await createMedicineStoreBill(billInsert as any, itemsInsert, user?.userId);
       localStorage.setItem('orthonova_last_bill_id', inserted.id);
       setMessage('Medicine bill generated successfully');
       

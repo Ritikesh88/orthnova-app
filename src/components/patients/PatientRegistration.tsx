@@ -1,38 +1,34 @@
 import React, { useState } from 'react';
 import { createPatient } from '../../api';
 import { PatientRow } from '../../types';
-import { calculateAge, generatePatientId } from '../../utils/idGenerators';
+import { generatePatientId } from '../../utils/idGenerators';
 
 interface PatientRegistrationProps {
   onPatientCreated?: (patient: PatientRow) => void;
 }
 
 const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onPatientCreated }) => {
-  const [form, setForm] = useState<{ name: string; dob: string; gender: 'Male' | 'Female' | 'Other'; contact: string; address: string }>({
-    name: '', dob: '', gender: 'Male', contact: '', address: ''
+  const [form, setForm] = useState<{ name: string; age: number; gender: 'Male' | 'Female' | 'Other'; contact: string; address: string }>({
+    name: '', age: 0, gender: 'Male', contact: '', address: ''
   });
-  const [age, setAge] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [lastId, setLastId] = useState<string | null>(null);
 
-  const onDobChange = (dob: string) => {
-    setForm(f => ({...f, dob}));
-    if (dob) setAge(calculateAge(dob)); else setAge(0);
-  };
+
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
     
-    if (!form.name || !form.dob || !form.contact) {
-      setError('Name, DOB and Contact are required');
+    if (!form.name || !form.contact || form.age <= 0) {
+      setError('Name, Contact and Age are required');
       return;
     }
     
-    const patient_id = generatePatientId(form.contact, form.name);
+    const patient_id = await generatePatientId();
     setLoading(true);
     
     try {
@@ -40,11 +36,10 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onPatientCrea
         id: crypto.randomUUID(),
         patient_id,
         name: form.name,
-        dob: form.dob,
+        age: form.age,
         gender: form.gender,
         contact: form.contact,
-        address: form.address,
-        age
+        address: form.address
       });
       
       setSuccess(`Patient registered with ID ${patient_id}`);
@@ -56,8 +51,7 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onPatientCrea
       }
       
       // Reset form
-      setForm({ name: '', dob: '', gender: 'Male', contact: '', address: '' });
-      setAge(0);
+      setForm({ name: '', age: 0, gender: 'Male', contact: '', address: '' });
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -75,12 +69,8 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onPatientCrea
             <input className="mt-1 w-full rounded-xl border-gray-300 focus:ring-brand-500" value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} required />
           </div>
           <div>
-            <label className="block text-sm font-medium">DOB</label>
-            <input type="date" className="mt-1 w-full rounded-xl border-gray-300 focus:ring-brand-500" value={form.dob} onChange={e => onDobChange(e.target.value)} required />
-          </div>
-          <div>
             <label className="block text-sm font-medium">Age</label>
-            <input className="mt-1 w-full rounded-xl border-gray-300" value={age} readOnly />
+            <input type="number" min="0" max="150" className="mt-1 w-full rounded-xl border-gray-300 focus:ring-brand-500" value={form.age} onChange={e => setForm(f => ({...f, age: parseInt(e.target.value) || 0}))} required />
           </div>
           <div>
             <label className="block text-sm font-medium">Gender</label>

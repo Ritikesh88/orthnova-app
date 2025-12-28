@@ -99,6 +99,7 @@ const DashboardLayout: React.FC = () => {
               <NavLink to="/clinic/admin/services" className={navItemClass}><span>{Icon.services}</span><span>Manage Service</span></NavLink>
               <NavLink to="/clinic/prescriptions/list" className={navItemClass}><span>{Icon.history}</span><span>Prescription History</span></NavLink>
               <NavLink to="/clinic/admin/inventory" className={navItemClass}><span>{Icon.inventory}</span><span>Inventory</span></NavLink>
+              <NavLink to="/pathology" className={navItemClass}><span>{Icon.pill}</span><span>Pathology Lab</span></NavLink>
             </>
           )}
 
@@ -134,6 +135,7 @@ const DashboardLayout: React.FC = () => {
               <SectionTitle>Appointments</SectionTitle>
               <NavLink to="/clinic/appointments" className={navItemClass} end><span>{Icon.history}</span><span>Appointment History</span></NavLink>
               <NavLink to="/clinic/appointments/calendar" className={navItemClass}><span>{Icon.calendar}</span><span>Calendar</span></NavLink>
+              <NavLink to="/pathology" className={navItemClass}><span>{Icon.pill}</span><span>Pathology Lab</span></NavLink>
             </>
           )}
 

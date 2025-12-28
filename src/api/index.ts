@@ -12,12 +12,23 @@ import {
   UserRow,
   AppointmentRow,
   StockPurchaseRow,
-  StockPurchaseItemRow
+  StockPurchaseItemRow,
+  PathologyTestRow,
+  PathologyTestOrderRow,
+  PathologyTestResultRow,
+  PathologyReportRow
 } from '../types';
+import { generatePrescriptionSerialNumber, generateBillNumber, generatePharmacyBillNumber } from '../utils/idGenerators';
 
 async function throwIfError<T>(res: { data: T | null; error: any }) {
   if (res.error) throw new Error(res.error.message || 'Unknown Supabase error');
   return res.data as T;
+}
+
+async function getUserIdByUserId(userId: string): Promise<string | null> {
+  const res = await supabase.from('users').select('id').eq('user_id', userId).single();
+  if (res.error) return null;
+  return res.data?.id || null;
 }
 
 // Users
@@ -141,10 +152,12 @@ export async function listServices(query?: string): Promise<ServiceRow[]> {
 
 // Bills
 export async function createBill(
-  bill: Omit<BillRow, 'id' | 'created_at'>,
+  bill: Omit<BillRow, 'id' | 'created_at' | 'bill_number'>,
   items: Array<Omit<BillItemRow, 'id'>>
 ): Promise<BillRow> {
-  const billRes = await supabase.from('bills').insert(bill).select('*').single();
+  const bill_number = await generateBillNumber();
+  const billWithNumber = { ...bill, bill_number };
+  const billRes = await supabase.from('bills').insert(billWithNumber).select('*').single();
   const insertedBill = await throwIfError<BillRow>(billRes);
   if (items.length > 0) {
     const itemsToInsert = items.map((it) => ({ ...it, bill_id: insertedBill.id }));
@@ -233,12 +246,20 @@ export async function adjustStock(
 
 // Medicine Store specific functions
 export async function createMedicineStoreBill(
-  bill: Omit<BillRow, 'id' | 'created_at'>,
+  bill: Omit<BillRow, 'id' | 'created_at' | 'bill_number'>,
   items: Array<Omit<BillItemRow, 'id'>>,
   createdBy?: string
 ): Promise<BillRow> {
-  const billRes = await supabase.from('bills').insert(bill).select('*').single();
+  const bill_number = bill.bill_type === 'pharmacy' ? await generatePharmacyBillNumber() : await generateBillNumber();
+  const billWithNumber = { ...bill, bill_number };
+  const billRes = await supabase.from('bills').insert(billWithNumber).select('*').single();
   const insertedBill = await throwIfError<BillRow>(billRes);
+  
+  // Get the actual user UUID if a user_id string is provided
+  let actualUserId: string | null = null;
+  if (createdBy) {
+    actualUserId = await getUserIdByUserId(createdBy);
+  }
   
   if (items.length > 0) {
     const itemsToInsert = items.map((it) => ({ ...it, bill_id: insertedBill.id }));
@@ -254,7 +275,7 @@ export async function createMedicineStoreBill(
           'dispense', 
           { 
             reference_bill_id: insertedBill.id, 
-            created_by: createdBy || null,
+            created_by: actualUserId || null,
             notes: `Sold in bill ${insertedBill.bill_number}`
           }
         );
@@ -316,8 +337,10 @@ export async function getExpiringItems(days: number = 30): Promise<InventoryItem
 }
 
 // Prescriptions
-export async function createPrescription(row: Omit<PrescriptionRow, 'id' | 'created_at'>): Promise<PrescriptionRow> {
-  const res = await supabase.from('prescriptions').insert(row).select('*').single();
+
+export async function createPrescription(row: Omit<PrescriptionRow, 'id' | 'created_at' | 'serial_number'>): Promise<PrescriptionRow> {
+  const serial_number = await generatePrescriptionSerialNumber();
+  const res = await supabase.from('prescriptions').insert({...row, serial_number}).select('*').single();
   return throwIfError<PrescriptionRow>(res);
 }
 
@@ -1106,4 +1129,168 @@ export async function listStockPurchaseItems(purchaseId: string): Promise<StockP
     .select('*')
     .eq('purchase_id', purchaseId);
   return throwIfError<StockPurchaseItemRow[]>(res);
+}
+
+// Pathology Lab Functions
+
+// Pathology Tests
+export async function listPathologyTests(query?: string): Promise<PathologyTestRow[]> {
+  let q = supabase.from('pathology_tests').select('*').order('created_at', { ascending: false });
+  if (query && query.trim()) {
+    const like = `%${query.trim()}%`;
+    q = q.ilike('test_name', like);
+  }
+  const res = await q;
+  return throwIfError<PathologyTestRow[]>(res);
+}
+
+export async function createPathologyTest(row: Omit<PathologyTestRow, 'id' | 'created_at'>): Promise<PathologyTestRow> {
+  const res = await supabase.from('pathology_tests').insert(row).select('*').single();
+  return throwIfError<PathologyTestRow>(res);
+}
+
+export async function updatePathologyTest(id: string, updates: Partial<Omit<PathologyTestRow, 'id' | 'created_at'>>): Promise<PathologyTestRow> {
+  const res = await supabase.from('pathology_tests').update(updates).eq('id', id).select('*').single();
+  return throwIfError<PathologyTestRow>(res);
+}
+
+export async function deletePathologyTest(id: string): Promise<void> {
+  const res = await supabase.from('pathology_tests').delete().eq('id', id);
+  await throwIfError(res as any);
+}
+
+export async function getPathologyTestById(id: string): Promise<PathologyTestRow | null> {
+  const res = await supabase.from('pathology_tests').select('*').eq('id', id).maybeSingle();
+  if (res.error) throw new Error(res.error.message);
+  return res.data as any;
+}
+
+// Pathology Test Orders
+export async function listPathologyTestOrders(query?: string): Promise<PathologyTestOrderRow[]> {
+  let q = supabase.from('pathology_test_orders').select('*').order('created_at', { ascending: false });
+  if (query && query.trim()) {
+    const like = `%${query.trim()}%`;
+    q = q.ilike('id', like);
+  }
+  const res = await q;
+  return throwIfError<PathologyTestOrderRow[]>(res);
+}
+
+export async function createPathologyTestOrder(row: Omit<PathologyTestOrderRow, 'id' | 'created_at'>): Promise<PathologyTestOrderRow> {
+  const res = await supabase.from('pathology_test_orders').insert(row).select('*').single();
+  return throwIfError<PathologyTestOrderRow>(res);
+}
+
+export async function updatePathologyTestOrder(id: string, updates: Partial<Omit<PathologyTestOrderRow, 'id' | 'created_at'>>): Promise<PathologyTestOrderRow> {
+  const res = await supabase.from('pathology_test_orders').update(updates).eq('id', id).select('*').single();
+  return throwIfError<PathologyTestOrderRow>(res);
+}
+
+export async function deletePathologyTestOrder(id: string): Promise<void> {
+  const res = await supabase.from('pathology_test_orders').delete().eq('id', id);
+  await throwIfError(res as any);
+}
+
+export async function getPathologyTestOrderById(id: string): Promise<PathologyTestOrderRow | null> {
+  const res = await supabase.from('pathology_test_orders').select('*').eq('id', id).maybeSingle();
+  if (res.error) throw new Error(res.error.message);
+  return res.data as any;
+}
+
+// Pathology Test Results
+export async function listPathologyTestResults(orderId?: string): Promise<PathologyTestResultRow[]> {
+  let q = supabase.from('pathology_test_results').select('*').order('created_at', { ascending: false });
+  if (orderId) {
+    q = q.eq('order_id', orderId);
+  }
+  const res = await q;
+  return throwIfError<PathologyTestResultRow[]>(res);
+}
+
+export async function createPathologyTestResult(row: Omit<PathologyTestResultRow, 'id' | 'created_at'>): Promise<PathologyTestResultRow> {
+  const res = await supabase.from('pathology_test_results').insert(row).select('*').single();
+  return throwIfError<PathologyTestResultRow>(res);
+}
+
+export async function updatePathologyTestResult(id: string, updates: Partial<Omit<PathologyTestResultRow, 'id' | 'created_at'>>): Promise<PathologyTestResultRow> {
+  const res = await supabase.from('pathology_test_results').update(updates).eq('id', id).select('*').single();
+  return throwIfError<PathologyTestResultRow>(res);
+}
+
+export async function deletePathologyTestResult(id: string): Promise<void> {
+  const res = await supabase.from('pathology_test_results').delete().eq('id', id);
+  await throwIfError(res as any);
+}
+
+export async function getPathologyTestResultById(id: string): Promise<PathologyTestResultRow | null> {
+  const res = await supabase.from('pathology_test_results').select('*').eq('id', id).maybeSingle();
+  if (res.error) throw new Error(res.error.message);
+  return res.data as any;
+}
+
+// Pathology Reports
+export async function listPathologyReports(query?: string): Promise<PathologyReportRow[]> {
+  let q = supabase.from('pathology_reports').select('*').order('created_at', { ascending: false });
+  if (query && query.trim()) {
+    const like = `%${query.trim()}%`;
+    q = q.ilike('id', like);
+  }
+  const res = await q;
+  return throwIfError<PathologyReportRow[]>(res);
+}
+
+export async function createPathologyReport(row: Omit<PathologyReportRow, 'id' | 'created_at'>): Promise<PathologyReportRow> {
+  const res = await supabase.from('pathology_reports').insert(row).select('*').single();
+  return throwIfError<PathologyReportRow>(res);
+}
+
+export async function updatePathologyReport(id: string, updates: Partial<Omit<PathologyReportRow, 'id' | 'created_at'>>): Promise<PathologyReportRow> {
+  const res = await supabase.from('pathology_reports').update(updates).eq('id', id).select('*').single();
+  return throwIfError<PathologyReportRow>(res);
+}
+
+export async function deletePathologyReport(id: string): Promise<void> {
+  const res = await supabase.from('pathology_reports').delete().eq('id', id);
+  await throwIfError(res as any);
+}
+
+export async function getPathologyReportById(id: string): Promise<PathologyReportRow | null> {
+  const res = await supabase.from('pathology_reports').select('*').eq('id', id).maybeSingle();
+  if (res.error) throw new Error(res.error.message);
+  return res.data as any;
+}
+
+export async function generatePathologyReport(orderId: string, generatedBy: string): Promise<PathologyReportRow> {
+  // This would typically involve:
+  // 1. Getting the order and associated test results
+  // 2. Formatting the report data
+  // 3. Creating the report record
+  
+  const order = await getPathologyTestOrderById(orderId);
+  if (!order) {
+    throw new Error('Test order not found');
+  }
+  
+  const results = await listPathologyTestResults(orderId);
+  
+  // Format the report data as JSON
+  const reportData = {
+    order: order,
+    results: results,
+    // Add other relevant data
+  };
+  
+  const report: Omit<PathologyReportRow, 'id' | 'created_at'> = {
+    order_id: orderId,
+    patient_id: order.patient_id,
+    doctor_id: order.doctor_id,
+    report_date: new Date().toISOString(),
+    report_status: 'generated',
+    report_data: JSON.stringify(reportData),
+    generated_by: generatedBy,
+    delivery_status: 'pending',
+    notes: 'Auto-generated report',
+  };
+  
+  return await createPathologyReport(report);
 }

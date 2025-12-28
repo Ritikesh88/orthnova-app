@@ -48,12 +48,12 @@ const PrintBill: React.FC = () => {
           <div className="text-sm">{CLINIC_ADDRESS_LINE_1}</div>
           <div className="text-sm">{CLINIC_ADDRESS_LINE_2}</div>
           <div className="text-sm">{CLINIC_CONTACT}</div>
-          <div className="text-xl font-semibold mt-2">INVOICE</div>
+          <div className="text-xl font-semibold mt-2">BILL</div>
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
           <div className="space-y-1">
-            <div><span className="font-medium">Order No:</span> {bill.bill_number}</div>
+            <div><span className="font-medium">Bill No:</span> {bill.bill_number}</div>
             <div><span className="font-medium">Date:</span> {formatDateTime(bill.created_at)}</div>
             <div><span className="font-medium">Patient Name:</span> {patient?.name || bill.guest_name || '-'}</div>
             <div><span className="font-medium">Age/Gender:</span> {patient ? `${patient.age} / ${patient.gender}` : '-'}</div>
@@ -78,14 +78,16 @@ const PrintBill: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td className="border border-gray-300 px-2 py-1">Consultation Fee</td>
-                <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(opdFee)}</td>
-                <td className="border border-gray-300 px-2 py-1 text-right">1</td>
-                <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(opdFee)}</td>
-                <td className="border border-gray-300 px-2 py-1 text-right">-</td>
-                <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(opdFee)}</td>
-              </tr>
+              {bill.bill_type !== 'pharmacy' && opdFee > 0 && (
+                <tr>
+                  <td className="border border-gray-300 px-2 py-1">Consultation Fee</td>
+                  <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(opdFee)}</td>
+                  <td className="border border-gray-300 px-2 py-1 text-right">1</td>
+                  <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(opdFee)}</td>
+                  <td className="border border-gray-300 px-2 py-1 text-right">-</td>
+                  <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(opdFee)}</td>
+                </tr>
+              )}
               {items.map(it => {
                 const svc = it.service_id ? services[it.service_id] : undefined;
                 const displayName = svc?.service_name || it.item_name || it.inventory_item_id || it.service_id || 'Item';
@@ -111,7 +113,7 @@ const PrintBill: React.FC = () => {
             {bill.transaction_reference && <div><span className="font-medium">Transaction ID:</span> {bill.transaction_reference}</div>}
           </div>
           <div className="space-y-1">
-            <div className="flex justify-between"><span className="font-medium">Final Amount</span><span>{formatCurrency(opdFee + servicesSubtotal)}</span></div>
+            <div className="flex justify-between"><span className="font-medium">Final Amount</span><span>{formatCurrency((bill.bill_type !== 'pharmacy' ? opdFee : 0) + servicesSubtotal)}</span></div>
             <div className="flex justify-between"><span className="font-medium">Discount</span><span>-{formatCurrency(Number(bill.discount))}</span></div>
             <div className="flex justify-between text-lg font-semibold"><span>Net Amount</span><span>{formatCurrency(bill.net_amount)}</span></div>
           </div>

@@ -10,13 +10,12 @@ export interface UserRow {
 
 export interface PatientRow {
   id: string; // UUID primary key (auto-generated)
-  patient_id: string; // custom patient id per spec (YY-XXXX-NAME)
+  patient_id: string; // custom patient id per spec (YYYY/XXXX)
   name: string;
-  dob: string; // ISO date
+  age: number;
   gender: 'Male' | 'Female' | 'Other';
   contact: string;
   address: string;
-  age: number;
   created_at: string;
 }
 
@@ -91,6 +90,7 @@ export interface PrescriptionRow {
   diagnosis: string;
   medicines: string;
   advice: string;
+  serial_number: string;
   created_at: string;
 }
 
@@ -206,5 +206,68 @@ export interface StockPurchaseItemRow {
   hsn_code: string | null;
   gst_rate: number;
   total_amount: number;
+  created_at: string;
+}
+
+// Pathology Lab Types
+export interface PathologyTestRow {
+  id: string; // UUID
+  test_name: string;
+  test_code: string;
+  category: string; // e.g., 'Hematology', 'Biochemistry', 'Microbiology', 'Immunology'
+  description: string;
+  price: number;
+  sample_type: string; // e.g., 'Blood', 'Urine', 'Stool', 'Saliva'
+  report_format: string; // Custom report format if needed
+  reference_ranges?: string; // JSON string containing reference ranges
+  method?: string; // Testing method
+  units?: string; // Measurement units
+  created_at: string;
+}
+
+export interface PathologyTestOrderRow {
+  id: string; // UUID
+  patient_id: string;
+  test_ids: string[]; // Array of test IDs ordered
+  doctor_id?: string; // Ordering doctor
+  technician_id?: string; // Assigned technician
+  order_date: string; // ISO date
+  sample_collection_date?: string; // ISO date
+  sample_collector?: string; // Name of collector
+  report_generation_date?: string; // ISO date
+  report_status: 'ordered' | 'sample_collected' | 'in_progress' | 'completed' | 'verified' | 'delivered';
+  priority: 'normal' | 'urgent' | 'stat';
+  notes?: string;
+  created_at: string;
+}
+
+export interface PathologyTestResultRow {
+  id: string; // UUID
+  order_id: string; // Link to the order
+  test_id: string; // Link to the test
+  result_value: string; // The actual result value
+  units?: string; // Units for the result
+  reference_range?: string; // Normal range for comparison
+  status: 'pending' | 'in_progress' | 'completed' | 'verified';
+  result_date: string; // When the result was entered
+  technician_id?: string; // Who entered the result
+  pathologist_id?: string; // Who verified the result
+  notes?: string;
+  created_at: string;
+}
+
+export interface PathologyReportRow {
+  id: string; // UUID
+  order_id: string; // Link to the order
+  patient_id: string; // Patient info
+  doctor_id?: string; // Ordering doctor
+  report_date: string; // Date of report generation
+  report_status: 'draft' | 'generated' | 'verified' | 'delivered';
+  report_data: string; // JSON string containing the full report data
+  generated_by: string; // User who generated the report
+  verified_by?: string; // User who verified the report
+  delivery_status: 'pending' | 'delivered' | 'collected';
+  delivery_date?: string; // Date of delivery
+  notes?: string;
   created_at: string;
 }
