@@ -46,6 +46,7 @@ const PharmacyBillingPage: React.FC = () => {
   // UI state
   const [submitting, setSubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [billSaved, setBillSaved] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [expiryAlerts, setExpiryAlerts] = useState<string[]>([]);
 
@@ -277,11 +278,13 @@ const PharmacyBillingPage: React.FC = () => {
           total: itemTotal,
           batch_number: s.item.batch_number || null,
           expiry_date: s.item.expiry_date || null,
+
         };
       });
 
       const inserted = await createMedicineStoreBill(billInsert as any, itemsInsert, user?.userId);
       setMessage('Medicine bill saved as draft successfully');
+      setBillSaved(true);
       
       // Optionally, store the draft bill ID for later use
       localStorage.setItem('orthonova_draft_bill_id', inserted.id);
@@ -295,6 +298,11 @@ const PharmacyBillingPage: React.FC = () => {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); 
     setMessage(null);
+    
+    if (!billSaved) {
+      setMessage('Please save the bill first before generating');
+      return;
+    }
     
     if ((!patientId && !isGuest) || selected.length === 0) { 
       setMessage('Select patient/guest and add at least one medicine'); 
@@ -334,7 +342,6 @@ const PharmacyBillingPage: React.FC = () => {
         bill_type: 'pharmacy',
         is_medicine_store_bill: true,
         created_at: new Date().toISOString(),
-        referred_by: referredBy || null,
       } as const;
 
       const itemsInsert: Array<Omit<BillItemRow, 'id'>> = selected.map(s => {
@@ -349,6 +356,7 @@ const PharmacyBillingPage: React.FC = () => {
           total: itemTotal,
           batch_number: s.item.batch_number || null,
           expiry_date: s.item.expiry_date || null,
+
         };
       });
 
@@ -373,6 +381,8 @@ const PharmacyBillingPage: React.FC = () => {
       setGuestName('');
       setGuestContact('');
       setPatientSearch('');
+      setReferredBy('');
+      setBillSaved(false); // Reset the saved state
       
       // Refresh inventory to update stock
       await loadInventory();
@@ -381,6 +391,24 @@ const PharmacyBillingPage: React.FC = () => {
     } finally { 
       setSubmitting(false); 
     }
+  };
+
+  const handleResetForm = () => {
+    // Reset form
+    setSelected([]); 
+    setDiscount(0); 
+    setMode('Cash'); 
+    setTxnRef(''); 
+    setStatus('paid');
+    setPatientId('');
+    setSelectedPatient(null);
+    setIsGuest(false);
+    setGuestName('');
+    setGuestContact('');
+    setPatientSearch('');
+    setReferredBy('');
+    setMessage(null);
+    setBillSaved(false); // Reset the saved state
   };
 
   // Get available batches for an item
@@ -572,11 +600,15 @@ const PharmacyBillingPage: React.FC = () => {
                       </div>
                     </div>
                       
-                    {/* Batch Information */}
-                    <div className="mb-2">
-                      <label className="text-xs text-gray-600">Batch/Expiry</label>
-                      <div className="text-sm">
-                        {s.item.batch_number || 'N/A'} / {s.item.expiry_date || 'N/A'}
+                    {/* Batch and Expiry Information */}
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <div>
+                        <label className="text-xs text-gray-600">Batch</label>
+                        <div className="text-sm">{s.item.batch_number || 'N/A'}</div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-600">Exp. Date</label>
+                        <div className="text-sm">{s.item.expiry_date || 'N/A'}</div>
                       </div>
                     </div>
                       
@@ -594,9 +626,20 @@ const PharmacyBillingPage: React.FC = () => {
               <div className="flex justify-between text-lg font-semibold"><span>Net Amount</span><span>₹{net.toFixed(2)}</span></div>
             </div>
           </div>
-            
-          {/* Payment Mode and Status */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {/* Discount and Payment Mode */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium">Discount (%)</label>
+              <input 
+                type="number" 
+                min="0" 
+                max="100" 
+                className="mt-1 w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500" 
+                value={discount} 
+                onChange={e => setDiscount(Number(e.target.value))} 
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium">Payment Mode</label>
               <select 
@@ -604,8 +647,7 @@ const PharmacyBillingPage: React.FC = () => {
                 value={mode} 
                 onChange={e => setMode(e.target.value as Mode)}
               >
-                {MODES.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
+                {MODES.map(m => <option key={m} value={m}>{m}</option>)}</select>
             </div>
             <div>
               <label className="block text-sm font-medium">Status</label>
@@ -640,6 +682,7 @@ const PharmacyBillingPage: React.FC = () => {
             <button className="btn btn-primary" disabled={submitting}>
               Generate Medicine Bill
             </button>
+            <button type="button" className="btn btn-outline" onClick={handleResetForm}>Reset</button>
             <button 
               type="button" 
               className="btn btn-secondary" 

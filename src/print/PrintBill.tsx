@@ -75,7 +75,8 @@ const PrintBill: React.FC = () => {
                 <th className="border border-gray-300 px-1 py-0.5 text-left">Item Name</th>
                 <th className="border border-gray-300 px-1 py-0.5 text-right">Unit Price</th>
                 <th className="border border-gray-300 px-1 py-0.5 text-right">Qty</th>
-                <th className="border border-gray-300 px-1 py-0.5 text-right">Batch/Exp</th>
+                <th className="border border-gray-300 px-1 py-0.5 text-right">Batch</th>
+                <th className="border border-gray-300 px-1 py-0.5 text-right">Exp. Date</th>
                 <th className="border border-gray-300 px-1 py-0.5 text-right">Amount</th>
                 <th className="border border-gray-300 px-1 py-0.5 text-right">Disc</th>
                 <th className="border border-gray-300 px-1 py-0.5 text-right">Final</th>
@@ -87,6 +88,8 @@ const PrintBill: React.FC = () => {
                   <td className="border border-gray-300 px-1 py-0.5">Consultation Fee</td>
                   <td className="border border-gray-300 px-1 py-0.5 text-right">{formatCurrency(opdFee)}</td>
                   <td className="border border-gray-300 px-1 py-0.5 text-right">1</td>
+                  <td className="border border-gray-300 px-1 py-0.5 text-right">-</td>
+                  <td className="border border-gray-300 px-1 py-0.5 text-right">-</td>
                   <td className="border border-gray-300 px-1 py-0.5 text-right">{formatCurrency(opdFee)}</td>
                   <td className="border border-gray-300 px-1 py-0.5 text-right">-</td>
                   <td className="border border-gray-300 px-1 py-0.5 text-right">{formatCurrency(opdFee)}</td>
@@ -101,10 +104,8 @@ const PrintBill: React.FC = () => {
                     <td className="border border-gray-300 px-1 py-0.5">{displayName}</td>
                     <td className="border border-gray-300 px-1 py-0.5 text-right">{formatCurrency(Number(it.price))}</td>
                     <td className="border border-gray-300 px-1 py-0.5 text-right">{it.quantity}</td>
-                    <td className="border border-gray-300 px-1 py-0.5 text-right">
-                      {it.batch_number || 'N/A'}<br/>
-                      <span className="text-xs">{it.expiry_date || 'N/A'}</span>
-                    </td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-right">{it.batch_number || 'N/A'}</td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-right">{it.expiry_date || 'N/A'}</td>
                     <td className="border border-gray-300 px-1 py-0.5 text-right">{formatCurrency(amount)}</td>
                     <td className="border border-gray-300 px-1 py-0.5 text-right">-</td>
                     <td className="border border-gray-300 px-1 py-0.5 text-right">{formatCurrency(amount)}</td>

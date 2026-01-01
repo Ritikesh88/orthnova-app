@@ -39,6 +39,7 @@ const BillingSystem: React.FC = () => {
 
   const [submitting, setSubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [billSaved, setBillSaved] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const refreshDoctors = async () => {
@@ -203,6 +204,7 @@ const BillingSystem: React.FC = () => {
       const inserted = await createBill(billPayload as any, itemsInsert);
 
       setMessage('Bill saved as draft successfully');
+      setBillSaved(true);
       
       // Optionally, store the draft bill ID for later use
       localStorage.setItem('orthonova_draft_bill_id', inserted.id);
@@ -216,6 +218,11 @@ const BillingSystem: React.FC = () => {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
+    
+    if (!billSaved) {
+      setMessage('Please save the bill first before generating');
+      return;
+    }
     
     if ((!patientId && !isGuest) || !doctorId) {
       setMessage('Select patient and doctor');
@@ -330,11 +337,46 @@ const BillingSystem: React.FC = () => {
       setTxnRef('');
       setStatus('paid');
       setAppointmentId(null);
+      setPatientId('');
+      setSelectedPatient(null);
+      setPatientSearch('');
+      setPatientMatches([]);
+      setPatientModalOpen(false);
+      setIsGuest(false);
+      setGuestName('');
+      setGuestContact('');
+      setDoctorQuery('');
+      setDoctorId('');
+      setServiceSearch('');
+      setBillSaved(false); // Reset the saved state
     } catch (e: any) {
       setMessage(e.message);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleResetForm = () => {
+    // Reset form
+    setItems([]);
+    setDiscountPercent(0);
+    setMode('Cash');
+    setTxnRef('');
+    setStatus('paid');
+    setAppointmentId(null);
+    setPatientId('');
+    setSelectedPatient(null);
+    setPatientSearch('');
+    setPatientMatches([]);
+    setPatientModalOpen(false);
+    setIsGuest(false);
+    setGuestName('');
+    setGuestContact('');
+    setDoctorQuery('');
+    setDoctorId('');
+    setServiceSearch('');
+    setMessage(null);
+    setBillSaved(false); // Reset the saved state
   };
 
   return (
@@ -513,6 +555,7 @@ const BillingSystem: React.FC = () => {
           <div className="flex items-center gap-3">
             <button type="button" className="btn btn-secondary" disabled={saving} onClick={onSave}>Save</button>
             <button className="btn btn-primary" disabled={submitting}>Generate Bill</button>
+            <button type="button" className="btn btn-outline" onClick={handleResetForm}>Reset</button>
             <button type="button" className="btn btn-secondary" onClick={() => {
               const id = localStorage.getItem('orthonova_last_bill_id');
               if (!id) { setMessage('No recent bill to reprint'); return; }

@@ -92,22 +92,25 @@ export function calculateAge(dobIsoDate: string): number {
   return age < 0 ? 0 : age;
 }
 
-// Function to generate bill number in ON-YYMMDD-XXXX format
+// Function to generate bill number in ON-YYMM-XXXX format (monthly serial number)
 export async function generateBillNumber(): Promise<string> {
   const today = new Date();
   const year = today.getFullYear().toString().slice(-2);
   const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  const datePrefix = `ON-${year}${month}${day}-`;
+  const datePrefix = `ON-${year}${month}-`;
+  
+  // Get the start and end dates of the current month
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   
   // Retry mechanism to handle race conditions
   for (let attempts = 0; attempts < 5; attempts++) {
-    // Get all bills created today to determine the next serial number
+    // Get all bills created this month to determine the next serial number
     const { data: bills, error } = await supabase
       .from('bills')
       .select('bill_number')
-      .gte('created_at', `${today.toISOString().split('T')[0]}T00:00:00`)
-      .lte('created_at', `${today.toISOString().split('T')[0]}T23:59:59`)
+      .gte('created_at', `${startOfMonth.toISOString().split('T')[0]}T00:00:00`)
+      .lte('created_at', `${endOfMonth.toISOString().split('T')[0]}T23:59:59`)
       .ilike('bill_number', `${datePrefix}%`)
       .neq('bill_type', 'pharmacy'); // Exclude pharmacy bills
       
@@ -118,7 +121,7 @@ export async function generateBillNumber(): Promise<string> {
       return `${datePrefix}${seq}`;
     }
     
-    // Find the highest serial number for today
+    // Find the highest serial number for this month
     let maxSerial = 0;
     if (bills && bills.length > 0) {
       bills.forEach((bill: any) => {
@@ -160,6 +163,8 @@ export async function generateBillNumber(): Promise<string> {
   const seq = Math.floor(Math.random() * 9000 + 1000).toString();
   return `${datePrefix}${seq}`;
 }
+
+
 
 // Function to generate pharmacy bill number in ONP-YYDDMM-XXXX format
 export async function generatePharmacyBillNumber(): Promise<string> {
