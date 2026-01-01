@@ -152,10 +152,11 @@ export async function listServices(query?: string): Promise<ServiceRow[]> {
 
 // Bills
 export async function createBill(
-  bill: Omit<BillRow, 'id' | 'created_at' | 'bill_number'>,
+  bill: Omit<BillRow, 'id' | 'created_at' | 'bill_number'> & { bill_number?: string | null },
   items: Array<Omit<BillItemRow, 'id'>>
 ): Promise<BillRow> {
-  const bill_number = await generateBillNumber();
+  // If bill_number is null or explicitly provided as null, treat as draft
+  const bill_number = bill.bill_number !== undefined ? bill.bill_number : await generateBillNumber();
   const billWithNumber = { ...bill, bill_number };
   const billRes = await supabase.from('bills').insert(billWithNumber).select('*').single();
   const insertedBill = await throwIfError<BillRow>(billRes);
@@ -246,11 +247,12 @@ export async function adjustStock(
 
 // Medicine Store specific functions
 export async function createMedicineStoreBill(
-  bill: Omit<BillRow, 'id' | 'created_at' | 'bill_number'>,
+  bill: Omit<BillRow, 'id' | 'created_at' | 'bill_number'> & { bill_number?: string | null },
   items: Array<Omit<BillItemRow, 'id'>>,
   createdBy?: string
 ): Promise<BillRow> {
-  const bill_number = bill.bill_type === 'pharmacy' ? await generatePharmacyBillNumber() : await generateBillNumber();
+  // If bill_number is null or explicitly provided as null, treat as draft
+  const bill_number = bill.bill_number !== undefined ? bill.bill_number : (bill.bill_type === 'pharmacy' ? await generatePharmacyBillNumber() : await generateBillNumber());
   const billWithNumber = { ...bill, bill_number };
   const billRes = await supabase.from('bills').insert(billWithNumber).select('*').single();
   const insertedBill = await throwIfError<BillRow>(billRes);
@@ -266,19 +268,21 @@ export async function createMedicineStoreBill(
     const itemsRes = await supabase.from('bill_items').insert(itemsToInsert).select('*');
     await throwIfError<BillItemRow[]>(itemsRes);
     
-    // Update stock for each item
-    for (const item of items) {
-      if (item.inventory_item_id) {
-        await adjustStock(
-          item.inventory_item_id, 
-          -item.quantity, 
-          'dispense', 
-          { 
-            reference_bill_id: insertedBill.id, 
-            created_by: actualUserId || null,
-            notes: `Sold in bill ${insertedBill.bill_number}`
-          }
-        );
+    // Update stock for each item only if not a draft
+    if (bill_number) { // Only update stock if it's not a draft (has a bill number)
+      for (const item of items) {
+        if (item.inventory_item_id) {
+          await adjustStock(
+            item.inventory_item_id, 
+            -item.quantity, 
+            'dispense', 
+            { 
+              reference_bill_id: insertedBill.id, 
+              created_by: actualUserId || null,
+              notes: `Sold in bill ${insertedBill.bill_number}`
+            }
+          );
+        }
       }
     }
   }

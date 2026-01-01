@@ -45,6 +45,7 @@ const PharmacyBillingPage: React.FC = () => {
   
   // UI state
   const [submitting, setSubmitting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [expiryAlerts, setExpiryAlerts] = useState<string[]>([]);
 
@@ -221,6 +222,76 @@ const PharmacyBillingPage: React.FC = () => {
     return Math.max(0, subtotal - discountAmount);
   }, [subtotal, discount]);
 
+  const onSave = async (e: React.FormEvent) => {
+    e.preventDefault(); 
+    setMessage(null);
+    
+    if ((!patientId && !isGuest) || selected.length === 0) { 
+      setMessage('Select patient/guest and add at least one medicine'); 
+      return; 
+    }
+    
+    if (isGuest && (!guestName.trim() || !guestContact.trim())) { 
+      setMessage('Enter guest name and contact'); 
+      return; 
+    }
+    
+    if ((mode === 'UPI' || mode === 'Card') && !txnRef.trim()) { 
+      setMessage('Transaction reference required for UPI/Card'); 
+      return; 
+    }
+
+    setSaving(true);
+    try {
+      // Find the selected doctor by name
+      const selectedDoctor = allDoctors.find(doctor => doctor.name === referredBy);
+      
+      const billInsert = {
+        patient_id: isGuest ? null : patientId,
+        doctor_id: selectedDoctor?.id || null, // Use doctor ID if a registered doctor is selected
+        total_amount: subtotal,
+        discount: (subtotal * discount) / 100, // actual discount amount
+        net_amount: net,
+        status: 'pending', // Draft status
+        bill_number: null, // Will be generated when bill is finalized
+        mode_of_payment: mode,
+        transaction_reference: (mode === 'UPI' || mode === 'Card') ? txnRef : null,
+        guest_name: isGuest ? guestName.trim() : null,
+        guest_contact: isGuest ? guestContact.trim() : null,
+        bill_type: 'pharmacy',
+        is_medicine_store_bill: true,
+        created_at: new Date().toISOString(),
+        referred_by: referredBy || null,
+
+      } as const;
+
+      const itemsInsert: Array<Omit<BillItemRow, 'id'>> = selected.map(s => {
+        const itemTotal = Number(s.item.sale_price) * s.quantity;
+        
+        return {
+          bill_id: '',
+          inventory_item_id: s.item.id,
+          item_name: s.item.name,
+          quantity: s.quantity,
+          price: Number(s.item.sale_price),
+          total: itemTotal,
+          batch_number: s.item.batch_number || null,
+          expiry_date: s.item.expiry_date || null,
+        };
+      });
+
+      const inserted = await createMedicineStoreBill(billInsert as any, itemsInsert, user?.userId);
+      setMessage('Medicine bill saved as draft successfully');
+      
+      // Optionally, store the draft bill ID for later use
+      localStorage.setItem('orthonova_draft_bill_id', inserted.id);
+    } catch (e: any) { 
+      setMessage(e.message); 
+    } finally { 
+      setSaving(false); 
+    }
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); 
     setMessage(null);
@@ -253,7 +324,6 @@ const PharmacyBillingPage: React.FC = () => {
         doctor_id: selectedDoctor?.id || null, // Use doctor ID if a registered doctor is selected
         total_amount: subtotal,
         discount: discountAmount, // actual discount amount
-        discount_percentage: discount, // percentage discount
         net_amount: net,
         status,
         bill_number,
@@ -566,6 +636,7 @@ const PharmacyBillingPage: React.FC = () => {
 
 
           <div className="flex items-center gap-3">
+            <button type="button" className="btn btn-secondary" disabled={saving} onClick={onSave}>Save</button>
             <button className="btn btn-primary" disabled={submitting}>
               Generate Medicine Bill
             </button>

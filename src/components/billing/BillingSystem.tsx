@@ -38,6 +38,7 @@ const BillingSystem: React.FC = () => {
   const [status, setStatus] = useState<'paid' | 'pending' | 'partial'>('paid');
 
   const [submitting, setSubmitting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const refreshDoctors = async () => {
@@ -116,6 +117,100 @@ const BillingSystem: React.FC = () => {
   const onSelectDoctor = (d: DoctorRow) => {
     setDoctorId(d.id);
     setDoctorQuery(d.name);
+  };
+
+  const onSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage(null);
+    
+    if ((!patientId && !isGuest) || !doctorId) {
+      setMessage('Select patient and doctor');
+      return;
+    }
+    if (isGuest && (!guestName.trim() || !guestContact.trim())) {
+      setMessage('Enter guest name and contact');
+      return;
+    }
+    if ((mode === 'UPI' || mode === 'Card') && !txnRef.trim()) {
+      setMessage('Transaction reference required for UPI/Card');
+      return;
+    }
+    if (items.length === 0 && opdFee === 0) {
+      setMessage('Add at least one service or select a doctor with OPD fee');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      let finalPatientId = patientId;
+
+      // Step 1: Create guest patient if needed
+      if (isGuest && guestName.trim() && guestContact.trim()) {
+        const patient_id = await generatePatientId();
+        const age = 0; // Guest patients don't have DOB, default to 0
+        const createdPatient = await createPatient({
+          id: crypto.randomUUID(),
+          patient_id,
+          name: guestName.trim(),
+          age: age,
+          gender: 'Other',
+          contact: guestContact.trim(),
+          address: '',
+        });
+        finalPatientId = createdPatient.id;
+      }
+
+      // Step 2: Create appointment if needed
+      let finalAppointmentId = appointmentId;
+      if (!finalAppointmentId && finalPatientId && doctorId) {
+        const appointment = await createAppointment({
+          patient_id: finalPatientId,
+          doctor_id: doctorId,
+          appointment_date: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD
+          status: 'completed',
+        });
+        finalAppointmentId = appointment.id;
+        setAppointmentId(finalAppointmentId);
+      }
+
+      // Step 3: Create bill with a draft status
+      const billPayload = {
+        patient_id: finalPatientId,
+        doctor_id: doctorId,
+        total_amount: total,
+        discount: discountAmount,
+        net_amount: net,
+        status: 'pending', // Draft status
+        bill_number: null, // Will be generated when bill is finalized
+        mode_of_payment: mode,
+        transaction_reference: (mode === 'UPI' || mode === 'Card') ? txnRef : null,
+        guest_name: isGuest ? guestName.trim() : null,
+        guest_contact: isGuest ? guestContact.trim() : null,
+        bill_type: 'services' as const,
+
+      };
+
+      const itemsInsert: Array<Omit<BillItemRow, 'id'>> = items.map(it => ({
+        bill_id: '',
+        service_id: it.service.id,
+        quantity: it.quantity,
+        price: Number(it.service.price),
+        total: Number(it.service.price) * it.quantity,
+      }));
+
+      // For draft bills, we need to save to a different table or mark as draft in the same table
+      // This would require an update to the API function to handle draft bills
+      const inserted = await createBill(billPayload as any, itemsInsert);
+
+      setMessage('Bill saved as draft successfully');
+      
+      // Optionally, store the draft bill ID for later use
+      localStorage.setItem('orthonova_draft_bill_id', inserted.id);
+    } catch (e: any) {
+      setMessage(e.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -416,6 +511,7 @@ const BillingSystem: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <button type="button" className="btn btn-secondary" disabled={saving} onClick={onSave}>Save</button>
             <button className="btn btn-primary" disabled={submitting}>Generate Bill</button>
             <button type="button" className="btn btn-secondary" onClick={() => {
               const id = localStorage.getItem('orthonova_last_bill_id');

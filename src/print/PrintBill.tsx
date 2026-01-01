@@ -29,8 +29,7 @@ const PrintBill: React.FC = () => {
       const svcMap: Record<string, ServiceRow> = {};
       svc.forEach(s => { svcMap[s.id] = s; });
       setServices(svcMap);
-      const printTimer = setTimeout(() => { window.focus(); window.print(); }, 400);
-      return () => clearTimeout(printTimer);
+
     })();
   }, [id]);
 
@@ -40,25 +39,25 @@ const PrintBill: React.FC = () => {
   if (!bill) return <div className="p-6">Loading...</div>;
 
   return (
-    <div className="p-6 print:p-0">
-      <div className="max-w-3xl mx-auto bg-white p-6 print:p-0">
+    <div className="p-4 print:p-0">
+      <div className="max-w-3xl mx-auto bg-white p-4 print:p-0 text-xs">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">{CLINIC_NAME}</h1>
-          <div className="text-sm">{CLINIC_REG_NO}</div>
-          <div className="text-sm">{CLINIC_ADDRESS_LINE_1}</div>
-          <div className="text-sm">Email: {CLINIC_EMAIL}</div>
-          <div className="text-sm">{CLINIC_CONTACT}</div>
-          <div className="text-xl font-semibold mt-2">BILL</div>
+          <h1 className="text-lg font-bold">{CLINIC_NAME}</h1>
+          <div className="text-xs">{CLINIC_REG_NO}</div>
+          <div className="text-xs">{CLINIC_ADDRESS_LINE_1}</div>
+          <div className="text-xs">Email: {CLINIC_EMAIL}</div>
+          <div className="text-xs">{CLINIC_CONTACT}</div>
+          <div className="text-lg font-semibold mt-1">BILL</div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          <div className="space-y-1">
+        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+          <div className="space-y-0.5">
             <div><span className="font-medium">Bill No:</span> {bill.bill_number}</div>
             <div><span className="font-medium">Date:</span> {formatDateTime(bill.created_at)}</div>
             <div><span className="font-medium">Patient Name:</span> {patient?.name || bill.guest_name || '-'}</div>
             <div><span className="font-medium">Age/Gender:</span> {patient ? `${patient.age} / ${patient.gender}` : '-'}</div>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <div><span className="font-medium">Contact:</span> {patient?.contact || bill.guest_contact || '-'}</div>
             <div><span className="font-medium">Address:</span> {patient?.address || '-'}</div>
             {bill.bill_type === 'pharmacy' ? (
@@ -69,28 +68,28 @@ const PrintBill: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-4">
-          <table className="w-full text-sm border border-gray-300">
+        <div className="mt-2">
+          <table className="w-full text-xs border border-gray-300">
             <thead>
               <tr className="bg-gray-100">
-                <th className="border border-gray-300 px-2 py-1 text-left">Item Name</th>
-                <th className="border border-gray-300 px-2 py-1 text-right">Unit Price</th>
-                <th className="border border-gray-300 px-2 py-1 text-right">Quantity</th>
-                <th className="border border-gray-300 px-2 py-1 text-right">Batch/Exp</th>
-                <th className="border border-gray-300 px-2 py-1 text-right">Amount</th>
-                <th className="border border-gray-300 px-2 py-1 text-right">Discount</th>
-                <th className="border border-gray-300 px-2 py-1 text-right">Final Amount</th>
+                <th className="border border-gray-300 px-1 py-0.5 text-left">Item Name</th>
+                <th className="border border-gray-300 px-1 py-0.5 text-right">Unit Price</th>
+                <th className="border border-gray-300 px-1 py-0.5 text-right">Qty</th>
+                <th className="border border-gray-300 px-1 py-0.5 text-right">Batch/Exp</th>
+                <th className="border border-gray-300 px-1 py-0.5 text-right">Amount</th>
+                <th className="border border-gray-300 px-1 py-0.5 text-right">Disc</th>
+                <th className="border border-gray-300 px-1 py-0.5 text-right">Final</th>
               </tr>
             </thead>
             <tbody>
               {bill.bill_type !== 'pharmacy' && opdFee > 0 && (
                 <tr>
-                  <td className="border border-gray-300 px-2 py-1">Consultation Fee</td>
-                  <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(opdFee)}</td>
-                  <td className="border border-gray-300 px-2 py-1 text-right">1</td>
-                  <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(opdFee)}</td>
-                  <td className="border border-gray-300 px-2 py-1 text-right">-</td>
-                  <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(opdFee)}</td>
+                  <td className="border border-gray-300 px-1 py-0.5">Consultation Fee</td>
+                  <td className="border border-gray-300 px-1 py-0.5 text-right">{formatCurrency(opdFee)}</td>
+                  <td className="border border-gray-300 px-1 py-0.5 text-right">1</td>
+                  <td className="border border-gray-300 px-1 py-0.5 text-right">{formatCurrency(opdFee)}</td>
+                  <td className="border border-gray-300 px-1 py-0.5 text-right">-</td>
+                  <td className="border border-gray-300 px-1 py-0.5 text-right">{formatCurrency(opdFee)}</td>
                 </tr>
               )}
               {items.map(it => {
@@ -99,16 +98,16 @@ const PrintBill: React.FC = () => {
                 const amount = Number(it.total);
                 return (
                   <tr key={it.id}>
-                    <td className="border border-gray-300 px-2 py-1">{displayName}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(Number(it.price))}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-right">{it.quantity}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-right">
+                    <td className="border border-gray-300 px-1 py-0.5">{displayName}</td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-right">{formatCurrency(Number(it.price))}</td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-right">{it.quantity}</td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-right">
                       {it.batch_number || 'N/A'}<br/>
                       <span className="text-xs">{it.expiry_date || 'N/A'}</span>
                     </td>
-                    <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(amount)}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-right">{it.discount_percentage ? `${it.discount_percentage}%` : '-'}</td>
-                    <td className="border border-gray-300 px-2 py-1 text-right">{formatCurrency(amount)}</td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-right">{formatCurrency(amount)}</td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-right">-</td>
+                    <td className="border border-gray-300 px-1 py-0.5 text-right">{formatCurrency(amount)}</td>
                   </tr>
                 );
               })}
@@ -116,23 +115,28 @@ const PrintBill: React.FC = () => {
           </table>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          <div className="space-y-1">
+        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+          <div className="space-y-0.5">
             <div><span className="font-medium">Payment Type:</span> {bill.mode_of_payment}</div>
             {bill.transaction_reference && <div><span className="font-medium">Transaction ID:</span> {bill.transaction_reference}</div>}
           </div>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <div className="flex justify-between"><span className="font-medium">Final Amount</span><span>{formatCurrency((bill.bill_type !== 'pharmacy' ? opdFee : 0) + servicesSubtotal)}</span></div>
-            {bill.discount_percentage && (
-              <div className="flex justify-between"><span className="font-medium">Discount ({bill.discount_percentage}%)</span><span>-{formatCurrency(Number(bill.discount))}</span></div>
+            {Number(bill.discount) > 0 && (
+              <div className="flex justify-between">
+                <span className="font-medium">Discount</span>
+                <span>-{formatCurrency(Number(bill.discount))}
+                  {bill.total_amount > 0 ? ` (${((Number(bill.discount) / Number(bill.total_amount)) * 100).toFixed(2)}%)` : ''}
+                </span>
+              </div>
             )}
-            <div className="flex justify-between text-lg font-semibold"><span>Net Amount</span><span>{formatCurrency(bill.net_amount)}</span></div>
+            <div className="flex justify-between font-semibold"><span>Net Amount</span><span>{formatCurrency(bill.net_amount)}</span></div>
           </div>
         </div>
 
-        <div className="mt-8 text-sm">
+        <div className="mt-4 text-xs">
           <div>{CLINIC_CONTACT}</div>
-          <div className="flex justify-between mt-8">
+          <div className="flex justify-between mt-4">
             <div>Prepared by: ____________</div>
             <div>Signature: ____________</div>
           </div>

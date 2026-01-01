@@ -55,7 +55,6 @@ export interface BillRow {
   doctor_id: string | null; // Optional for medicine store bills
   total_amount: number;
   discount: number;
-  discount_percentage?: number;
   net_amount: number;
   status: 'paid' | 'pending' | 'partial';
   bill_number: string;
