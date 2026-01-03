@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { getSalesSummary, getDoctorSalesReport, getServiceSalesReport, getBillsByDate, getBillsByMonth, getBillsByDoctor, getBillsByDateRange, getBillById, listBillItems, getDoctorById, SalesSummary, DoctorSalesReport, ServiceSalesReport, BillDetail, listBills } from '../../api';
-import { BillRow, BillItemRow } from '../../types';
+import { getSalesSummary, getDoctorSalesReport, getServiceSalesReport, getBillsByDate, getBillsByMonth, getBillsByDoctor, getBillsByDateRange, getBillById, listBillItems, getDoctorById, SalesSummary, DoctorSalesReport, ServiceSalesReport, BillDetail, listBills, listDoctors } from '../../api';
+import { BillRow, BillItemRow, DoctorRow } from '../../types';
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/format';
 import * as XLSX from 'xlsx'; // Using type assertion for utils to avoid TypeScript issues
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabaseClient';
 
 type ReportTab = 'sales' | 'doctor' | 'service' | 'doctorServices';
 
 const Reports: React.FC = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<ReportTab>('sales');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -60,14 +63,157 @@ const Reports: React.FC = () => {
 
     try {
       if (activeTab === 'sales') {
-        const data = await getSalesSummary(startDate, endDate, groupBy);
-        setSalesData(data);
+        if (user?.role === 'doctor' && user?.userId) {
+          // For doctor role, get their own doctor ID and fetch only their data
+          const allDoctors: DoctorRow[] = await listDoctors();
+          const doctorMatch = allDoctors.find(doctor => 
+            doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
+            user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
+          );
+          
+          if (doctorMatch) {
+            // Get bills specifically for this doctor and generate sales summary
+            const doctorBills = await getBillsByDoctor(doctorMatch.id, startDate, endDate);
+            
+            // Group bills by date/month as needed
+            const grouped: Record<string, SalesSummary> = {};
+            
+            doctorBills.forEach(bill => {
+              const date = new Date(bill.created_at);
+              let key: string;
+              
+              if (groupBy === 'month') {
+                key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+              } else {
+                key = date.toISOString().split('T')[0];
+              }
+
+              if (!grouped[key]) {
+                grouped[key] = {
+                  date: key,
+                  total_bills: 0,
+                  total_amount: 0,
+                  total_discount: 0,
+                  net_amount: 0,
+                };
+              }
+
+              grouped[key].total_bills += 1;
+              grouped[key].total_amount += Number(bill.total_amount || 0);
+              grouped[key].total_discount += Number(bill.discount || 0);
+              grouped[key].net_amount += Number(bill.net_amount || 0);
+            });
+
+            setSalesData(Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date)));
+          } else {
+            setSalesData([]);
+            setError('Doctor profile not found. Contact admin to set up your doctor profile.');
+          }
+        } else {
+          const data = await getSalesSummary(startDate, endDate, groupBy);
+          setSalesData(data);
+        }
       } else if (activeTab === 'doctor') {
-        const data = await getDoctorSalesReport(startDate, endDate);
-        setDoctorData(data);
+        if (user?.role === 'doctor' && user?.userId) {
+          // For doctor role, get their own doctor ID and fetch only their data
+          const allDoctors: DoctorRow[] = await listDoctors();
+          const doctorMatch = allDoctors.find(doctor => 
+            doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
+            user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
+          );
+          
+          if (doctorMatch) {
+            // Get bills specifically for this doctor
+            const doctorBills = await getBillsByDoctor(doctorMatch.id, startDate, endDate);
+            // Convert to doctor sales report format
+            const reportData: DoctorSalesReport[] = [
+              {
+                doctor_id: doctorMatch.id,
+                doctor_name: doctorMatch.name,
+                total_bills: doctorBills.length,
+                total_amount: doctorBills.reduce((sum, bill) => sum + bill.total_amount, 0),
+                total_discount: doctorBills.reduce((sum, bill) => sum + bill.discount, 0),
+                net_amount: doctorBills.reduce((sum, bill) => sum + bill.net_amount, 0),
+              }
+            ];
+            setDoctorData(reportData);
+          } else {
+            setDoctorData([]);
+            setError('Doctor profile not found. Contact admin to set up your doctor profile.');
+          }
+        } else {
+          const data = await getDoctorSalesReport(startDate, endDate);
+          setDoctorData(data);
+        }
       } else if (activeTab === 'service') {
-        const data = await getServiceSalesReport(startDate, endDate);
-        setServiceData(data);
+        if (user?.role === 'doctor' && user?.userId) {
+          // For doctor role, only show services associated with their bills
+          const allDoctors: DoctorRow[] = await listDoctors();
+          const doctorMatch = allDoctors.find(doctor => 
+            doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
+            user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
+          );
+          
+          if (doctorMatch) {
+            // Get all bills for this doctor in the date range
+            const doctorBills = await getBillsByDoctor(doctorMatch.id, startDate, endDate);
+            const billIds = doctorBills.map(bill => bill.id);
+            
+            // Get service sales report only for this doctor's bills
+            const itemsRes = await supabase
+              .from('bill_items')
+              .select('service_id, item_name, quantity, total')
+              .in('bill_id', billIds)
+              .not('service_id', 'is', null);
+            
+            if (itemsRes.error) throw new Error(itemsRes.error.message);
+            
+            const items = itemsRes.data || [];
+            const serviceMap: Record<string, ServiceSalesReport> = {};
+            
+            items.forEach((item: any) => {
+              const serviceId = item.service_id || 'other';
+              const serviceName = item.item_name || 'Unknown Service';
+              
+              if (!serviceMap[serviceId]) {
+                serviceMap[serviceId] = {
+                  service_id: serviceId,
+                  service_name: serviceName,
+                  total_quantity: 0,
+                  total_amount: 0,
+                };
+              }
+              
+              serviceMap[serviceId].total_quantity += Number(item.quantity || 0);
+              serviceMap[serviceId].total_amount += Number(item.total || 0);
+            });
+            
+            // Fetch actual service names from services table
+            const serviceIds = Object.keys(serviceMap).filter(id => id !== 'other');
+            if (serviceIds.length > 0) {
+              const servicesRes = await supabase
+                .from('services')
+                .select('id, service_name')
+                .in('id', serviceIds);
+              
+              if (!servicesRes.error && servicesRes.data) {
+                servicesRes.data.forEach((s: any) => {
+                  if (serviceMap[s.id]) {
+                    serviceMap[s.id].service_name = s.service_name;
+                  }
+                });
+              }
+            }
+            
+            setServiceData(Object.values(serviceMap).sort((a, b) => b.total_amount - a.total_amount));
+          } else {
+            setServiceData([]);
+            setError('Doctor profile not found. Contact admin to set up your doctor profile.');
+          }
+        } else {
+          const data = await getServiceSalesReport(startDate, endDate);
+          setServiceData(data);
+        }
       } else if (activeTab === 'doctorServices') {
         // Fetch doctor-service analysis
         await fetchDoctorServiceAnalysis();
@@ -82,13 +228,96 @@ const Reports: React.FC = () => {
 
   const fetchDoctorServiceAnalysis = async () => {
     try {
-      const bills = await getBillsByDate(startDate); // Get all bills in date range
-      // You'll need to implement a proper API function to get bills with items by date range
-      // For now, this is a placeholder
-      const doctorServiceMap = new Map<string, any>();
-      
-      // This is simplified - in production, you'd need a dedicated API endpoint
-      setDoctorServiceData([]);
+      if (user?.role === 'doctor' && user?.userId) {
+        // For doctor role, get their own doctor ID and fetch only their bills
+        const allDoctors: DoctorRow[] = await listDoctors();
+        const doctorMatch = allDoctors.find(doctor => 
+          doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
+          user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
+        );
+        
+        if (doctorMatch) {
+          // Get bills specifically for this doctor
+          const doctorBills = await getBillsByDoctor(doctorMatch.id, startDate, endDate);
+          const billIds = doctorBills.map(bill => bill.id);
+          
+          // Get bill items for these bills
+          const itemsRes = await supabase
+            .from('bill_items')
+            .select('service_id, bill_id, quantity, total')
+            .in('bill_id', billIds)
+            .not('service_id', 'is', null);
+          
+          if (itemsRes.error) throw new Error(itemsRes.error.message);
+          
+          const items = itemsRes.data || [];
+          
+          // Group by doctor and services
+          const doctorServiceMap = new Map<string, any>();
+          
+          // Get services data
+          const serviceIds = items.map(item => item.service_id).filter(Boolean) as string[];
+          let servicesMap: Record<string, string> = {};
+          
+          if (serviceIds.length > 0) {
+            const servicesRes = await supabase
+              .from('services')
+              .select('id, service_name')
+              .in('id', serviceIds);
+            
+            if (!servicesRes.error && servicesRes.data) {
+              servicesRes.data.forEach((s: any) => {
+                servicesMap[s.id] = s.service_name;
+              });
+            }
+          }
+          
+          // Process items
+          items.forEach(item => {
+            if (!doctorServiceMap.has(doctorMatch.id)) {
+              doctorServiceMap.set(doctorMatch.id, {
+                doctor_id: doctorMatch.id,
+                doctor_name: doctorMatch.name,
+                services: [],
+                total_amount: 0
+              });
+            }
+            
+            const doctorData = doctorServiceMap.get(doctorMatch.id);
+            const service_name = servicesMap[item.service_id as string] || 'Unknown Service';
+            
+            // Check if service already exists in the array
+            const existingService = doctorData.services.find((s: any) => s.service_name === service_name);
+            
+            if (existingService) {
+              existingService.quantity += Number(item.quantity || 0);
+              existingService.amount += Number(item.total || 0);
+            } else {
+              doctorData.services.push({
+                service_name,
+                quantity: Number(item.quantity || 0),
+                amount: Number(item.total || 0)
+              });
+            }
+            
+            doctorData.total_amount += Number(item.total || 0);
+          });
+          
+          setDoctorServiceData(Array.from(doctorServiceMap.values()));
+        } else {
+          setDoctorServiceData([]);
+          setError('Doctor profile not found. Contact admin to set up your doctor profile.');
+        }
+      } else {
+        // For admin/other roles, get all bills in date range
+        const bills = await getBillsByDate(startDate); // Get all bills in date range
+        // You'll need to implement a proper API function to get bills with items by date range
+        // For now, this is a placeholder
+        const doctorServiceMap = new Map<string, any>();
+        
+        // This is simplified - in production, you'd need a dedicated API endpoint
+        setDoctorServiceData([]);
+      }
     } catch (e: any) {
       console.error('Error fetching doctor-service analysis:', e);
     }
@@ -96,7 +325,11 @@ const Reports: React.FC = () => {
 
   useEffect(() => {
     if (startDate && endDate) {
-      fetchReports();
+      if (activeTab === 'doctorServices') {
+        fetchDoctorServiceAnalysis();
+      } else {
+        fetchReports();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, groupBy]);
@@ -180,8 +413,29 @@ const Reports: React.FC = () => {
   const exportCompleteBillingDataToExcel = async () => {
     setLoading(true);
     try {
-      // Fetch all bills in the selected date range
-      const allBills = await getBillsByDateRange(startDate, endDate);
+      let allBills: BillDetail[];
+      
+      if (user?.role === 'doctor' && user?.userId) {
+        // For doctor role, get their own doctor ID and fetch only their bills
+        const allDoctors: DoctorRow[] = await listDoctors();
+        const doctorMatch = allDoctors.find(doctor => 
+          doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
+          user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
+        );
+        
+        if (doctorMatch) {
+          // Get all bills for this doctor in the date range
+          const doctorBills = await getBillsByDoctor(doctorMatch.id, startDate, endDate);
+          allBills = doctorBills;
+        } else {
+          allBills = [];
+          setError('Doctor profile not found. Contact admin to set up your doctor profile.');
+          return;
+        }
+      } else {
+        // Fetch all bills in the selected date range
+        allBills = await getBillsByDateRange(startDate, endDate);
+      }
       
       // Export to Excel
       const data = allBills.map((bill: BillDetail) => ({
@@ -212,8 +466,29 @@ const Reports: React.FC = () => {
   const exportCompleteBillingDataToPDF = async () => {
     setLoading(true);
     try {
-      // Fetch all bills in the selected date range
-      const allBills = await getBillsByDateRange(startDate, endDate);
+      let allBills: BillDetail[];
+      
+      if (user?.role === 'doctor' && user?.userId) {
+        // For doctor role, get their own doctor ID and fetch only their bills
+        const allDoctors: DoctorRow[] = await listDoctors();
+        const doctorMatch = allDoctors.find(doctor => 
+          doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
+          user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
+        );
+        
+        if (doctorMatch) {
+          // Get all bills for this doctor in the date range
+          const doctorBills = await getBillsByDoctor(doctorMatch.id, startDate, endDate);
+          allBills = doctorBills;
+        } else {
+          allBills = [];
+          setError('Doctor profile not found. Contact admin to set up your doctor profile.');
+          return;
+        }
+      } else {
+        // Fetch all bills in the selected date range
+        allBills = await getBillsByDateRange(startDate, endDate);
+      }
       
       // Export to PDF
       const doc = new jsPDF();
@@ -337,13 +612,38 @@ const Reports: React.FC = () => {
     setLoading(true);
     try {
       let bills: BillDetail[];
-      if (groupBy === 'month') {
-        const [year, month] = date.split('-').map(Number);
-        bills = await getBillsByMonth(year, month);
-        setDeepDiveTitle(`Bills for ${new Date(year, month - 1).toLocaleDateString('en-IN', { year: 'numeric', month: 'long' })}`);
+      if (user?.role === 'doctor' && user?.userId) {
+        // For doctor role, get their own doctor ID and filter bills by their name
+        const allDoctors: DoctorRow[] = await listDoctors();
+        const doctorMatch = allDoctors.find(doctor => 
+          doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
+          user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
+        );
+        
+        if (doctorMatch) {
+          if (groupBy === 'month') {
+            const [year, month] = date.split('-').map(Number);
+            const allBills = await getBillsByMonth(year, month);
+            bills = allBills.filter(bill => bill.doctor_id === doctorMatch.id);
+            setDeepDiveTitle(`Bills for ${new Date(year, month - 1).toLocaleDateString('en-IN', { year: 'numeric', month: 'long' })}`);
+          } else {
+            const allBills = await getBillsByDate(date);
+            bills = allBills.filter(bill => bill.doctor_id === doctorMatch.id);
+            setDeepDiveTitle(`Bills for ${formatDate(date)}`);
+          }
+        } else {
+          bills = [];
+          setError('Doctor profile not found. Contact admin to set up your doctor profile.');
+        }
       } else {
-        bills = await getBillsByDate(date);
-        setDeepDiveTitle(`Bills for ${formatDate(date)}`);
+        if (groupBy === 'month') {
+          const [year, month] = date.split('-').map(Number);
+          bills = await getBillsByMonth(year, month);
+          setDeepDiveTitle(`Bills for ${new Date(year, month - 1).toLocaleDateString('en-IN', { year: 'numeric', month: 'long' })}`);
+        } else {
+          bills = await getBillsByDate(date);
+          setDeepDiveTitle(`Bills for ${formatDate(date)}`);
+        }
       }
       setDeepDiveData(bills);
       setShowDeepDive(true);
@@ -358,10 +658,28 @@ const Reports: React.FC = () => {
   const handleDoctorClick = async (doctorId: string, doctorName: string) => {
     setLoading(true);
     try {
-      const bills = await getBillsByDoctor(doctorId, startDate, endDate);
-      setDeepDiveData(bills);
-      setDeepDiveTitle(`Bills by ${doctorName}`);
-      setShowDeepDive(true);
+      if (user?.role === 'doctor' && user?.userId) {
+        // For doctor role, only allow viewing their own bills
+        const allDoctors: DoctorRow[] = await listDoctors();
+        const doctorMatch = allDoctors.find(doctor => 
+          doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
+          user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
+        );
+        
+        if (doctorMatch && doctorMatch.id === doctorId) {
+          const bills = await getBillsByDoctor(doctorId, startDate, endDate);
+          setDeepDiveData(bills);
+          setDeepDiveTitle(`Bills by ${doctorName}`);
+          setShowDeepDive(true);
+        } else {
+          setError('You can only view your own bills');
+        }
+      } else {
+        const bills = await getBillsByDoctor(doctorId, startDate, endDate);
+        setDeepDiveData(bills);
+        setDeepDiveTitle(`Bills by ${doctorName}`);
+        setShowDeepDive(true);
+      }
     } catch (e: any) {
       console.error('Error fetching bills:', e);
       setError(e.message || 'Failed to fetch bills');
@@ -819,7 +1137,12 @@ const Reports: React.FC = () => {
       {/* Report Tables */}
       <div className="card p-6">
         {/* Export Buttons */}
-        {!loading && ((activeTab === 'sales' && salesData.length > 0) || (activeTab === 'doctor' && doctorData.length > 0) || (activeTab === 'service' && serviceData.length > 0)) && (
+        {!loading && (
+          (activeTab === 'sales' && salesData.length > 0) || 
+          (activeTab === 'doctor' && doctorData.length > 0) || 
+          (activeTab === 'service' && serviceData.length > 0) ||
+          (activeTab === 'doctorServices' && doctorServiceData.length > 0)
+        ) && (
           <div className="mb-4 flex gap-2 justify-end">
             <div className="relative group">
               <button
@@ -958,11 +1281,43 @@ const Reports: React.FC = () => {
               </tbody>
             </table>
           </div>
+        ) : activeTab === 'doctorServices' && doctorServiceData.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-500 border-b">
+                  <th className="py-2 pr-4">Doctor</th>
+                  <th className="py-2 pr-4">Service</th>
+                  <th className="py-2 pr-4 text-right">Quantity</th>
+                  <th className="py-2 pr-4 text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {doctorServiceData.map((docData, idx) => (
+                  <React.Fragment key={idx}>
+                    {docData.services.map((service, serviceIdx) => (
+                      <tr key={`${idx}-${serviceIdx}`} className="border-b border-gray-100">
+                        <td className="py-2 pr-4 font-medium">{docData.doctor_name}</td>
+                        <td className="py-2 pr-4">{service.service_name}</td>
+                        <td className="py-2 pr-4 text-right">{service.quantity}</td>
+                        <td className="py-2 pr-4 text-right font-semibold">{formatCurrency(service.amount)}</td>
+                      </tr>
+                    ))}
+                    <tr className="border-b-2 border-gray-300 bg-gray-50">
+                      <td className="py-2 pr-4 font-bold" colSpan={2}>Total for {docData.doctor_name}</td>
+                      <td className="py-2 pr-4 text-right font-bold">-</td>
+                      <td className="py-2 pr-4 text-right font-bold">{formatCurrency(docData.total_amount)}</td>
+                    </tr>
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : activeTab === 'doctorServices' ? (
           <div className="text-center py-8 text-gray-500">
             <p className="mb-2">Doctor-Services Analysis</p>
             <p className="text-sm">This feature shows which doctors prescribed which services.</p>
-            <p className="text-sm text-gray-400 mt-4">Coming soon - requires bill items to be linked with service names</p>
+            <p className="text-sm text-gray-400 mt-4">No data available for the selected period</p>
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">

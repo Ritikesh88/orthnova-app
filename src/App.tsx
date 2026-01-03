@@ -72,7 +72,7 @@ const AppRoutes: React.FC = () => {
         <Route path="admin/user-registration" element={<ProtectedRoute allowedRoles={["admin"]}><UserRegistration /></ProtectedRoute>} />
         <Route path="admin/doctor-availability" element={<ProtectedRoute allowedRoles={["admin", "doctor"]}><DoctorAvailability /></ProtectedRoute>} />
         <Route path="admin/services" element={<ProtectedRoute allowedRoles={["admin"]}><ServicesCatalog /></ProtectedRoute>} />
-        <Route path="admin/reports" element={<ProtectedRoute allowedRoles={["admin"]}><Reports /></ProtectedRoute>} />
+        <Route path="admin/reports" element={<ProtectedRoute allowedRoles={["admin", "doctor"]}><Reports /></ProtectedRoute>} />
         <Route path="admin/inventory" element={<ProtectedRoute allowedRoles={["admin", "store_manager"]}><InventoryManager /></ProtectedRoute>} />
         <Route path="admin/stock-purchase" element={<ProtectedRoute allowedRoles={["admin", "store_manager"]}><StockPurchase /></ProtectedRoute>} />
         

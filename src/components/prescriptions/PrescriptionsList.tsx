@@ -2,10 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { getDoctorById, getPatientById, listPrescriptions } from '../../api';
 import { PrescriptionRow } from '../../types';
 import { formatDateTime } from '../../utils/format';
+import { useAuth } from '../../context/AuthContext';
 
 interface Enriched extends PrescriptionRow { patientName?: string; doctorName?: string; }
 
 const PrescriptionsList: React.FC = () => {
+  const { user } = useAuth();
   const [rows, setRows] = useState<Enriched[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +19,29 @@ const PrescriptionsList: React.FC = () => {
     (async () => {
       setLoading(true); setError(null);
       try {
-        const list = await listPrescriptions();
+        let list = await listPrescriptions();
+        
+        // For doctor role, filter prescriptions to only show their own
+        if (user?.role === 'doctor' && user?.userId) {
+          // We need to find the doctor ID that matches the logged-in user
+          // First get all doctors to find the matching doctor
+          const { listDoctors } = await import('../../api');
+          const allDoctors = await listDoctors();
+          
+          const doctorMatch = allDoctors.find(doctor => 
+            doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
+            user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
+          );
+          
+          if (doctorMatch) {
+            // Filter prescriptions to only show those created by this doctor
+            list = list.filter(prescription => prescription.doctor_id === doctorMatch.id);
+          } else {
+            // If no matching doctor found, show no prescriptions
+            list = [];
+          }
+        }
+        
         const enriched: Enriched[] = await Promise.all(list.map(async r => {
           const [p, d] = await Promise.all([getPatientById(r.patient_id), getDoctorById(r.doctor_id)]);
           return { ...r, patientName: p?.name, doctorName: d?.name };
@@ -26,7 +50,7 @@ const PrescriptionsList: React.FC = () => {
       } catch (e: any) { setError(e.message); }
       finally { setLoading(false); }
     })();
-  }, []);
+  }, [user]);
 
   const filtered = useMemo(() => {
     const txt = searchText.trim().toLowerCase();

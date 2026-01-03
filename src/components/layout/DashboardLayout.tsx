@@ -125,17 +125,15 @@ const DashboardLayout: React.FC = () => {
 
           {user?.role === 'doctor' && (
             <>
-              <SectionTitle>Patient Registration</SectionTitle>
-              <NavLink to="/clinic/patients" className={navItemClass} end><span>{Icon.patient}</span><span>Patients</span></NavLink>
-
               <SectionTitle>Prescription</SectionTitle>
               <NavLink to="/clinic/prescriptions" className={navItemClass} end><span>{Icon.prescription}</span><span>Generate Prescription</span></NavLink>
               <NavLink to="/clinic/prescriptions/list" className={navItemClass}><span>{Icon.history}</span><span>Prescription History</span></NavLink>
 
-              <SectionTitle>Appointments</SectionTitle>
-              <NavLink to="/clinic/appointments" className={navItemClass} end><span>{Icon.history}</span><span>Appointment History</span></NavLink>
-              <NavLink to="/clinic/appointments/calendar" className={navItemClass}><span>{Icon.calendar}</span><span>Calendar</span></NavLink>
-              <NavLink to="/pathology" className={navItemClass}><span>{Icon.pill}</span><span>Pathology Lab</span></NavLink>
+              <SectionTitle>Availability</SectionTitle>
+              <NavLink to="/clinic/admin/doctor-availability" className={navItemClass}><span>{Icon.doctor}</span><span>My Availability</span></NavLink>
+              
+              <SectionTitle>Reports</SectionTitle>
+              <NavLink to="/clinic/admin/reports" className={navItemClass}><span>{Icon.reports}</span><span>My Reports</span></NavLink>
             </>
           )}
 

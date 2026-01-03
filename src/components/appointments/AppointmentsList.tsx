@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getDoctorById, getPatientById, listAppointments, updateAppointment } from '../../api';
-import { AppointmentRow } from '../../types';
+import { getDoctorById, getPatientById, listAppointments, listDoctors, updateAppointment } from '../../api';
+import { AppointmentRow, DoctorRow } from '../../types';
 import { formatDateTime } from '../../utils/format';
 import { useAuth } from '../../context/AuthContext';
 
@@ -11,6 +11,7 @@ const AppointmentsList: React.FC = () => {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [doctors, setDoctors] = useState<DoctorRow[]>([]);
 
   const [searchText, setSearchText] = useState('');
   const [searchDate, setSearchDate] = useState(() => {
@@ -46,7 +47,17 @@ const AppointmentsList: React.FC = () => {
       // Refresh the appointment list
       const filters: { doctor_id?: string; appointment_date_exact?: string } = {};
       if (user?.role === 'doctor' && user?.userId) {
-        filters.doctor_id = user?.userId;
+        // Find the doctor ID based on the user ID
+        const doctorMatch = doctors.find(doctor => 
+          doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
+          user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
+        );
+        if (doctorMatch) {
+          filters.doctor_id = doctorMatch.id;
+        } else {
+          // If no matching doctor found, the doctor won't see any appointments
+          filters.doctor_id = 'non-existent-id';
+        }
       }
       if (searchDate) {
         filters.appointment_date_exact = searchDate;
@@ -66,6 +77,19 @@ const AppointmentsList: React.FC = () => {
   };
 
   useEffect(() => {
+    const loadDoctors = async () => {
+      try {
+        const doctorList = await listDoctors();
+        setDoctors(doctorList);
+      } catch (err: any) {
+        setError(err.message);
+      }
+    };
+    
+    loadDoctors();
+  }, []);
+  
+  useEffect(() => {
     (async () => {
       setLoading(true); setError(null);
       try {
@@ -74,7 +98,17 @@ const AppointmentsList: React.FC = () => {
         // Filter by exact date when appointment_datetime is available
         let filters: { doctor_id?: string; appointment_date_exact?: string } = {};
         if (user?.role === 'doctor' && user?.userId) {
-          filters = { ...filters, doctor_id: user?.userId };
+          // Find the doctor ID based on the user ID
+          const doctorMatch = doctors.find(doctor => 
+            doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
+            user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
+          );
+          if (doctorMatch) {
+            filters.doctor_id = doctorMatch.id;
+          } else {
+            // If no matching doctor found, the doctor won't see any appointments
+            filters.doctor_id = 'non-existent-id';
+          }
         }
         if (searchDate) {
           filters = { ...filters, appointment_date_exact: searchDate };
@@ -91,7 +125,7 @@ const AppointmentsList: React.FC = () => {
       } catch (e: any) { setError(e.message); }
       finally { setLoading(false); }
     })();
-  }, [user, searchDate]);
+  }, [user, searchDate, doctors]);
 
   const filtered = useMemo(() => {
     const txt = searchText.trim().toLowerCase();

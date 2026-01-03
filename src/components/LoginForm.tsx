@@ -95,7 +95,7 @@ const LoginForm: React.FC = () => {
         </div>
       </div>
       <div className="hidden md:block relative">
-        <img src="https://images.unsplash.com/photo-1587411760036-6e7440b37a57?q=80&w=1600&auto=format&fit=crop" alt="Clinic" className="absolute inset-0 w-full h-full object-cover" />
+        <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?q=80&w=1600&auto=format&fit=crop" alt="Clinic" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-brand-500/20" />
       </div>
     </div>

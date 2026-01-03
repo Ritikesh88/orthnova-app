@@ -69,7 +69,7 @@ const PharmacyLoginForm: React.FC = () => {
         </div>
       </div>
       <div className="hidden md:block relative">
-        <img src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=1600&auto=format&fit=crop" alt="Pharmacy" className="absolute inset-0 w-full h-full object-cover" />
+        <img src="https://images.unsplash.com/photo-1516549655169-df83a0774514?q=80&w=1600&auto=format&fit=crop" alt="Pharmacy" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-brand-500/20" />
       </div>
     </div>

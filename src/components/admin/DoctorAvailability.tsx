@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { listDoctors, listDoctorAvailability, setDoctorAvailability, deleteDoctorAvailability } from '../../api';
 import { DoctorRow, DoctorAvailabilityRow } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 const DoctorAvailability: React.FC = () => {
+  const { user } = useAuth();
   const [doctors, setDoctors] = useState<DoctorRow[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<string>('');
   const [availability, setAvailability] = useState<DoctorAvailabilityRow[]>([]);
@@ -33,7 +35,20 @@ const DoctorAvailability: React.FC = () => {
       try {
         const data = await listDoctors();
         setDoctors(data);
-        if (data.length > 0) {
+        
+        // For doctors, try to find their own record based on name
+        if (user?.role === 'doctor' && user?.userId) {
+          const doctorMatch = data.find(doctor => 
+            doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
+            user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
+          );
+          
+          if (doctorMatch) {
+            setSelectedDoctor(doctorMatch.id);
+          } else {
+            setError('Doctor profile not found. Contact admin to set up your doctor profile.');
+          }
+        } else if (data.length > 0) {
           setSelectedDoctor(data[0].id);
         }
       } catch (err: any) {
@@ -42,13 +57,15 @@ const DoctorAvailability: React.FC = () => {
     };
 
     fetchDoctors();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (selectedDoctor) {
       fetchAvailability();
     }
   }, [selectedDoctor]);
+
+
 
   const fetchAvailability = async () => {
     setLoading(true);
@@ -125,20 +142,32 @@ const DoctorAvailability: React.FC = () => {
       <div className="card p-6">
         <h2 className="text-xl font-semibold mb-4">Doctor Availability</h2>
         
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">Select Doctor</label>
-          <select
-            value={selectedDoctor}
-            onChange={(e) => setSelectedDoctor(e.target.value)}
-            className="w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500"
-          >
-            {doctors.map(doctor => (
-              <option key={doctor.id} value={doctor.id}>
-                {doctor.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {user?.role !== 'doctor' ? (
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Select Doctor</label>
+            <select
+              value={selectedDoctor}
+              onChange={(e) => setSelectedDoctor(e.target.value)}
+              className="w-full rounded-xl border border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500"
+            >
+              {doctors.map(doctor => (
+                <option key={doctor.id} value={doctor.id}>
+                  {doctor.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Doctor</label>
+            <input
+              type="text"
+              value={doctors.find(d => d.id === selectedDoctor)?.name || 'Loading...'}
+              readOnly
+              className="w-full rounded-xl border border-gray-300 bg-gray-100"
+            />
+          </div>
+        )}
 
         {selectedDoctor && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPrescription, listDoctors, listPatients, searchPatientsByContact, listPrescriptions, listAppointments } from '../../api';
 import { DoctorRow, PatientRow, PrescriptionRow, AppointmentRow } from '../../types';
 import Modal from '../common/Modal';
+import { useAuth } from '../../context/AuthContext';
 
 const PrescriptionForm: React.FC = () => {
+  const { user } = useAuth();
   const [doctors, setDoctors] = useState<DoctorRow[]>([]);
 
   const [patientSearch, setPatientSearch] = useState('');
@@ -34,6 +36,20 @@ const PrescriptionForm: React.FC = () => {
     (async () => {
       const [p, d] = await Promise.all([listPatients(), listDoctors()]);
       setDoctors(d);
+      
+      // For doctor role, automatically select their own doctor record
+      if (user?.role === 'doctor' && user?.userId) {
+        const doctorMatch = d.find(doctor => 
+          doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
+          user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
+        );
+        
+        if (doctorMatch) {
+          setDoctorId(doctorMatch.id);
+          setDoctorQuery(doctorMatch.name);
+        }
+      }
+      
       const sel = localStorage.getItem('orthonova_selected_patient_id');
       if (sel) {
         const found = p.find(pt => pt.id === sel);
@@ -44,7 +60,7 @@ const PrescriptionForm: React.FC = () => {
         localStorage.removeItem('orthonova_selected_patient_id');
       }
     })();
-  }, []);
+  }, [user]);
 
   const filteredDoctors = useMemo(() => {
     const q = doctorQuery.trim().toLowerCase();
