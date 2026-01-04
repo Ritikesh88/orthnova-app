@@ -14,7 +14,7 @@ interface VisitRow {
   created_at: string;
   appointment_datetime?: string;
   notes?: string;
-  patient_id?: string;
+  patient_id?: string | null;
   doctor_id: string;
 }
 

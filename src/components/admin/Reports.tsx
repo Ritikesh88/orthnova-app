@@ -24,6 +24,17 @@ const Reports: React.FC = () => {
   const [serviceData, setServiceData] = useState<ServiceSalesReport[]>([]);
   const [visitTypeData, setVisitTypeData] = useState<{visit_type: 'walk-in' | 'appointment'; count: number}[]>([]);
 
+  type Summary = {
+    total_bills?: number;
+    total_amount?: number;
+    total_discount?: number;
+    net_amount?: number;
+    total_quantity?: number;
+    total_visits?: number;
+    walkin_visits?: number;
+    appointment_visits?: number;
+  };
+
   // Deep dive states
   const [showDeepDive, setShowDeepDive] = useState(false);
   const [deepDiveData, setDeepDiveData] = useState<BillDetail[]>([]);
@@ -416,11 +427,19 @@ const Reports: React.FC = () => {
         total_quantity: serviceData.reduce((sum, d) => sum + d.total_quantity, 0),
         total_amount: serviceData.reduce((sum, d) => sum + d.total_amount, 0),
       };
+    } else if (activeTab === 'visitType') {
+      const walkinCount = visitTypeData.find(v => v.visit_type === 'walk-in')?.count || 0;
+      const appointmentCount = visitTypeData.find(v => v.visit_type === 'appointment')?.count || 0;
+      return {
+        total_visits: walkinCount + appointmentCount,
+        walkin_visits: walkinCount,
+        appointment_visits: appointmentCount,
+      };
     }
     return null;
   };
 
-  const summary = getTotalSummary();
+  const summary = getTotalSummary() as Summary | null;
 
   // Export to Excel
   const exportToExcel = () => {
@@ -1163,7 +1182,26 @@ const Reports: React.FC = () => {
       {/* Summary Cards */}
       {summary && !loading && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {activeTab === 'service' ? (
+          {(activeTab === 'visitType') ? (
+            <>
+              <div className="card p-4">
+                <p className="text-sm text-gray-500">Total Visits</p>
+                <p className="text-2xl font-bold">{summary.total_visits ?? 0}</p>
+              </div>
+              <div className="card p-4">
+                <p className="text-sm text-gray-500">Walk-in Visits</p>
+                <p className="text-2xl font-bold">{summary.walkin_visits ?? 0}</p>
+              </div>
+              <div className="card p-4">
+                <p className="text-sm text-gray-500">Appointment Visits</p>
+                <p className="text-2xl font-bold">{summary.appointment_visits ?? 0}</p>
+              </div>
+              <div className="card p-4">
+                <p className="text-sm text-gray-500">Walk-in %</p>
+                <p className="text-2xl font-bold">{summary.total_visits ? (((summary.walkin_visits ?? 0) / summary.total_visits) * 100).toFixed(1) + '%' : '0%'}</p>
+              </div>
+            </>
+          ) : activeTab === 'service' ? (
             <>
               <div className="card p-4">
                 <p className="text-sm text-gray-500">Total Quantity</p>
@@ -1171,7 +1209,7 @@ const Reports: React.FC = () => {
               </div>
               <div className="card p-4">
                 <p className="text-sm text-gray-500">Total Sales</p>
-                <p className="text-2xl font-bold">{formatCurrency(summary.total_amount)}</p>
+                <p className="text-2xl font-bold">{formatCurrency(summary.total_amount ?? 0)}</p>
               </div>
             </>
           ) : (
@@ -1182,7 +1220,7 @@ const Reports: React.FC = () => {
               </div>
               <div className="card p-4">
                 <p className="text-sm text-gray-500">Total Amount</p>
-                <p className="text-2xl font-bold">{formatCurrency(summary.total_amount)}</p>
+                <p className="text-2xl font-bold">{formatCurrency(summary.total_amount ?? 0)}</p>
               </div>
               <div className="card p-4">
                 <p className="text-sm text-gray-500">Total Discount</p>

@@ -19,6 +19,7 @@ const AdminDashboard: React.FC = () => {
   const [prescriptions, setPrescriptions] = useState(0);
   const [todayTotalVisits, setTodayTotalVisits] = useState(0);
   const [todayAppointments, setTodayAppointments] = useState(0);
+  const [todayWalkinVisits, setTodayWalkinVisits] = useState(0);
   const [pendingAppointments, setPendingAppointments] = useState(0);
   const [doctorsSchedule, setDoctorsSchedule] = useState(0);
 
@@ -63,6 +64,7 @@ const AdminDashboard: React.FC = () => {
       
       // Set counts
       setTodayAppointments(appointments.length);
+      setTodayWalkinVisits(todaysPrescriptions.length);
       setTodayTotalVisits(todaysPrescriptions.length + appointments.length);
       setPendingAppointments(pendingAppointmentsToday.length);
       setDoctorsSchedule(doctorsWithAppointments.size);
@@ -71,13 +73,15 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3">
         <StatCard title="Users" value={users} />
         <StatCard title="Patients" value={patients} />
         <StatCard title="Prescriptions" value={prescriptions} />
         <StatCard title="Today's Total Visits" value={todayTotalVisits} />
-        <StatCard title="Pending Appointments Today" value={pendingAppointments} />
-        <StatCard title="Doctor's Schedule Today" value={doctorsSchedule} />
+        <StatCard title="Today's Appointments" value={todayAppointments} />
+        <StatCard title="Today's Walk-ins" value={todayWalkinVisits} />
+        <StatCard title="Pending Today" value={pendingAppointments} />
+        <StatCard title="Doctors Today" value={doctorsSchedule} />
       </div>
 
       <div className="card p-6">
