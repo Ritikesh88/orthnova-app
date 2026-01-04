@@ -69,7 +69,7 @@ function usePageTitle(): string {
   if (pathname.startsWith('/physician/dispense')) return 'Physician Dispense';
   if (pathname.startsWith('/prescriptions')) return 'Generate Prescription';
   if (pathname.startsWith('/appointments/book')) return 'Book Appointment';
-  if (pathname.startsWith('/appointments')) return 'Appointment History';
+  if (pathname.startsWith('/appointments')) return 'Patient Visit History';
   if (pathname.startsWith('/pharmacy')) return 'Pharmacy';
   return 'ORTHONOVA POLYCLINIC';
 }
@@ -119,7 +119,7 @@ const DashboardLayout: React.FC = () => {
 
               <SectionTitle>Appointments</SectionTitle>
               <NavLink to="/clinic/appointments/book" className={navItemClass}><span>{Icon.appointment}</span><span>Book Appointment</span></NavLink>
-              <NavLink to="/clinic/appointments" className={navItemClass} end><span>{Icon.history}</span><span>Appointment History</span></NavLink>
+              <NavLink to="/clinic/appointments" className={navItemClass} end><span>{Icon.history}</span><span>Patient Visit History</span></NavLink>
             </>
           )}
 

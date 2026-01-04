@@ -1,14 +1,26 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getDoctorById, getPatientById, listAppointments, listDoctors, updateAppointment } from '../../api';
-import { AppointmentRow, DoctorRow } from '../../types';
+import { getDoctorById, getPatientById, listAppointments, listDoctors, listPrescriptions, updateAppointment } from '../../api';
+import { AppointmentRow, DoctorRow, PrescriptionRow } from '../../types';
 import { formatDateTime } from '../../utils/format';
 import { useAuth } from '../../context/AuthContext';
 
-interface Row extends AppointmentRow { patientName?: string; doctorName?: string; patientContact?: string | null }
+interface VisitRow {
+  id: string;
+  type: 'appointment' | 'walk-in';
+  patientName?: string;
+  patientContact?: string | null;
+  doctorName?: string;
+  status: string;
+  created_at: string;
+  appointment_datetime?: string;
+  notes?: string;
+  patient_id?: string;
+  doctor_id: string;
+}
 
-const AppointmentsList: React.FC = () => {
+const PatientVisitHistory: React.FC = () => {
   const { user } = useAuth();
-  const [rows, setRows] = useState<Row[]>([]);
+  const [visitRows, setVisitRows] = useState<VisitRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [doctors, setDoctors] = useState<DoctorRow[]>([]);
@@ -19,11 +31,11 @@ const AppointmentsList: React.FC = () => {
     const today = new Date();
     return today.toISOString().slice(0, 10);
   });
-  
+
   const [showActionModal, setShowActionModal] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentRow | null>(null);
   const [actionType, setActionType] = useState('');
-  
+
   const handleAppointmentAction = async (appointmentId: string, action: string) => {
     try {
       let status: 'completed' | 'cancelled' | 'booked' | undefined;
@@ -44,8 +56,19 @@ const AppointmentsList: React.FC = () => {
       
       await updateAppointment(appointmentId, { status });
       
-      // Refresh the appointment list
-      const filters: { doctor_id?: string; appointment_date_exact?: string } = {};
+      // Refresh the visit list
+      await loadVisits();
+    } catch (e: any) {
+      setError(e.message || 'Failed to update appointment');
+    }
+  };
+
+  const loadVisits = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Load appointments
+      let appointmentFilters: { doctor_id?: string; appointment_date_exact?: string } = {};
       if (user?.role === 'doctor' && user?.userId) {
         // Find the doctor ID based on the user ID
         const doctorMatch = doctors.find(doctor => 
@@ -53,26 +76,95 @@ const AppointmentsList: React.FC = () => {
           user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
         );
         if (doctorMatch) {
-          filters.doctor_id = doctorMatch.id;
+          appointmentFilters.doctor_id = doctorMatch.id;
         } else {
           // If no matching doctor found, the doctor won't see any appointments
-          filters.doctor_id = 'non-existent-id';
+          appointmentFilters.doctor_id = 'non-existent-id';
         }
       }
       if (searchDate) {
-        filters.appointment_date_exact = searchDate;
+        appointmentFilters = { ...appointmentFilters, appointment_date_exact: searchDate };
       }
-      const list = await listAppointments(filters);
-      const enriched: Row[] = await Promise.all(list.map(async r => {
+      const appointments = await listAppointments(appointmentFilters);
+
+      // Load prescriptions
+      let prescriptions = await listPrescriptions();
+      // Filter prescriptions by date if searchDate is provided
+      if (searchDate) {
+        const startOfDay = new Date(searchDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(searchDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        prescriptions = prescriptions.filter(p => {
+          const prescDate = new Date(p.created_at);
+          return prescDate >= startOfDay && prescDate <= endOfDay;
+        });
+      }
+
+      // For doctor role, filter prescriptions to only show their own
+      if (user?.role === 'doctor' && user?.userId) {
+        const doctorMatch = doctors.find(doctor => 
+          doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
+          user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
+        );
+        
+        if (doctorMatch) {
+          // Filter prescriptions to only show those created by this doctor
+          prescriptions = prescriptions.filter(p => p.doctor_id === doctorMatch.id);
+        } else {
+          // If no matching doctor found, show no prescriptions
+          prescriptions = [];
+        }
+      }
+
+      // Combine appointments and prescriptions into a single list
+      const appointmentVisits: VisitRow[] = await Promise.all(appointments.map(async a => {
         const [p, d] = await Promise.all([
-          r.patient_id ? getPatientById(r.patient_id) : Promise.resolve(null),
-          getDoctorById(r.doctor_id)
+          a.patient_id ? getPatientById(a.patient_id) : Promise.resolve(null),
+          getDoctorById(a.doctor_id)
         ]);
-        return { ...r, patientName: p?.name || r.guest_name || undefined, doctorName: d?.name, patientContact: r.patient_id ? p?.contact ?? null : (r.guest_contact ?? null) };
+        return {
+          id: a.id,
+          type: 'appointment',
+          patientName: p?.name || a.guest_name || undefined,
+          patientContact: a.patient_id ? p?.contact ?? null : (a.guest_contact ?? null),
+          doctorName: d?.name,
+          status: a.status,
+          created_at: a.created_at,
+          appointment_datetime: a.appointment_datetime,
+          notes: a.notes || undefined,
+          patient_id: a.patient_id,
+          doctor_id: a.doctor_id
+        };
       }));
-      setRows(enriched);
+
+      const walkinVisits: VisitRow[] = await Promise.all(prescriptions.map(async p => {
+        const [pat, doc] = await Promise.all([
+          getPatientById(p.patient_id),
+          getDoctorById(p.doctor_id)
+        ]);
+        return {
+          id: p.id,
+          type: 'walk-in',
+          patientName: pat?.name,
+          patientContact: pat?.contact || null,
+          doctorName: doc?.name,
+          status: 'completed', // All prescriptions are considered completed visits
+          created_at: p.created_at,
+          notes: `Prescription: ${p.diagnosis || 'Visit'}`,
+          patient_id: p.patient_id,
+          doctor_id: p.doctor_id
+        };
+      }));
+
+      // Combine and sort by date/time
+      const allVisits = [...appointmentVisits, ...walkinVisits];
+      setVisitRows(allVisits);
     } catch (e: any) {
-      setError(e.message || 'Failed to update appointment');
+      setError(e.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -88,98 +180,32 @@ const AppointmentsList: React.FC = () => {
     
     loadDoctors();
   }, []);
-  
+
   useEffect(() => {
-    (async () => {
-      setLoading(true); setError(null);
-      try {
-        // For receptionist and admin, fetch all appointments
-        // For doctor, fetch only their appointments
-        // Filter by exact date when appointment_datetime is available
-        let filters: { doctor_id?: string; appointment_date_exact?: string } = {};
-        if (user?.role === 'doctor' && user?.userId) {
-          // Find the doctor ID based on the user ID
-          const doctorMatch = doctors.find(doctor => 
-            doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
-            user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
-          );
-          if (doctorMatch) {
-            filters.doctor_id = doctorMatch.id;
-          } else {
-            // If no matching doctor found, the doctor won't see any appointments
-            filters.doctor_id = 'non-existent-id';
-          }
-        }
-        if (searchDate) {
-          filters = { ...filters, appointment_date_exact: searchDate };
-        }
-        const list = await listAppointments(filters);
-        const enriched: Row[] = await Promise.all(list.map(async r => {
-          const [p, d] = await Promise.all([
-            r.patient_id ? getPatientById(r.patient_id) : Promise.resolve(null),
-            getDoctorById(r.doctor_id)
-          ]);
-          return { ...r, patientName: p?.name || r.guest_name || undefined, doctorName: d?.name, patientContact: r.patient_id ? p?.contact ?? null : (r.guest_contact ?? null) };
-        }));
-        setRows(enriched);
-      } catch (e: any) { setError(e.message); }
-      finally { setLoading(false); }
-    })();
+    loadVisits();
   }, [user, searchDate, doctors]);
 
   const filtered = useMemo(() => {
     const txt = searchText.trim().toLowerCase();
     const date = searchDate;
-    const filteredRows = rows.filter(r => {
+    const filteredRows = visitRows.filter(r => {
       const matchesText = !txt || [r.patientName, r.doctorName, r.patientContact]
         .filter(Boolean)
         .some(v => String(v).toLowerCase().includes(txt));
       
-      // For date matching, we'll use appointment_datetime if available, otherwise appointment_date field, otherwise fall back to created_at
-      let appointmentDate = '';
-      if (r.appointment_datetime) {
-        // Extract date from appointment_datetime timestamp
-        appointmentDate = new Date(r.appointment_datetime).toISOString().slice(0,10);
-      } else if (r.appointment_date) {
-        // appointment_date is already in YYYY-MM-DD format
-        appointmentDate = r.appointment_date;
-      } else if (r.created_at) {
-        // Extract date from created_at timestamp
-        appointmentDate = new Date(r.created_at).toISOString().slice(0,10);
-      }
-      
-      const matchesDate = !date || appointmentDate === date;
+      // For date matching, extract date from created_at timestamp
+      const visitDate = new Date(r.created_at).toISOString().slice(0,10);
+      const matchesDate = !date || visitDate === date;
       return matchesText && matchesDate;
     });
     
-    // Sort by appointment datetime
+    // Sort by appointment datetime or created_at
     return filteredRows.sort((a, b) => {
-      // Use appointment_datetime if available, otherwise appointment_date + created_at time, or just created_at if neither is available
-      let aDateTime, bDateTime;
-      
-      if (a.appointment_datetime) {
-        aDateTime = new Date(a.appointment_datetime);
-      } else if (a.appointment_date && a.created_at) {
-        // Combine appointment date with time from created_at
-        const aTime = new Date(a.created_at).toTimeString().split(' ')[0]; // Get HH:MM:SS
-        aDateTime = new Date(`${a.appointment_date}T${aTime}`);
-      } else {
-        aDateTime = new Date(a.created_at);
-      }
-      
-      if (b.appointment_datetime) {
-        bDateTime = new Date(b.appointment_datetime);
-      } else if (b.appointment_date && b.created_at) {
-        // Combine appointment date with time from created_at
-        const bTime = new Date(b.created_at).toTimeString().split(' ')[0]; // Get HH:MM:SS
-        bDateTime = new Date(`${b.appointment_date}T${bTime}`);
-      } else {
-        bDateTime = new Date(b.created_at);
-      }
-      
-      return aDateTime.getTime() - bDateTime.getTime();
+      const aDateTime = new Date(a.appointment_datetime || a.created_at);
+      const bDateTime = new Date(b.appointment_datetime || b.created_at);
+      return bDateTime.getTime() - aDateTime.getTime(); // Descending order (newest first)
     });
-  }, [rows, searchText, searchDate]);
+  }, [visitRows, searchText, searchDate]);
 
   return (
     <div className="space-y-4">
@@ -202,9 +228,9 @@ const AppointmentsList: React.FC = () => {
 
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Today's Appointments</h2>
+          <h2 className="text-xl font-semibold">Patient Visit History</h2>
           <div className="text-sm text-gray-600">
-            {searchDate && `Showing appointments for ${new Date(searchDate).toLocaleDateString()}`}
+            {searchDate && `Showing visits for ${new Date(searchDate).toLocaleDateString()}`}
           </div>
           <button className="btn btn-secondary" onClick={() => window.location.reload()} disabled={loading}>Refresh</button>
         </div>
@@ -213,7 +239,8 @@ const AppointmentsList: React.FC = () => {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="text-left text-gray-500">
-                <th className="py-2 pr-4">Appointment Date/Time</th>
+                <th className="py-2 pr-4">Type</th>
+                <th className="py-2 pr-4">Date/Time</th>
                 <th className="py-2 pr-4">Patient</th>
                 <th className="py-2 pr-4">Contact</th>
                 <th className="py-2 pr-4">Doctor</th>
@@ -225,6 +252,13 @@ const AppointmentsList: React.FC = () => {
             <tbody>
               {filtered.map(r => (
                 <tr key={r.id} className="border-t border-gray-100">
+                  <td className="py-2 pr-4">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      r.type === 'walk-in' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                    }`}>
+                      {r.type === 'walk-in' ? 'Walk-in' : 'Appointment'}
+                    </span>
+                  </td>
                   <td className="py-2 pr-4">{formatDateTime(r.appointment_datetime || r.created_at)}</td>
                   <td className="py-2 pr-4">{r.patientName || '-'}</td>
                   <td className="py-2 pr-4">{r.patientContact || '-'}</td>
@@ -232,7 +266,7 @@ const AppointmentsList: React.FC = () => {
                   <td className="py-2 pr-4 capitalize">{r.status}</td>
                   <td className="py-2 pr-4">{r.notes || '-'}</td>
                   <td className="py-2 pr-4">
-                    {r.status === 'booked' && (
+                    {r.type === 'appointment' && r.status === 'booked' && (
                       <div className="flex space-x-2">
                         <button 
                           onClick={() => handleAppointmentAction(r.id, 'attended')}
@@ -258,7 +292,7 @@ const AppointmentsList: React.FC = () => {
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td className="py-4 text-gray-500" colSpan={7}>{loading ? 'Loading...' : 'No appointments found.'}</td></tr>
+                <tr><td className="py-4 text-gray-500" colSpan={8}>{loading ? 'Loading...' : 'No visits found.'}</td></tr>
               )}
             </tbody>
           </table>
@@ -268,4 +302,4 @@ const AppointmentsList: React.FC = () => {
   );
 };
 
-export default AppointmentsList;
+export default PatientVisitHistory;

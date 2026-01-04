@@ -19,6 +19,7 @@ const PrescriptionForm: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [visitType, setVisitType] = useState<"walk-in" | "appointment">("walk-in");
 
   const [previousVisits, setPreviousVisits] = useState<{ prescription: PrescriptionRow; appointment?: AppointmentRow }[]>([]);
   const [loadingVisits, setLoadingVisits] = useState(false);
@@ -123,7 +124,7 @@ const PrescriptionForm: React.FC = () => {
     if (!patientId || !doctorId) { setMessage('Select patient and doctor'); return; }
     setLoading(true);
     try {
-      const { id } = await createPrescription({ patient_id: patientId, doctor_id: doctorId, diagnosis: '', medicines: '', advice: '' });
+      const { id } = await createPrescription({ patient_id: patientId, doctor_id: doctorId, diagnosis: '', medicines: '', advice: '', visit_type: visitType });
       localStorage.setItem('orthonova_last_prescription_id', id);
       setMessage('Prescription generated');
       const win = window.open(`${window.location.origin}/print/prescription/${id}`, '_blank');
@@ -137,7 +138,7 @@ const PrescriptionForm: React.FC = () => {
       <div className="card p-6">
         <h2 className="text-xl font-semibold mb-4">Generate Prescription</h2>
         <form onSubmit={onSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium">Patient Contact</label>
               <div className="flex gap-2 mt-1">
@@ -181,6 +182,31 @@ const PrescriptionForm: React.FC = () => {
                   {filteredDoctors.length === 0 && <div className="px-3 py-2 text-sm text-gray-500">No match</div>}
                 </div>
               )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium">Visit Type</label>
+              <div className="mt-1 flex gap-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="visitType"
+                    checked={visitType === "walk-in"}
+                    onChange={() => setVisitType("walk-in")}
+                    className="mr-2"
+                  />
+                  Walk-in
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="visitType"
+                    checked={visitType === "appointment"}
+                    onChange={() => setVisitType("appointment")}
+                    className="mr-2"
+                  />
+                  Appointment
+                </label>
+              </div>
             </div>
           </div>
 

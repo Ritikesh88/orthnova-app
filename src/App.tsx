@@ -21,6 +21,7 @@ import PrintPathologyReport from './print/PrintPathologyReport';
 import AppointmentBooking from './components/appointments/AppointmentBooking';
 import AppointmentsList from './components/appointments/AppointmentsList';
 import AppointmentsCalendar from './components/appointments/AppointmentsCalendar';
+import PatientVisitHistory from './components/appointments/PatientVisitHistory';
 import InventoryManager from './components/admin/InventoryManager';
 import StockPurchase from './components/admin/StockPurchase';
 import PharmacyBilling from './components/billing/PharmacyBilling';
@@ -86,7 +87,8 @@ const AppRoutes: React.FC = () => {
         <Route path="billing/pharmacy" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "store_manager"]}><PharmacyBilling /></ProtectedRoute>} />
         <Route path="billing/history" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "doctor"]}><BillHistory /></ProtectedRoute>} />
         <Route path="appointments/book" element={<ProtectedRoute allowedRoles={["receptionist", "admin"]}><AppointmentBooking /></ProtectedRoute>} />
-        <Route path="appointments" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "doctor"]}><AppointmentsList /></ProtectedRoute>} />
+        <Route path="appointments" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "doctor"]}><PatientVisitHistory /></ProtectedRoute>} />
+        <Route path="appointments/appointment-list" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "doctor"]}><AppointmentsList /></ProtectedRoute>} />
         <Route path="appointments/calendar" element={<ProtectedRoute allowedRoles={["receptionist", "admin", "doctor"]}><AppointmentsCalendar /></ProtectedRoute>} />
         <Route path="prescriptions" element={<ProtectedRoute allowedRoles={["doctor", "receptionist", "admin"]}><PrescriptionForm /></ProtectedRoute>} />
         <Route path="prescriptions/list" element={<ProtectedRoute allowedRoles={["doctor", "admin"]}><PrescriptionsList /></ProtectedRoute>} />

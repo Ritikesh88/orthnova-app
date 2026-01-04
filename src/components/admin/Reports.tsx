@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getSalesSummary, getDoctorSalesReport, getServiceSalesReport, getBillsByDate, getBillsByMonth, getBillsByDoctor, getBillsByDateRange, getBillById, listBillItems, getDoctorById, SalesSummary, DoctorSalesReport, ServiceSalesReport, BillDetail, listBills, listDoctors } from '../../api';
-import { BillRow, BillItemRow, DoctorRow } from '../../types';
+import { getSalesSummary, getDoctorSalesReport, getServiceSalesReport, getBillsByDate, getBillsByMonth, getBillsByDoctor, getBillsByDateRange, getBillById, listBillItems, getDoctorById, listPrescriptions, SalesSummary, DoctorSalesReport, ServiceSalesReport, BillDetail, listBills, listDoctors } from '../../api';
+import { BillRow, BillItemRow, DoctorRow, PrescriptionRow } from '../../types';
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/format';
 import * as XLSX from 'xlsx'; // Using type assertion for utils to avoid TypeScript issues
 import jsPDF from 'jspdf';
@@ -8,7 +8,7 @@ import autoTable from 'jspdf-autotable';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 
-type ReportTab = 'sales' | 'doctor' | 'service' | 'doctorServices';
+type ReportTab = 'sales' | 'doctor' | 'service' | 'doctorServices' | 'visitType';
 
 const Reports: React.FC = () => {
   const { user } = useAuth();
@@ -22,6 +22,7 @@ const Reports: React.FC = () => {
   const [salesData, setSalesData] = useState<SalesSummary[]>([]);
   const [doctorData, setDoctorData] = useState<DoctorSalesReport[]>([]);
   const [serviceData, setServiceData] = useState<ServiceSalesReport[]>([]);
+  const [visitTypeData, setVisitTypeData] = useState<{visit_type: 'walk-in' | 'appointment'; count: number}[]>([]);
 
   // Deep dive states
   const [showDeepDive, setShowDeepDive] = useState(false);
@@ -217,10 +218,60 @@ const Reports: React.FC = () => {
       } else if (activeTab === 'doctorServices') {
         // Fetch doctor-service analysis
         await fetchDoctorServiceAnalysis();
+      } else if (activeTab === 'visitType') {
+        // Fetch visit type report data
+        await fetchVisitTypeReport();
       }
     } catch (e: any) {
       console.error('Error fetching reports:', e);
       setError(e.message || 'Failed to fetch report data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchVisitTypeReport = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      let prescriptions = await listPrescriptions();
+      
+      // Filter by date range
+      prescriptions = prescriptions.filter((prescription: PrescriptionRow) => {
+        const prescriptionDate = new Date(prescription.created_at);
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        // Set time to beginning/end of day for comparison
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        
+        return prescriptionDate >= start && prescriptionDate <= end;
+      });
+      
+      // Group by visit type
+      const visitTypeMap: Record<string, number> = {
+        'walk-in': 0,
+        'appointment': 0
+      };
+      
+      prescriptions.forEach((prescription: PrescriptionRow) => {
+        if (prescription.visit_type === 'walk-in' || prescription.visit_type === 'appointment') {
+          visitTypeMap[prescription.visit_type]++;
+        }
+      });
+      
+      // Convert to array format
+      const result = Object.entries(visitTypeMap).map(([visit_type, count]) => ({
+        visit_type: visit_type as 'walk-in' | 'appointment',
+        count
+      }));
+      
+      setVisitTypeData(result);
+    } catch (e: any) {
+      console.error('Error fetching visit type report:', e);
+      setError(e.message || 'Failed to fetch visit type report');
     } finally {
       setLoading(false);
     }
@@ -327,6 +378,8 @@ const Reports: React.FC = () => {
     if (startDate && endDate) {
       if (activeTab === 'doctorServices') {
         fetchDoctorServiceAnalysis();
+      } else if (activeTab === 'visitType') {
+        fetchVisitTypeReport();
       } else {
         fetchReports();
       }
@@ -1027,6 +1080,16 @@ const Reports: React.FC = () => {
           >
             Doctor-Services
           </button>
+          <button
+            className={`px-4 py-2 font-medium ${
+              activeTab === 'visitType'
+                ? 'border-b-2 border-brand-500 text-brand-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => setActiveTab('visitType')}
+          >
+            Visit Type
+          </button>
         </div>
 
         {/* Date Range Selection */}
@@ -1142,6 +1205,12 @@ const Reports: React.FC = () => {
           (activeTab === 'doctor' && doctorData.length > 0) || 
           (activeTab === 'service' && serviceData.length > 0) ||
           (activeTab === 'doctorServices' && doctorServiceData.length > 0)
+        ) && (
+          (activeTab === 'sales' && salesData.length > 0) || 
+          (activeTab === 'doctor' && doctorData.length > 0) || 
+          (activeTab === 'service' && serviceData.length > 0) || 
+          (activeTab === 'doctorServices' && doctorServiceData.length > 0) ||
+          (activeTab as string === 'visitType' && visitTypeData.length > 0)
         ) && (
           <div className="mb-4 flex gap-2 justify-end">
             <div className="relative group">
@@ -1311,6 +1380,45 @@ const Reports: React.FC = () => {
                   </React.Fragment>
                 ))}
               </tbody>
+            </table>
+          </div>
+        ) : activeTab === 'visitType' ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-500 border-b">
+                  <th className="py-2 pr-4">Visit Type</th>
+                  <th className="py-2 pr-4 text-right">Count</th>
+                  <th className="py-2 pr-4 text-right">Percentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visitTypeData.map((row: {visit_type: 'walk-in' | 'appointment'; count: number}, idx: number) => (
+                  <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-2 pr-4">
+                      <span className={`px-2 py-1 rounded-full text-xs ${row.visit_type === 'walk-in' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                        {row.visit_type}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-4 text-right">{row.count}</td>
+                    <td className="py-2 pr-4 text-right">
+                      {(() => {
+                        const total = visitTypeData.reduce((sum: number, r: {visit_type: 'walk-in' | 'appointment'; count: number}) => sum + r.count, 0);
+                        return total > 0 ? ((row.count / total) * 100).toFixed(1) + '%' : '0%';
+                      })()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="font-semibold border-t-2">
+                  <td className="py-2 pr-4">Total</td>
+                  <td className="py-2 pr-4 text-right">
+                    {visitTypeData.reduce((sum: number, r: {visit_type: 'walk-in' | 'appointment'; count: number}) => sum + r.count, 0)}
+                  </td>
+                  <td className="py-2 pr-4 text-right">100%</td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         ) : activeTab === 'doctorServices' ? (

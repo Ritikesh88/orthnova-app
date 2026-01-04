@@ -23,7 +23,18 @@ async function mockResponse<T>(data: T): Promise<T> {
 
 function getFromStorage<T>(key: string): T {
   const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : [];
+  if (data === null) {
+    // Return appropriate default based on expected type
+    // For arrays, return empty array; for objects, return appropriate default
+    if (key === 'users' || key === 'patients' || key === 'doctors' || key === 'services' || 
+        key === 'bills' || key === 'bill_items' || key === 'prescriptions' || 
+        key === 'appointments' || key === 'inventory_items' || key === 'stock_ledger' || 
+        key === 'stock_purchases' || key === 'stock_purchase_items') {
+      return [] as any;
+    }
+    return {} as any; // Default for non-array data
+  }
+  return JSON.parse(data);
 }
 
 function saveToStorage<T>(key: string, data: T): void {
@@ -132,6 +143,18 @@ export async function searchPatientsByContact(contact: string): Promise<PatientR
     .filter(p => p.contact.includes(clean))
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   return mockResponse(result);
+}
+
+export async function checkPatientExists(name: string, contact: string): Promise<PatientRow | null> {
+  // First, search by contact to get potential matches
+  const contactMatches = await searchPatientsByContact(contact);
+  
+  // Then check if any of the contact matches also have the same name
+  const matchingPatient = contactMatches.find(patient => 
+    patient.name.toLowerCase().trim() === name.toLowerCase().trim()
+  );
+  
+  return matchingPatient || null;
 }
 
 // Doctors

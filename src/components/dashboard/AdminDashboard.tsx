@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { listUsers, listPatients, listPrescriptions } from '../../api';
+import { listUsers, listPatients, listPrescriptions, listAppointments, listDoctorAvailability } from '../../api';
+import { DoctorAvailabilityRow } from '../../types';
 import { Link } from 'react-router-dom';
 
 const StatCard: React.FC<{ title: string; value: number; icon?: React.ReactNode }> = ({ title, value, icon }) => (
@@ -16,6 +17,10 @@ const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState(0);
   const [patients, setPatients] = useState(0);
   const [prescriptions, setPrescriptions] = useState(0);
+  const [todayTotalVisits, setTodayTotalVisits] = useState(0);
+  const [todayAppointments, setTodayAppointments] = useState(0);
+  const [pendingAppointments, setPendingAppointments] = useState(0);
+  const [doctorsSchedule, setDoctorsSchedule] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -23,15 +28,56 @@ const AdminDashboard: React.FC = () => {
       setUsers(u.length);
       setPatients(p.length);
       setPrescriptions(pr.length);
+      
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Count prescriptions for today (walk-in visits)
+      const todaysPrescriptions = pr.filter(p => {
+        const prescDate = new Date(p.created_at);
+        const prescDateStr = prescDate.toISOString().split('T')[0];
+        return prescDateStr === today;
+      });
+      
+      // Count appointments for today
+      const appointments = await listAppointments({ appointment_date_exact: today });
+      
+      // Count pending appointments for today
+      const allAppointments = await listAppointments();
+      const pendingAppointmentsToday = allAppointments.filter(a => {
+        // Check if the appointment date is today and status is booked (pending)
+        let appointmentDate = '';
+        if (a.appointment_datetime) {
+          appointmentDate = new Date(a.appointment_datetime).toISOString().split('T')[0];
+        } else if (a.appointment_date) {
+          appointmentDate = a.appointment_date;
+        } else {
+          appointmentDate = new Date(a.created_at).toISOString().split('T')[0];
+        }
+        return appointmentDate === today && a.status === 'booked';
+      });
+      
+      // Count doctor schedules for today (from doctor availability)
+      // Count unique doctors with appointments today
+      const doctorsWithAppointments = new Set(appointments.map(a => a.doctor_id));
+      
+      // Set counts
+      setTodayAppointments(appointments.length);
+      setTodayTotalVisits(todaysPrescriptions.length + appointments.length);
+      setPendingAppointments(pendingAppointmentsToday.length);
+      setDoctorsSchedule(doctorsWithAppointments.size);
     })();
   }, []);
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <StatCard title="Users" value={users} />
         <StatCard title="Patients" value={patients} />
         <StatCard title="Prescriptions" value={prescriptions} />
+        <StatCard title="Today's Total Visits" value={todayTotalVisits} />
+        <StatCard title="Pending Appointments Today" value={pendingAppointments} />
+        <StatCard title="Doctor's Schedule Today" value={doctorsSchedule} />
       </div>
 
       <div className="card p-6">

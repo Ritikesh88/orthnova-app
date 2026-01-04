@@ -94,6 +94,7 @@ export interface PrescriptionRow {
   medicines: string;
   advice: string;
   serial_number: string;
+  visit_type: 'walk-in' | 'appointment';
   created_at: string;
 }
 

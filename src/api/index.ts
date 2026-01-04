@@ -85,6 +85,18 @@ export async function searchPatientsByContact(contact: string): Promise<PatientR
   return throwIfError<PatientRow[]>(res);
 }
 
+export async function checkPatientExists(name: string, contact: string): Promise<PatientRow | null> {
+  // First, search by contact to get potential matches
+  const contactMatches = await searchPatientsByContact(contact);
+  
+  // Then check if any of the contact matches also have the same name
+  const matchingPatient = contactMatches.find(patient => 
+    patient.name.toLowerCase().trim() === name.toLowerCase().trim()
+  );
+  
+  return matchingPatient || null;
+}
+
 // Doctors
 export async function createDoctor(row: Omit<DoctorRow, 'created_at'>): Promise<DoctorRow> {
   const res = await supabase.from('doctors').insert(row).select('*').single();
@@ -357,7 +369,7 @@ export async function getExpiringItemsWithinMonths(months: number = 4): Promise<
 
 export async function createPrescription(row: Omit<PrescriptionRow, 'id' | 'created_at' | 'serial_number'>): Promise<PrescriptionRow> {
   const serial_number = await generatePrescriptionSerialNumber();
-  const res = await supabase.from('prescriptions').insert({...row, serial_number}).select('*').single();
+  const res = await supabase.from('prescriptions').insert({...row, serial_number, visit_type: row.visit_type || 'walk-in'}).select('*').single();
   return throwIfError<PrescriptionRow>(res);
 }
 

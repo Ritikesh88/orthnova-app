@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { createPatient } from '../../api';
+import { createPatient, checkPatientExists } from '../../api';
 import { PatientRow } from '../../types';
 import { generatePatientId } from '../../utils/idGenerators';
 
@@ -28,8 +28,23 @@ const PatientRegistration: React.FC<PatientRegistrationProps> = ({ onPatientCrea
       return;
     }
     
-    const patient_id = await generatePatientId();
     setLoading(true);
+    
+    // Check if a patient with the same name and contact already exists
+    try {
+      const existingPatient = await checkPatientExists(form.name, form.contact);
+      if (existingPatient) {
+        setError(`Patient with name "${form.name}" and contact "${form.contact}" already exists with ID ${existingPatient.patient_id}. Please use the existing record or update the information.`);
+        setLoading(false);
+        return;
+      }
+    } catch (err) {
+      console.error('Error checking for existing patient:', err);
+      // Continue with registration even if there's an error in checking
+      // This prevents registration from being blocked by check function issues
+    }
+    
+    const patient_id = await generatePatientId();
     
     try {
       const createdPatient = await createPatient({
