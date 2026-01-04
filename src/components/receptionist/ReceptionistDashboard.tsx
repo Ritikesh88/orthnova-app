@@ -139,17 +139,17 @@ const ReceptionistDashboard: React.FC = () => {
       {/* Summary Cards */}
       {!loading && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
             {/* Total Visits (Appointments + Walk-ins) */}
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-md p-6 text-white">
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-sm p-4 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm opacity-90 font-medium">Total Visits</p>
-                  <p className="text-3xl font-bold mt-2">{totalVisits}</p>
-                  <p className="text-xs opacity-75 mt-1">Appointments + Walk-ins</p>
+                  <p className="text-xs opacity-90 font-medium">Total Visits</p>
+                  <p className="text-2xl font-bold mt-1">{totalVisits}</p>
+                  <p className="text-[10px] opacity-75 mt-1">App+Walk-ins</p>
                 </div>
-                <div className="bg-white bg-opacity-20 rounded-full p-3">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-white bg-opacity-20 rounded-full p-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
@@ -157,15 +157,15 @@ const ReceptionistDashboard: React.FC = () => {
             </div>
 
             {/* Appointments */}
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-md p-6 text-white">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-sm p-4 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm opacity-90 font-medium">Appointments</p>
-                  <p className="text-3xl font-bold mt-2">{todayAppointments.length}</p>
-                  <p className="text-xs opacity-75 mt-1">Scheduled for today</p>
+                  <p className="text-xs opacity-90 font-medium">Appointments</p>
+                  <p className="text-2xl font-bold mt-1">{todayAppointments.length}</p>
+                  <p className="text-[10px] opacity-75 mt-1">Scheduled</p>
                 </div>
-                <div className="bg-white bg-opacity-20 rounded-full p-3">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-white bg-opacity-20 rounded-full p-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
@@ -173,15 +173,15 @@ const ReceptionistDashboard: React.FC = () => {
             </div>
 
             {/* Walk-in Visits */}
-            <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl shadow-md p-6 text-white">
+            <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-sm p-4 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm opacity-90 font-medium">Walk-in Visits</p>
-                  <p className="text-3xl font-bold mt-2">{walkinVisits}</p>
-                  <p className="text-xs opacity-75 mt-1">Patients without appointments</p>
+                  <p className="text-xs opacity-90 font-medium">Walk-ins</p>
+                  <p className="text-2xl font-bold mt-1">{walkinVisits}</p>
+                  <p className="text-[10px] opacity-75 mt-1">No Appointments</p>
                 </div>
-                <div className="bg-white bg-opacity-20 rounded-full p-3">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-white bg-opacity-20 rounded-full p-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
@@ -189,23 +189,23 @@ const ReceptionistDashboard: React.FC = () => {
             </div>
 
             {/* Pending Appointments */}
-            <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-2xl shadow-md p-6 text-white">
+            <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-sm p-4 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm opacity-90 font-medium">Pending</p>
-                  <p className="text-3xl font-bold mt-2">{pendingAppts.length}</p>
-                  <p className="text-xs opacity-75 mt-1">Waiting to be seen</p>
+                  <p className="text-xs opacity-90 font-medium">Pending</p>
+                  <p className="text-2xl font-bold mt-1">{pendingAppts.length}</p>
+                  <p className="text-[10px] opacity-75 mt-1">To be seen</p>
                   {pendingAppts.length > 0 && (
                     <button 
                       onClick={() => setShowPendingModal(true)}
-                      className="text-xs underline mt-1"
+                      className="text-[10px] underline mt-1"
                     >
-                      View Details
+                      Details
                     </button>
                   )}
                 </div>
-                <div className="bg-white bg-opacity-20 rounded-full p-3">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-white bg-opacity-20 rounded-full p-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
@@ -213,15 +213,15 @@ const ReceptionistDashboard: React.FC = () => {
             </div>
 
             {/* Completed Appointments */}
-            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-md p-6 text-white">
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-sm p-4 text-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm opacity-90 font-medium">Completed</p>
-                  <p className="text-3xl font-bold mt-2">{completedAppointments.length}</p>
-                  <p className="text-xs opacity-75 mt-1">Consultations done</p>
+                  <p className="text-xs opacity-90 font-medium">Completed</p>
+                  <p className="text-2xl font-bold mt-1">{completedAppointments.length}</p>
+                  <p className="text-[10px] opacity-75 mt-1">Consultations</p>
                 </div>
-                <div className="bg-white bg-opacity-20 rounded-full p-3">
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-white bg-opacity-20 rounded-full p-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
