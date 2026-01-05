@@ -119,6 +119,11 @@ export async function getDoctorById(id: string): Promise<DoctorRow | null> {
   return res.data as any;
 }
 
+export async function updateDoctor(id: string, updates: Partial<Omit<DoctorRow, 'id' | 'created_at' | 'doctor_id'>>): Promise<DoctorRow> {
+  const res = await supabase.from('doctors').update(updates).eq('id', id).select('*').single();
+  return throwIfError<DoctorRow>(res);
+}
+
 // Services
 export async function addService(row: Omit<ServiceRow, 'id' | 'created_at'>): Promise<ServiceRow> {
   const res = await supabase.from('services').insert(row).select('*').single();
@@ -368,7 +373,34 @@ export async function getExpiringItemsWithinMonths(months: number = 4): Promise<
 // Prescriptions
 
 export async function createPrescription(row: Omit<PrescriptionRow, 'id' | 'created_at' | 'serial_number'>): Promise<PrescriptionRow> {
-  const serial_number = await generatePrescriptionSerialNumber();
+  // Check if a prescription already exists for this patient with the same doctor today
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  
+  // Look for existing prescriptions for this patient with the same doctor today
+  const { data: existingPrescriptions, error } = await supabase
+    .from('prescriptions')
+    .select('serial_number')
+    .eq('patient_id', row.patient_id)
+    .eq('doctor_id', row.doctor_id)
+    .gte('created_at', startOfDay.toISOString())
+    .lt('created_at', endOfDay.toISOString())
+    .order('created_at', { ascending: true })
+    .limit(1);
+  
+  let serial_number: string;
+  if (error) {
+    // If there's an error fetching existing prescriptions, generate a new one
+    serial_number = await generatePrescriptionSerialNumber();
+  } else if (existingPrescriptions && existingPrescriptions.length > 0) {
+    // A prescription already exists for this patient with the same doctor today, throw an error to show warning
+    throw new Error('Duplicate Prescription Requested ! Check Patient Visit History for Reprint');
+  } else {
+    // No existing prescription for this patient with this doctor today, generate a new serial number
+    serial_number = await generatePrescriptionSerialNumber();
+  }
+  
   const res = await supabase.from('prescriptions').insert({...row, serial_number, visit_type: row.visit_type || 'walk-in'}).select('*').single();
   return throwIfError<PrescriptionRow>(res);
 }

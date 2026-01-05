@@ -45,11 +45,20 @@ const ReceptionistDashboard: React.FC = () => {
         return aptDate === today;
       });
       
-      // Filter today's prescriptions (walk-in visits)
+      // Filter unique prescriptions for today (walk-in visits)
+      const uniquePatientVisits = new Set<string>();
       const todaysPrescriptions = prescriptions.filter(p => {
         const prescDate = new Date(p.created_at);
         const prescDateStr = prescDate.toISOString().split('T')[0];
-        return prescDateStr === today;
+        
+        // Create a unique key for patient visit per day
+        const uniqueKey = `${p.patient_id}-${prescDateStr}-${p.visit_type}`;
+        
+        if (prescDateStr === today && !uniquePatientVisits.has(uniqueKey)) {
+          uniquePatientVisits.add(uniqueKey);
+          return true;
+        }
+        return false;
       });
 
       setTodayAppointments(todaysAppts);

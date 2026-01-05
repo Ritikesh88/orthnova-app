@@ -3,6 +3,7 @@ import { getDoctorById, getPatientById, listAppointments, listDoctors, listPresc
 import { AppointmentRow, DoctorRow, PrescriptionRow } from '../../types';
 import { formatDateTime } from '../../utils/format';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface VisitRow {
   id: string;
@@ -36,6 +37,8 @@ const PatientVisitHistory: React.FC = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentRow | null>(null);
   const [actionType, setActionType] = useState('');
 
+  const navigate = useNavigate();
+  
   const handleAppointmentAction = async (appointmentId: string, action: string) => {
     try {
       let status: 'completed' | 'cancelled' | 'booked' | undefined;
@@ -60,6 +63,18 @@ const PatientVisitHistory: React.FC = () => {
       await loadVisits();
     } catch (e: any) {
       setError(e.message || 'Failed to update appointment');
+    }
+  };
+  
+  const handleReprint = (visit: VisitRow) => {
+    if (visit.type === 'walk-in') {
+      // Open prescription for printing
+      const printUrl = `${window.location.origin}/print/prescription/${visit.id}`;
+      const win = window.open(printUrl, '_blank');
+      if (win) win.focus();
+    } else {
+      // For appointments, we might want to show a different print option
+      alert('Print functionality for appointments would be implemented here');
     }
   };
 
@@ -287,6 +302,14 @@ const PatientVisitHistory: React.FC = () => {
                           Cancel
                         </button>
                       </div>
+                    )}
+                    {r.type === 'walk-in' && (
+                      <button 
+                        onClick={() => handleReprint(r)}
+                        className="text-blue-600 hover:text-blue-800 text-sm"
+                      >
+                        Reprint
+                      </button>
                     )}
                   </td>
                 </tr>

@@ -261,15 +261,25 @@ const Reports: React.FC = () => {
         return prescriptionDate >= start && prescriptionDate <= end;
       });
       
-      // Group by visit type
+      // Group by visit type, counting unique patient visits per day
       const visitTypeMap: Record<string, number> = {
         'walk-in': 0,
         'appointment': 0
       };
       
+      // Use a Set to track unique patient visits per day (patient_id + date)
+      const uniquePatientVisits = new Set<string>();
+      
       prescriptions.forEach((prescription: PrescriptionRow) => {
         if (prescription.visit_type === 'walk-in' || prescription.visit_type === 'appointment') {
-          visitTypeMap[prescription.visit_type]++;
+          // Create a unique key for patient visit per day
+          const visitDate = new Date(prescription.created_at).toISOString().split('T')[0];
+          const uniqueKey = `${prescription.patient_id}-${visitDate}-${prescription.visit_type}`;
+          
+          if (!uniquePatientVisits.has(uniqueKey)) {
+            uniquePatientVisits.add(uniqueKey);
+            visitTypeMap[prescription.visit_type]++;
+          }
         }
       });
       
