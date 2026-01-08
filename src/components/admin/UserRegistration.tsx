@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { addUser, createDoctor, listUsers } from '../../api';
-import { UserRow, UserRole } from '../../types';
+import { addUser, createDoctor, listUsers, listDoctors, updateDoctor } from '../../api';
+import { UserRow, UserRole, DoctorRow } from '../../types';
 import { generateDoctorId } from '../../utils/idGenerators';
 
 interface UserFormData {
@@ -25,6 +25,7 @@ interface UserFormData {
 
 const UserRegistration: React.FC = () => {
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [doctors, setDoctors] = useState<DoctorRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -65,8 +66,9 @@ const UserRegistration: React.FC = () => {
     setLoading(true); 
     setError(null);
     try {
-      const data = await listUsers();
-      setUsers(data);
+      const [userData, doctorData] = await Promise.all([listUsers(), listDoctors()]);
+      setUsers(userData);
+      setDoctors(doctorData);
     } catch (e: any) { 
       setError(e.message); 
     }
@@ -485,6 +487,112 @@ const UserRegistration: React.FC = () => {
         {success && <p className="text-green-600 text-sm mt-2">{success}</p>}
       </div>
 
+      {/* Registered Users List */}
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Registered Users</h2>
+          <button className="btn btn-secondary" onClick={refresh} disabled={loading}>Refresh</button>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="text-left text-gray-500">
+                <th className="py-2 pr-4">User ID</th>
+                <th className="py-2 pr-4">Role</th>
+                <th className="py-2 pr-4">Details</th>
+                <th className="py-2 pr-4">Consultation Fee</th>
+                <th className="py-2 pr-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(user => {
+                // Find the doctor record if this user is a doctor
+                const doctor = user.role === 'doctor' ? doctors.find(d => {
+                  const userName = user.user_id.toLowerCase();
+                  const doctorName = d.name.toLowerCase();
+                  return doctorName.includes(userName) || userName.includes(doctorName.split(' ')[0]);
+                }) : null;
+                
+                return (
+                  <tr key={user.user_id} className="border-t border-gray-100">
+                    <td className="py-2 pr-4">{user.user_id}</td>
+                    <td className="py-2 pr-4 capitalize">{user.role}</td>
+                    <td className="py-2 pr-4">
+                      {doctor ? (
+                        <div className="text-xs">
+                          <div>Name: {doctor.name}</div>
+                          <div>Contact: {doctor.contact}</div>
+                          <div>Registration: {doctor.registration_number}</div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-500">No additional details</span>
+                      )}
+                    </td>
+                    <td className="py-2 pr-4">
+                      {user.role === 'doctor' && doctor ? (
+                        <div className="flex items-center gap-1">
+                          <input 
+                            type="number" 
+                            className="w-20 text-xs rounded border border-gray-300 px-1 py-0.5" 
+                            defaultValue={doctor.opd_fees}
+                            min="0"
+                          />
+                          <button 
+                            className="text-xs bg-brand-500 text-white px-2 py-0.5 rounded hover:bg-brand-600"
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                              const newFee = Number(input.value);
+                              if (!isNaN(newFee) && newFee >= 0 && doctor) {
+                                try {
+                                  setError(null);
+                                  await updateDoctor(doctor.id, { opd_fees: newFee });
+                                  setSuccess('Consultation fee updated successfully');
+                                  await refresh(); // Refresh to update the UI
+                                } catch (err: any) {
+                                  setError(err.message);
+                                }
+                              }
+                            }}
+                          >
+                            Update
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-gray-500">N/A</span>
+                      )}
+                    </td>
+                    <td className="py-2 pr-4">
+                      <button 
+                        className="text-blue-600 hover:text-blue-800 text-sm"
+                        onClick={async () => {
+                          if (confirm(`Are you sure you want to delete user ${user.user_id}?`)) {
+                            try {
+                              setError(null);
+                              // In a real implementation, you would call a delete API
+                              // For now, just show a message
+                              alert('Delete functionality would be implemented here');
+                            } catch (err: any) {
+                              setError(err.message);
+                            }
+                          }
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {users.length === 0 && (
+                <tr><td className="py-4 text-gray-500" colSpan={5}>No users found.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Created User Modal */}
       {showCreatedUserModal && createdUserData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -498,12 +606,12 @@ const UserRegistration: React.FC = () => {
                   <input 
                     type="text"
                     className="rounded-l-xl border-gray-300 focus:ring-brand-500 flex-grow" 
-                    value={createdUserData.userId} 
+                    value={createdUserData?.userId || ''} 
                     readOnly
                   />
                   <button 
                     className="bg-gray-200 hover:bg-gray-300 px-3 rounded-r-xl"
-                    onClick={() => copyToClipboard(createdUserData.userId)}
+                    onClick={() => createdUserData && copyToClipboard(createdUserData.userId)}
                   >
                     Copy
                   </button>
@@ -516,7 +624,7 @@ const UserRegistration: React.FC = () => {
                   <input 
                     type={showPassword ? "text" : "password"}
                     className="rounded-l-xl border-gray-300 focus:ring-brand-500 flex-grow" 
-                    value={createdUserData.password} 
+                    value={createdUserData?.password || ''} 
                     readOnly
                   />
                   <button 
@@ -529,7 +637,7 @@ const UserRegistration: React.FC = () => {
                 <div className="flex gap-2 mt-1">
                   <button 
                     className="text-xs text-blue-600 hover:text-blue-800"
-                    onClick={() => copyToClipboard(createdUserData.password)}
+                    onClick={() => createdUserData && copyToClipboard(createdUserData.password)}
                   >
                     Copy
                   </button>

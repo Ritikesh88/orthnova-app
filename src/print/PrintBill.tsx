@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getBillById, getDoctorById, getPatientById, listBillItems, listServices } from '../api';
 import { BillItemRow, BillRow, DoctorRow, PatientRow, ServiceRow } from '../types';
-import { CLINIC_ADDRESS_LINE_1, CLINIC_CONTACT, CLINIC_EMAIL, CLINIC_NAME, CLINIC_REG_NO } from '../config/clinic';
+import { CLINIC_ADDRESS_LINE_1, CLINIC_CONTACT, CLINIC_EMAIL, CLINIC_NAME, CLINIC_REG_NO, DOCTOR_NAME, DOCTOR_QUALIFICATION, DOCTOR_REG_NUMBER, DOCTOR_INFO_LINE, CLINIC_CONTACT_EMAIL_LINE, CLINIC_ADDRESS_FORMATTED } from '../config/clinic';
 import { formatCurrency, formatDateTime } from '../utils/format';
 
 const PrintBill: React.FC = () => {
@@ -41,12 +41,23 @@ const PrintBill: React.FC = () => {
   return (
     <div className="p-4 print:p-0">
       <div className="max-w-3xl mx-auto bg-white p-4 print:p-0 text-xs">
+        <table className="w-full border-b border-gray-800 mb-2">
+          <tbody>
+            <tr>
+              <td className="text-left align-top w-1/2 pb-2">
+                <h1 className="text-lg font-bold">{DOCTOR_NAME}</h1>
+                <div className="text-xs">{DOCTOR_INFO_LINE}</div>
+                <div className="text-xs mt-1">{CLINIC_NAME}</div>
+              </td>
+              <td className="border-l border-gray-800 text-left align-top w-1/2 pl-2 pb-2">
+                <div className="text-xs">{CLINIC_ADDRESS_FORMATTED}</div>
+                <div className="text-xs">Email: {CLINIC_EMAIL}</div>
+                <div className="text-xs">{CLINIC_CONTACT}</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
         <div className="text-center">
-          <h1 className="text-lg font-bold">{CLINIC_NAME}</h1>
-          <div className="text-xs">{CLINIC_REG_NO}</div>
-          <div className="text-xs">{CLINIC_ADDRESS_LINE_1}</div>
-          <div className="text-xs">Email: {CLINIC_EMAIL}</div>
-          <div className="text-xs">{CLINIC_CONTACT}</div>
           <div className="text-lg font-semibold mt-1">BILL</div>
         </div>
 

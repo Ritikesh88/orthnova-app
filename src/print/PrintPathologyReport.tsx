@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { getPathologyReportById, getPathologyTestOrderById, listPathologyTestResults } from '../api';
 import { PathologyReportRow, PathologyTestOrderRow, PathologyTestResultRow } from '../types';
 import { format } from 'date-fns';
-import { CLINIC_ADDRESS_LINE_1, CLINIC_CONTACT, CLINIC_EMAIL, CLINIC_NAME, CLINIC_REG_NO } from '../config/clinic';
+import { CLINIC_ADDRESS_LINE_1, CLINIC_CONTACT, CLINIC_EMAIL, CLINIC_NAME, CLINIC_REG_NO, DOCTOR_NAME, DOCTOR_QUALIFICATION, DOCTOR_REG_NUMBER, DOCTOR_INFO_LINE, CLINIC_CONTACT_EMAIL_LINE, CLINIC_ADDRESS_FORMATTED } from '../config/clinic';
 
 const PrintPathologyReport: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -75,14 +75,25 @@ const PrintPathologyReport: React.FC = () => {
 
   return (
     <div className="p-8 max-w-4xl mx-auto bg-white">
-      <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold">{CLINIC_NAME}</h1>
-        <p className="text-gray-600">Pathology Laboratory Services</p>
-        <p className="text-sm">{CLINIC_REG_NO}</p>
-        <p className="text-sm">{CLINIC_ADDRESS_LINE_1}</p>
-        <p className="text-sm">{CLINIC_CONTACT}</p>
-        <p className="text-sm">Email: {CLINIC_EMAIL}</p>
-        <p className="text-sm text-gray-500 mt-2">Report Generated: {format(new Date(report.report_date), 'dd/MM/yyyy HH:mm:ss')}</p>
+      <div className="mb-6">
+        <table className="w-full border-b border-gray-800 mb-2">
+          <tbody>
+            <tr>
+              <td className="text-left align-top w-1/2 pb-2">
+                <h1 className="text-2xl font-bold">{DOCTOR_NAME}</h1>
+                <div className="text-sm">{DOCTOR_INFO_LINE}</div>
+                <div className="text-sm mt-1">{CLINIC_NAME}</div>
+                <div className="text-sm">Pathology Laboratory Services</div>
+              </td>
+              <td className="border-l border-gray-800 text-left align-top w-1/2 pl-2 pb-2">
+                <div className="text-sm">{CLINIC_ADDRESS_FORMATTED}</div>
+                <div className="text-sm">Email: {CLINIC_EMAIL}</div>
+                <div className="text-sm">{CLINIC_CONTACT}</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p className="text-sm text-gray-500 mt-2 text-center">Report Generated: {format(new Date(report.report_date), 'dd/MM/yyyy HH:mm:ss')}</p>
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4">

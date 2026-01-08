@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getDoctorById, getPatientById, getPrescriptionById } from '../api';
 import { DoctorRow, PatientRow, PrescriptionRow } from '../types';
+import { DOCTOR_NAME, DOCTOR_QUALIFICATION, DOCTOR_REG_NUMBER, DOCTOR_INFO_LINE, CLINIC_NAME, CLINIC_ADDRESS_LINE_1, CLINIC_CONTACT, CLINIC_EMAIL, CLINIC_CONTACT_EMAIL_LINE, CLINIC_ADDRESS_FORMATTED } from '../config/clinic';
 
 import { formatDate } from '../utils/format';
 
@@ -31,6 +32,22 @@ const PrintPrescription: React.FC = () => {
         <div className="border-2 border-gray-700 rounded-md p-4">
 
 
+          <table className="w-full border-b border-gray-800 mb-2">
+            <tbody>
+              <tr>
+                <td className="text-left align-top w-1/2 pb-2">
+                  <h1 className="text-lg font-bold">{DOCTOR_NAME}</h1>
+                  <div className="text-xs">{DOCTOR_INFO_LINE}</div>
+                  <div className="text-xs mt-1">{CLINIC_NAME}</div>
+                </td>
+                <td className="border-l border-gray-800 text-left align-top w-1/2 pl-2 pb-2">
+                  <div className="text-xs">{CLINIC_ADDRESS_FORMATTED}</div>
+                  <div className="text-xs">Email: {CLINIC_EMAIL}</div>
+                  <div className="text-xs">{CLINIC_CONTACT}</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
           <div className="mt-0.5 grid grid-cols-2 gap-4 text-sm">
             <div className="space-y-1">
               <div><span className="font-medium">Patient ID:</span> {patient?.patient_id}</div>

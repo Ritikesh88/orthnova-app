@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createPatient, createAppointment, createBill, recordPayment, listDoctors, listServices, searchPatientsByContact } from '../../api';
+import { createPatient, createAppointment, createBill, recordPayment, listDoctors, listServices, searchPatientsByContact, getDoctorById } from '../../api';
 import { BillItemRow, DoctorRow, PatientRow, ServiceRow } from '../../types';
 import { formatCurrency, generateBillNumber } from '../../utils/format';
 import { calculateAge, generatePatientId } from '../../utils/idGenerators';
@@ -58,11 +58,33 @@ const BillingSystem: React.FC = () => {
     })();
   }, []);
 
-  const doctor = useMemo(() => doctors.find(d => d.id === doctorId) || null, [doctors, doctorId]);
-  const opdFee = useMemo(() => Number(doctor?.opd_fees || 0), [doctor]);
+  const [doctor, setDoctor] = useState<DoctorRow | null>(null);
+  
+  // Effect to get the specific doctor when doctorId changes
+  useEffect(() => {
+    const fetchDoctor = async () => {
+      if (doctorId) {
+        try {
+          const latestDoctor = await getDoctorById(doctorId);
+          setDoctor(latestDoctor);
+        } catch (error) {
+          console.error('Error fetching doctor:', error);
+          // Fallback to find in the local list if API fails
+          const localDoctor = doctors.find(d => d.id === doctorId);
+          setDoctor(localDoctor || null);
+        }
+      } else {
+        setDoctor(null);
+      }
+    };
+    
+    fetchDoctor();
+  }, [doctorId, doctors]);
+  
+  const opdFeeValue = useMemo(() => Number(doctor?.opd_fees || 0), [doctor]);
 
   const servicesTotal = useMemo(() => items.reduce((sum, it) => sum + Number(it.service.price) * it.quantity, 0), [items]);
-  const total = useMemo(() => servicesTotal + opdFee, [servicesTotal, opdFee]);
+  const total = useMemo(() => servicesTotal + opdFeeValue, [servicesTotal, opdFeeValue]);
   const discountAmount = useMemo(() => (total * Number(discountPercent || 0)) / 100, [total, discountPercent]);
   const net = useMemo(() => Math.max(0, total - discountAmount), [total, discountAmount]);
 
@@ -136,7 +158,7 @@ const BillingSystem: React.FC = () => {
       setMessage('Transaction reference required for UPI/Card');
       return;
     }
-    if (items.length === 0 && opdFee === 0) {
+    if (items.length === 0 && opdFeeValue === 0) {
       setMessage('Add at least one service or select a doctor with OPD fee');
       return;
     }
@@ -236,7 +258,7 @@ const BillingSystem: React.FC = () => {
       setMessage('Transaction reference required for UPI/Card');
       return;
     }
-    if (items.length === 0 && opdFee === 0) {
+    if (items.length === 0 && opdFeeValue === 0) {
       setMessage('Add at least one service or select a doctor with OPD fee');
       return;
     }
@@ -445,7 +467,7 @@ const BillingSystem: React.FC = () => {
                   {filteredDoctors.length === 0 && <div className="px-3 py-2 text-sm text-gray-500">No match</div>}
                 </div>
               )}
-              {doctor && <p className="text-xs text-gray-500 mt-1">Consultation Fee: {formatCurrency(opdFee)}</p>}
+              {doctor && <p className="text-xs text-gray-500 mt-1">Consultation Fee: {formatCurrency(opdFeeValue)}</p>}
             </div>
           </div>
 
@@ -507,7 +529,7 @@ const BillingSystem: React.FC = () => {
                 {items.length === 0 && <div className="text-sm text-gray-500 text-center py-3">No services added yet</div>}
               </div>
               <div className="border-t border-gray-100 mt-3 pt-3 text-sm space-y-1">
-                <div className="flex justify-between"><span>Consultation Fee</span><span>{formatCurrency(opdFee)}</span></div>
+                <div className="flex justify-between"><span>Consultation Fee</span><span>{formatCurrency(opdFeeValue)}</span></div>
                 <div className="flex justify-between"><span>Services Total</span><span>{formatCurrency(servicesTotal)}</span></div>
                 <div className="flex justify-between font-medium"><span>Gross Total</span><span>{formatCurrency(total)}</span></div>
                 <div className="border-t border-gray-100 pt-2 mt-2 flex justify-between items-center">
