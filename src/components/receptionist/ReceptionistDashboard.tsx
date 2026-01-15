@@ -28,7 +28,7 @@ const ReceptionistDashboard: React.FC = () => {
         listAppointments(),
         listDoctors(),
         getPendingAppointments(today),
-        listPrescriptions()
+        listPrescriptions(undefined)
       ]);
 
       // Filter today's appointments

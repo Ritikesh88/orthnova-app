@@ -19,7 +19,7 @@ const PrescriptionsList: React.FC = () => {
     (async () => {
       setLoading(true); setError(null);
       try {
-        let list = await listPrescriptions();
+        let list = await listPrescriptions(searchText);
         
         // For doctor role, filter prescriptions to only show their own
         if (user?.role === 'doctor' && user?.userId) {
@@ -50,7 +50,7 @@ const PrescriptionsList: React.FC = () => {
       } catch (e: any) { setError(e.message); }
       finally { setLoading(false); }
     })();
-  }, [user]);
+  }, [user, searchText]);
 
   const filtered = useMemo(() => {
     const txt = searchText.trim().toLowerCase();
@@ -69,7 +69,7 @@ const PrescriptionsList: React.FC = () => {
       <div className="card p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium">Search (Patient/Doctor)</label>
+            <label className="block text-sm font-medium">Search (Patient/Doctor/Serial/Diagnosis)</label>
             <input className="mt-1 w-full" value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="Type to filter" />
           </div>
           <div>

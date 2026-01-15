@@ -564,23 +564,7 @@ const UserRegistration: React.FC = () => {
                       )}
                     </td>
                     <td className="py-2 pr-4">
-                      <button 
-                        className="text-blue-600 hover:text-blue-800 text-sm"
-                        onClick={async () => {
-                          if (confirm(`Are you sure you want to delete user ${user.user_id}?`)) {
-                            try {
-                              setError(null);
-                              // In a real implementation, you would call a delete API
-                              // For now, just show a message
-                              alert('Delete functionality would be implemented here');
-                            } catch (err: any) {
-                              setError(err.message);
-                            }
-                          }
-                        }}
-                      >
-                        Delete
-                      </button>
+                      <span className="text-gray-500 text-sm">-</span>
                     </td>
                   </tr>
                 );

@@ -25,7 +25,7 @@ const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      const [u, p, pr] = await Promise.all([listUsers(), listPatients(), listPrescriptions()]);
+      const [u, p, pr] = await Promise.all([listUsers(), listPatients(), listPrescriptions(undefined)]);
       setUsers(u.length);
       setPatients(p.length);
       setPrescriptions(pr.length);

@@ -66,7 +66,13 @@ export async function listPatients(query?: string): Promise<PatientRow[]> {/** k
   let q = supabase.from('patients').select('*').order('created_at', { ascending: false });
   if (query && query.trim()) {
     const like = `%${query.trim()}%`;
-    q = q.ilike('name', like);
+    // Using multiple OR conditions for better compatibility with RLS policies
+    q = q.or(
+      `name.ilike.${like},` +
+      `contact.ilike.${like},` +
+      `address.ilike.${like},` +
+      `patient_id.ilike.${like}`
+    );
   }
   const res = await q;
   return throwIfError<PatientRow[]>(res);
@@ -97,6 +103,33 @@ export async function checkPatientExists(name: string, contact: string): Promise
   return matchingPatient || null;
 }
 
+export async function updatePatient(id: string, updates: Partial<Pick<PatientRow, 'name' | 'age' | 'gender' | 'contact' | 'address'>>): Promise<PatientRow> {
+  const res = await supabase.from('patients').update(updates).eq('id', id).select('*').single();
+  return throwIfError<PatientRow>(res);
+}
+
+export async function deletePatient(id: string): Promise<void> {
+  // Delete related records first
+  // Delete appointments
+  await supabase.from('appointments').delete().eq('patient_id', id);
+  
+  // Delete prescriptions
+  await supabase.from('prescriptions').delete().eq('patient_id', id);
+  
+  // Delete bills
+  await supabase.from('bills').delete().eq('patient_id', id);
+  
+  // Delete pathology test orders
+  await supabase.from('pathology_test_orders').delete().eq('patient_id', id);
+  
+  // Delete pathology reports
+  await supabase.from('pathology_reports').delete().eq('patient_id', id);
+  
+  // Finally delete the patient
+  const res = await supabase.from('patients').delete().eq('id', id);
+  await throwIfError(res as any);
+}
+
 // Doctors
 export async function createDoctor(row: Omit<DoctorRow, 'created_at'>): Promise<DoctorRow> {
   const res = await supabase.from('doctors').insert(row).select('*').single();
@@ -107,7 +140,12 @@ export async function listDoctors(query?: string): Promise<DoctorRow[]> {
   let q = supabase.from('doctors').select('*').order('created_at', { ascending: false });
   if (query && query.trim()) {
     const like = `%${query.trim()}%`;
-    q = q.ilike('name', like);
+    // Using multiple OR conditions for better compatibility with RLS policies
+    q = q.or(
+      `name.ilike.${like},` +
+      `contact.ilike.${like},` +
+      `registration_number.ilike.${like}`
+    );
   }
   const res = await q;
   return throwIfError<DoctorRow[]>(res);
@@ -211,7 +249,13 @@ export async function listInventoryItems(query?: string): Promise<InventoryItemR
   let q = supabase.from('inventory_items').select('*').order('created_at', { ascending: false });
   if (query && query.trim()) {
     const like = `%${query.trim()}%`;
-    q = q.ilike('name', like);
+    // Using multiple OR conditions for better compatibility with RLS policies
+    q = q.or(
+      `name.ilike.${like},` +
+      `manufacturer.ilike.${like},` +
+      `category.ilike.${like},` +
+      `batch_number.ilike.${like}`
+    );
   }
   const res = await q;
   return throwIfError<InventoryItemRow[]>(res);
@@ -411,8 +455,18 @@ export async function getPrescriptionById(id: string): Promise<PrescriptionRow |
   return res.data as any;
 }
 
-export async function listPrescriptions(): Promise<PrescriptionRow[]> {
-  const res = await supabase.from('prescriptions').select('*').order('created_at', { ascending: false });
+export async function listPrescriptions(query?: string): Promise<PrescriptionRow[]> {
+  let q = supabase.from('prescriptions').select('*').order('created_at', { ascending: false });
+  if (query && query.trim()) {
+    const like = `%${query.trim()}%`;
+    // Using multiple OR conditions for better compatibility with RLS policies
+    q = q.or(
+      `serial_number.ilike.${like},` +
+      `diagnosis.ilike.${like},` +
+      `advice.ilike.${like}`
+    );
+  }
+  const res = await q;
   return throwIfError<PrescriptionRow[]>(res);
 }
 
@@ -1199,7 +1253,12 @@ export async function listPathologyTests(query?: string): Promise<PathologyTestR
   let q = supabase.from('pathology_tests').select('*').order('created_at', { ascending: false });
   if (query && query.trim()) {
     const like = `%${query.trim()}%`;
-    q = q.ilike('test_name', like);
+    // Using multiple OR conditions for better compatibility with RLS policies
+    q = q.or(
+      `test_name.ilike.${like},` +
+      `test_category.ilike.${like},` +
+      `test_code.ilike.${like}`
+    );
   }
   const res = await q;
   return throwIfError<PathologyTestRow[]>(res);
@@ -1231,7 +1290,12 @@ export async function listPathologyTestOrders(query?: string): Promise<Pathology
   let q = supabase.from('pathology_test_orders').select('*').order('created_at', { ascending: false });
   if (query && query.trim()) {
     const like = `%${query.trim()}%`;
-    q = q.ilike('id', like);
+    // Using multiple OR conditions for better compatibility with RLS policies
+    q = q.or(
+      `id.ilike.${like},` +
+      `order_status.ilike.${like},` +
+      `priority.ilike.${like}`
+    );
   }
   const res = await q;
   return throwIfError<PathologyTestOrderRow[]>(res);
@@ -1294,7 +1358,12 @@ export async function listPathologyReports(query?: string): Promise<PathologyRep
   let q = supabase.from('pathology_reports').select('*').order('created_at', { ascending: false });
   if (query && query.trim()) {
     const like = `%${query.trim()}%`;
-    q = q.ilike('id', like);
+    // Using multiple OR conditions for better compatibility with RLS policies
+    q = q.or(
+      `id.ilike.${like},` +
+      `report_status.ilike.${like},` +
+      `delivery_status.ilike.${like}`
+    );
   }
   const res = await q;
   return throwIfError<PathologyReportRow[]>(res);

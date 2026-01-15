@@ -103,7 +103,7 @@ const PatientVisitHistory: React.FC = () => {
       const appointments = await listAppointments(appointmentFilters);
 
       // Load prescriptions
-      let prescriptions = await listPrescriptions();
+      let prescriptions = await listPrescriptions(searchText);
       // Filter prescriptions by date if searchDate is provided
       if (searchDate) {
         const startOfDay = new Date(searchDate);

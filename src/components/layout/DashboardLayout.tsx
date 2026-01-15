@@ -98,6 +98,7 @@ const DashboardLayout: React.FC = () => {
               <NavLink to="/clinic/appointments" className={navItemClass} end><span>{Icon.appointment}</span><span>Appointment History</span></NavLink>
               <NavLink to="/clinic/admin/services" className={navItemClass}><span>{Icon.services}</span><span>Manage Service</span></NavLink>
               <NavLink to="/clinic/prescriptions/list" className={navItemClass}><span>{Icon.history}</span><span>Prescription History</span></NavLink>
+              <NavLink to="/clinic/patients" className={navItemClass}><span>{Icon.patient}</span><span>Patients</span></NavLink>
               <NavLink to="/clinic/admin/inventory" className={navItemClass}><span>{Icon.inventory}</span><span>Inventory</span></NavLink>
               <NavLink to="/pathology" className={navItemClass}><span>{Icon.pill}</span><span>Pathology Lab</span></NavLink>
             </>
@@ -120,6 +121,7 @@ const DashboardLayout: React.FC = () => {
 
               <SectionTitle>Appointments</SectionTitle>
               <NavLink to="/clinic/appointments/book" className={navItemClass}><span>{Icon.appointment}</span><span>Book Appointment</span></NavLink>
+              <NavLink to="/clinic/patients" className={navItemClass}><span>{Icon.patient}</span><span>Patients</span></NavLink>
               <NavLink to="/clinic/appointments" className={navItemClass} end><span>{Icon.history}</span><span>Patient Visit History</span></NavLink>
             </>
           )}
@@ -134,6 +136,7 @@ const DashboardLayout: React.FC = () => {
               <NavLink to="/clinic/admin/doctor-availability" className={navItemClass}><span>{Icon.doctor}</span><span>My Availability</span></NavLink>
               
               <SectionTitle>Reports</SectionTitle>
+              <NavLink to="/clinic/patients" className={navItemClass}><span>{Icon.patient}</span><span>Patients</span></NavLink>
               <NavLink to="/clinic/admin/reports" className={navItemClass}><span>{Icon.reports}</span><span>My Reports</span></NavLink>
             </>
           )}
