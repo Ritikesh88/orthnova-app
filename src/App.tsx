@@ -18,6 +18,7 @@ import PatientsList from './components/patients/PatientsList';
 import PrintBill from './print/PrintBill';
 import PrintPrescription from './print/PrintPrescription';
 import PrintPathologyReport from './print/PrintPathologyReport';
+import PrintPharmacyBill from './print/PrintPharmacyBill';
 import AppointmentBooking from './components/appointments/AppointmentBooking';
 import AppointmentsList from './components/appointments/AppointmentsList';
 import AppointmentsCalendar from './components/appointments/AppointmentsCalendar';
@@ -58,6 +59,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/print/bill/:id" element={<PrintBill />} />
       <Route path="/print/prescription/:id" element={<PrintPrescription />} />
       <Route path="/print/pathology-report/:id" element={<PrintPathologyReport />} />
+      <Route path="/print/pharmacy-bill/:id" element={<PrintPharmacyBill />} />
       
       {/* Clinic Routes - Protected */}
       <Route

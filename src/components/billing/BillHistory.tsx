@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { getDoctorById, getPatientById, listBills, listBillItems } from '../../api';
+import { getDoctorById, getPatientById, listBills, listBillItems, getBillById } from '../../api';
 import { BillRow, BillItemRow } from '../../types';
 import { formatCurrency, formatDateTime } from '../../utils/format';
 import Modal from '../common/Modal';
@@ -128,8 +128,18 @@ const BillHistory: React.FC = () => {
                   <td className="py-2 pr-4">{formatCurrency(b.net_amount)}</td>
                   <td className="py-2 pr-4 capitalize">{b.status}</td>
                   <td className="py-2 pr-4">
-                    <button className="btn btn-secondary px-3 py-1" onClick={() => {
-                      const win = window.open(`${window.location.origin}/print/bill/${b.id}`, '_blank'); if (win) win.focus();
+                    <button className="btn btn-secondary px-3 py-1" onClick={async () => {
+                      // Determine the bill type to use the correct print route
+                      try {
+                        const bill = await getBillById(b.id);
+                        const printRoute = bill?.bill_type === 'pharmacy' ? 'pharmacy-bill' : 'bill';
+                        const url = `${window.location.origin}/print/${printRoute}/${b.id}`;
+                        const win = window.open(url, '_blank'); if (win) win.focus();
+                      } catch (error) {
+                        // Fallback to default bill route if fetch fails
+                        const url = `${window.location.origin}/print/bill/${b.id}`;
+                        const win = window.open(url, '_blank'); if (win) win.focus();
+                      }
                     }}>Print</button>
                   </td>
                 </tr>

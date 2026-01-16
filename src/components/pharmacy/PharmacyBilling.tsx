@@ -365,7 +365,7 @@ const PharmacyBillingPage: React.FC = () => {
       setMessage('Medicine bill generated successfully');
       
       // Open print window
-      const url = `${window.location.origin}/print/bill/${inserted.id}`;
+      const url = `${window.location.origin}/print/pharmacy-bill/${inserted.id}`;
       const win = window.open(url, '_blank'); 
       if (win) win.focus();
       
@@ -692,7 +692,7 @@ const PharmacyBillingPage: React.FC = () => {
                   setMessage('No recent bill to reprint'); 
                   return; 
                 }
-                const url = `${window.location.origin}/print/bill/${id}`;
+                const url = `${window.location.origin}/print/pharmacy-bill/${id}`;
                 const win = window.open(url, '_blank'); 
                 if (win) win.focus();
               }}

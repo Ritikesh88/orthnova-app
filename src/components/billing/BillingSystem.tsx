@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createPatient, createAppointment, createBill, recordPayment, listDoctors, listServices, searchPatientsByContact, getDoctorById } from '../../api';
+import { createPatient, createAppointment, createBill, recordPayment, listDoctors, listServices, searchPatientsByContact, getDoctorById, getBillById } from '../../api';
 import { BillItemRow, DoctorRow, PatientRow, ServiceRow } from '../../types';
 import { formatCurrency, generateBillNumber } from '../../utils/format';
 import { calculateAge, generatePatientId } from '../../utils/idGenerators';
@@ -345,8 +345,9 @@ const BillingSystem: React.FC = () => {
       localStorage.setItem('orthonova_last_bill_id', inserted.id);
       setMessage('Bill generated successfully');
       
-      // Open print window
-      const printUrl = `${window.location.origin}/print/bill/${inserted.id}`;
+      // Open print window - determine route based on bill type
+      const printRoute = inserted.bill_type === 'pharmacy' ? 'pharmacy-bill' : 'bill';
+      const printUrl = `${window.location.origin}/print/${printRoute}/${inserted.id}`;
       const win = window.open(printUrl, '_blank');
       if (win) {
         win.focus();
@@ -578,11 +579,27 @@ const BillingSystem: React.FC = () => {
             <button type="button" className="btn btn-secondary" disabled={saving} onClick={onSave}>Save</button>
             <button className="btn btn-primary" disabled={submitting}>Generate Bill</button>
             <button type="button" className="btn btn-outline" onClick={handleResetForm}>Reset</button>
-            <button type="button" className="btn btn-secondary" onClick={() => {
+            <button type="button" className="btn btn-secondary" onClick={async () => {
               const id = localStorage.getItem('orthonova_last_bill_id');
               if (!id) { setMessage('No recent bill to reprint'); return; }
-              const url = `${window.location.origin}/print/bill/${id}`;
-              const win = window.open(url, '_blank'); if (win) win.focus();
+              
+              // Determine the bill type to use the correct print route
+              try {
+                const bill = await getBillById(id);
+                if (bill) {
+                  const printRoute = bill.bill_type === 'pharmacy' ? 'pharmacy-bill' : 'bill';
+                  const url = `${window.location.origin}/print/${printRoute}/${id}`;
+                  const win = window.open(url, '_blank'); if (win) win.focus();
+                } else {
+                  // Fallback to default bill route if fetch fails
+                  const url = `${window.location.origin}/print/bill/${id}`;
+                  const win = window.open(url, '_blank'); if (win) win.focus();
+                }
+              } catch (error) {
+                // Fallback to default bill route if fetch fails
+                const url = `${window.location.origin}/print/bill/${id}`;
+                const win = window.open(url, '_blank'); if (win) win.focus();
+              }
             }}>Reprint Last</button>
           </div>
           {message && <p className="text-sm mt-2">{message}</p>}
