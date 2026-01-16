@@ -943,6 +943,40 @@ export async function recordPayment(
   return throwIfError<BillRow>(res);
 }
 
+// Stock Ledger functions
+export async function listStockLedgerEntries(itemId?: string, limit: number = 50): Promise<StockLedgerRow[]> {
+  let query = supabase
+    .from('stock_ledger')
+    .select(`
+      *,
+      inventory_items(name, category, manufacturer, sku, unit, sale_price, gst_rate)
+    `)
+    .order('created_at', { ascending: false });
+  
+  if (itemId) {
+    query = query.eq('item_id', itemId);
+  }
+  
+  if (limit > 0) {
+    query = query.limit(limit);
+  }
+  
+  const res = await query;
+  return throwIfError<StockLedgerRow[]>(res);
+}
+
+export async function listRecentStockLedgerEntries(): Promise<StockLedgerRow[]> {
+  const res = await supabase
+    .from('stock_ledger')
+    .select(`
+      *,
+      inventory_items(name, category, manufacturer, sku, unit, sale_price, gst_rate)
+    `)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  return throwIfError<StockLedgerRow[]>(res);
+}
+
 // Admin summary function
 export interface AdminSummary {
   total_bills: number;

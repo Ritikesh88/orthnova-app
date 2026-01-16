@@ -30,6 +30,8 @@ import Reports from './components/admin/Reports';
 import AdminDashboard from './components/admin/AdminDashboard';
 import ReceptionistDashboard from './components/receptionist/ReceptionistDashboard';
 import StockManagement from './components/admin/StockManagement';
+import InventoryUpdate from './components/admin/InventoryUpdate';
+import StockDetails from './components/admin/StockDetails';
 
 // Pharmacy Components
 import PharmacyDashboard from './components/pharmacy/PharmacyDashboard';
@@ -77,7 +79,9 @@ const AppRoutes: React.FC = () => {
         <Route path="admin/doctor-availability" element={<ProtectedRoute allowedRoles={["admin", "doctor"]}><DoctorAvailability /></ProtectedRoute>} />
         <Route path="admin/services" element={<ProtectedRoute allowedRoles={["admin"]}><ServicesCatalog /></ProtectedRoute>} />
         <Route path="admin/reports" element={<ProtectedRoute allowedRoles={["admin", "doctor"]}><Reports /></ProtectedRoute>} />
-        <Route path="admin/inventory" element={<ProtectedRoute allowedRoles={["admin", "store_manager"]}><InventoryManager /></ProtectedRoute>} />
+        <Route path="admin/inventory" element={<Navigate to="admin/inventory/update" replace />} />
+        <Route path="admin/inventory/update" element={<ProtectedRoute allowedRoles={["admin", "store_manager"]}><InventoryUpdate /></ProtectedRoute>} />
+        <Route path="admin/inventory/details" element={<ProtectedRoute allowedRoles={["admin", "store_manager"]}><StockDetails /></ProtectedRoute>} />
         <Route path="admin/stock-purchase" element={<ProtectedRoute allowedRoles={["admin", "store_manager"]}><StockPurchase /></ProtectedRoute>} />
                 <Route path="admin/stock-management" element={<ProtectedRoute allowedRoles={["admin"]}><StockManagement /></ProtectedRoute>} />
         
