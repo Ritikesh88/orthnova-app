@@ -45,9 +45,8 @@ const PrintBill: React.FC = () => {
           <tbody>
             <tr>
               <td className="text-left align-top w-1/2 pb-2">
-                <h1 className="text-lg font-bold">{DOCTOR_NAME}</h1>
-                <div className="text-xs">{DOCTOR_INFO_LINE}</div>
-                <div className="text-xs mt-1">{CLINIC_NAME}</div>
+                <h1 className="text-xl font-bold">Orthonova Polyclinic</h1>
+                <div className="text-xs">Registration: SUN/00051/2024</div>
               </td>
               <td className="border-l border-gray-800 text-left align-top w-1/2 pl-2 pb-2">
                 <div className="text-xs">{CLINIC_ADDRESS_FORMATTED}</div>
