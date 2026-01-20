@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { listDoctors, listDoctorAvailability, setDoctorAvailability, deleteDoctorAvailability } from '../../api';
 import { DoctorRow, DoctorAvailabilityRow } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -59,15 +59,9 @@ const DoctorAvailability: React.FC = () => {
     fetchDoctors();
   }, [user]);
 
-  useEffect(() => {
-    if (selectedDoctor) {
-      fetchAvailability();
-    }
-  }, [selectedDoctor]);
-
-
-
-  const fetchAvailability = async () => {
+  const fetchAvailability = useCallback(async () => {
+    if (!selectedDoctor) return;
+    
     setLoading(true);
     setError(null);
     try {
@@ -78,7 +72,11 @@ const DoctorAvailability: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedDoctor]);
+
+  useEffect(() => {
+    fetchAvailability();
+  }, [fetchAvailability, selectedDoctor]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

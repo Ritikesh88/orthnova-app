@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { addUser, deleteUser, listUsers, updateUser, listDoctors, updateDoctor } from '../../api';
+import { deleteUser, listUsers, updateUser, listDoctors, updateDoctor } from '../../api';
 import { UserRow, UserRole, DoctorRow } from '../../types';
 import UserEdit from './UserEdit';
 import Modal from '../common/Modal';
 
-const roles: UserRole[] = ['admin', 'doctor', 'receptionist', 'store_manager'];
+
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -97,46 +97,6 @@ const UserManagement: React.FC = () => {
       return false;
     });
   }, [allUsersAndDoctors, doctors, searchQuery]);
-
-  const updateConsultationFee = async (doctorId: string, newFee: number) => {
-    setError(null);
-    setSuccess(null);
-    try {
-      await updateDoctor(doctorId, { opd_fees: newFee });
-      setSuccess('Consultation fee updated successfully');
-      await refresh(); // Refresh to update the UI
-    } catch (e: any) {
-      setError(e.message);
-    }
-  };
-
-  const updateDoctorDetails = async (doctorId: string, field: keyof Omit<DoctorRow, 'id' | 'created_at' | 'doctor_id'>, value: any) => {
-    setError(null);
-    setSuccess(null);
-    try {
-      await updateDoctor(doctorId, { [field]: value });
-      setSuccess(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully`);
-      await refresh(); // Refresh to update the UI
-    } catch (e: any) {
-      setError(e.message);
-    }
-  };
-
-  const updateUserDetails = async (userId: string, field: 'user_id' | 'role', value: any) => {
-    setError(null);
-    setSuccess(null);
-    try {
-      if (field === 'user_id' && value === userId) {
-        // No change, skip update
-        return;
-      }
-      await updateUser(userId, { [field]: value });
-      setSuccess(`${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully`);
-      await refresh(); // Refresh to update the UI
-    } catch (e: any) {
-      setError(e.message);
-    }
-  };
 
   const onChangePassword = async (user_id: string) => {
     const newPassword = prompt('Enter new password');

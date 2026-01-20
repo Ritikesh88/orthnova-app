@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSalesSummary, getDoctorSalesReport, getServiceSalesReport, getBillsByDate, getBillsByMonth, getBillsByDoctor, getBillsByDateRange, getBillById, listBillItems, getDoctorById, listPrescriptions, SalesSummary, DoctorSalesReport, ServiceSalesReport, BillDetail, listBills, listDoctors } from '../../api';
+import { getSalesSummary, getDoctorSalesReport, getServiceSalesReport, getBillsByDate, getBillsByMonth, getBillsByDoctor, getBillsByDateRange, getBillById, listBillItems, getDoctorById, listPrescriptions, SalesSummary, DoctorSalesReport, ServiceSalesReport, BillDetail, listDoctors } from '../../api';
 import { BillRow, BillItemRow, DoctorRow, PrescriptionRow } from '../../types';
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/format';
 import * as XLSX from 'xlsx'; // Using type assertion for utils to avoid TypeScript issues
@@ -44,7 +44,6 @@ const Reports: React.FC = () => {
   const [showBillDetail, setShowBillDetail] = useState(false);
   const [selectedBill, setSelectedBill] = useState<BillRow | null>(null);
   const [billItems, setBillItems] = useState<BillItemRow[]>([]);
-  const [loadingBillDetail, setLoadingBillDetail] = useState(false);
 
   // Doctor-Service analysis
   const [doctorServiceData, setDoctorServiceData] = useState<Array<{
@@ -382,10 +381,8 @@ const Reports: React.FC = () => {
         }
       } else {
         // For admin/other roles, get all bills in date range
-        const bills = await getBillsByDate(startDate); // Get all bills in date range
         // You'll need to implement a proper API function to get bills with items by date range
         // For now, this is a placeholder
-        const doctorServiceMap = new Map<string, any>();
         
         // This is simplified - in production, you'd need a dedicated API endpoint
         setDoctorServiceData([]);
@@ -833,7 +830,6 @@ const Reports: React.FC = () => {
   };
 
   const handleViewBill = async (billId: string) => {
-    setLoadingBillDetail(true);
     try {
       const [bill, items] = await Promise.all([
         getBillById(billId),
@@ -852,8 +848,6 @@ const Reports: React.FC = () => {
     } catch (e: any) {
       console.error('Error loading bill details:', e);
       setError(e.message || 'Failed to load bill details');
-    } finally {
-      setLoadingBillDetail(false);
     }
   };
 
