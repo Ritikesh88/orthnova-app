@@ -277,6 +277,36 @@ export async function createInventoryItem(row: Omit<InventoryItemRow, 'id' | 'cr
   return throwIfError<InventoryItemRow>(res);
 }
 
+export async function createInventoryItemWithStockTracking(
+  row: Omit<InventoryItemRow, 'id' | 'created_at' | 'current_stock'>,
+  createdBy?: string
+): Promise<{ item: InventoryItemRow; ledger: StockLedgerRow }> {
+  // First, create the inventory item
+  const item = await createInventoryItem(row);
+  
+  // Convert user_id string to UUID if provided
+  let actualUserId: string | null = null;
+  if (createdBy) {
+    actualUserId = await getUserIdByUserId(createdBy);
+  }
+  
+  // Then, create a corresponding stock ledger entry for the initial stock
+  const ledgerInsert = {
+    item_id: item.id,
+    change: row.opening_stock, // Initial stock as a positive change
+    reason: 'initial_stock',
+    notes: 'Initial stock from inventory creation',
+    reference_bill_id: null,
+    created_by: actualUserId,
+    created_at: new Date().toISOString(),
+  } as const;
+  
+  const ledgerRes = await supabase.from('stock_ledger').insert(ledgerInsert as any).select('*').single();
+  const ledger = await throwIfError<StockLedgerRow>(ledgerRes);
+  
+  return { item, ledger };
+}
+
 export async function updateInventoryItem(id: string, updates: Partial<Omit<InventoryItemRow, 'id' | 'created_at'>>): Promise<InventoryItemRow> {
   const res = await supabase.from('inventory_items').update(updates).eq('id', id).select('*').single();
   return throwIfError<InventoryItemRow>(res);
@@ -975,6 +1005,26 @@ export async function listRecentStockLedgerEntries(): Promise<StockLedgerRow[]> 
     .order('created_at', { ascending: false })
     .limit(50);
   return throwIfError<StockLedgerRow[]>(res);
+}
+
+export async function updateStockLedgerEntry(id: string, updates: Partial<Omit<StockLedgerRow, 'id' | 'created_at' | 'item_id' | 'change' | 'reason'>>): Promise<StockLedgerRow> {
+  const res = await supabase
+    .from('stock_ledger')
+    .update(updates)
+    .eq('id', id)
+    .select('*')
+    .single();
+  return throwIfError<StockLedgerRow>(res);
+}
+
+export async function getStockLedgerEntryById(id: string): Promise<StockLedgerRow | null> {
+  const res = await supabase
+    .from('stock_ledger')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+  if (res.error) throw new Error(res.error.message);
+  return res.data as any;
 }
 
 // Admin summary function

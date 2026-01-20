@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { createInventoryItem, listInventoryItems, adjustStock, listRecentStockLedgerEntries } from '../../api';
+import { createInventoryItem, listInventoryItems, adjustStock, listRecentStockLedgerEntries, updateStockLedgerEntry, updateInventoryItem, createInventoryItemWithStockTracking } from '../../api';
 import { InventoryItemRow, StockLedgerRow } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 
@@ -13,12 +13,20 @@ const InventoryUpdate = () => {
   const [recentUploadsQuery, setRecentUploadsQuery] = useState({
     itemName: '',
     category: '',
-    dateFrom: '',
-    dateTo: ''
+    dateFrom: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], // Start of current month
+    dateTo: new Date().toISOString().split('T')[0] // Today's date
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  
+  // State for editing stock ledger entries
+  const [editingEntry, setEditingEntry] = useState<StockLedgerRow | null>(null);
+  const [editForm, setEditForm] = useState({
+    batch_number: '',
+    expiry_date: '',
+    notes: ''
+  });
 
   const [form, setForm] = useState<{
     name: string;
@@ -68,7 +76,7 @@ const InventoryUpdate = () => {
   const onAdd = async (e: React.FormEvent) => {
     e.preventDefault(); setError(null); setSuccess(null);
     try {
-      await createInventoryItem(form);
+      await createInventoryItemWithStockTracking(form, user?.userId);
       setSuccess('Inventory item added');
       setForm({
         name: '', 
@@ -96,6 +104,53 @@ const InventoryUpdate = () => {
       setSuccess('Stock updated');
       await refresh();
     } catch (e: any) { setError(e.message); }
+  };
+  
+  const onEditClick = (upload: StockLedgerWithInventory) => {
+    setEditForm({
+      batch_number: upload.inventory_items?.batch_number || '',
+      expiry_date: upload.inventory_items?.expiry_date || '',
+      notes: upload.notes || ''
+    });
+    setEditingEntry(upload);
+  };
+  
+  const onEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEntry) return;
+    
+    try {
+      setError(null);
+      // Update the related inventory item with the new batch number and expiry date
+      // We need to find the inventory item based on the item_id in the stock ledger entry
+      const relatedItem = items.find(item => item.id === editingEntry.item_id);
+      if (relatedItem) {
+        await updateInventoryItem(relatedItem.id, {
+          batch_number: editForm.batch_number,
+          expiry_date: editForm.expiry_date
+        });
+      }
+      
+      // Update the stock ledger entry with the notes
+      await updateStockLedgerEntry(editingEntry.id, {
+        notes: editForm.notes
+      });
+      
+      setSuccess('Stock ledger entry updated successfully');
+      setEditingEntry(null);
+      await refresh();
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
+  
+  const onEditCancel = () => {
+    setEditingEntry(null);
+    setEditForm({
+      batch_number: '',
+      expiry_date: '',
+      notes: ''
+    });
   };
 
   const categories = [
@@ -362,6 +417,7 @@ const InventoryUpdate = () => {
                 <th className="py-2 pr-4">Batch Number</th>
                 <th className="py-2 pr-4">Expiry Date</th>
                 <th className="py-2 pr-4">Uploaded By</th>
+                <th className="py-2 pr-4">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -381,15 +437,88 @@ const InventoryUpdate = () => {
                     {upload.inventory_items?.expiry_date ? new Date(upload.inventory_items.expiry_date).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="py-2 pr-4">{upload.created_by || 'System'}</td>
+                  <td className="py-2 pr-4">
+                    <button 
+                      className="text-blue-600 hover:text-blue-800 text-sm" 
+                      onClick={() => onEditClick(upload)}
+                    >
+                      Edit
+                    </button>
+                  </td>
                 </tr>
               ))}
               {filteredRecentUploads.length === 0 && (
-                <tr><td className="py-4 text-gray-500" colSpan={12}>No recent inventory uploads found.</td></tr>
+                <tr><td className="py-4 text-gray-500" colSpan={13}>No recent inventory uploads found.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+      
+      {/* Edit Stock Ledger Entry Modal */}
+      {editingEntry && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold mb-4">Edit Stock Entry</h3>
+            <form onSubmit={onEditSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Item Name</label>
+                  <input 
+                    type="text" 
+                    value={items.find(item => item.id === editingEntry.item_id)?.name || 'N/A'} 
+                    readOnly
+                    className="w-full p-2 border border-gray-300 rounded bg-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Batch Number</label>
+                  <input 
+                    type="text" 
+                    value={editForm.batch_number} 
+                    onChange={(e) => setEditForm({...editForm, batch_number: e.target.value})} 
+                    className="w-full p-2 border border-gray-300 rounded"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Expiry Date</label>
+                  <input 
+                    type="date" 
+                    value={editForm.expiry_date} 
+                    onChange={(e) => setEditForm({...editForm, expiry_date: e.target.value})} 
+                    className="w-full p-2 border border-gray-300 rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Notes</label>
+                  <textarea 
+                    value={editForm.notes} 
+                    onChange={(e) => setEditForm({...editForm, notes: e.target.value})} 
+                    className="w-full p-2 border border-gray-300 rounded"
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2 mt-6">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={onEditCancel}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
