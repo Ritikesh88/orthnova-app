@@ -33,7 +33,7 @@ const PrintPrescription: React.FC = () => {
 
 
           <div className="text-center mb-2">
-            <h1 className="text-xl font-bold">PRESCRIPTION</h1>
+            <h1 className="text-xl font-bold">PATIENT PRESCRIPTION</h1>
           </div>
           <div className="mt-0.5 grid grid-cols-2 gap-4 text-sm">
             <div className="space-y-1">
