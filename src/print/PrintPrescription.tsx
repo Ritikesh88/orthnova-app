@@ -92,4 +92,5 @@ const PrintPrescription: React.FC = () => {
   );
 };
 
+// Updated to fix Vercel build error
 export default PrintPrescription;
