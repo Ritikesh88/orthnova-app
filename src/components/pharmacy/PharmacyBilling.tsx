@@ -48,12 +48,17 @@ const PharmacyBillingPage: React.FC = () => {
   const [billSaved, setBillSaved] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [expiryAlerts, setExpiryAlerts] = useState<string[]>([]);
-
+  
+  // Ref to hold the latest checkExpiringItems function
+  const checkExpiringItemsRef = useRef<any>(null);
+  
   const loadInventory = useCallback(async () => {
     try {
       const data = await listInventoryItems();
       setInventory(data);
-      checkExpiringItems(data);
+      if (checkExpiringItemsRef.current) {
+        checkExpiringItemsRef.current(data);
+      }
     } catch (e: any) {
       setMessage(e.message);
     }
@@ -91,6 +96,11 @@ const PharmacyBillingPage: React.FC = () => {
       setMessage(`Error checking expiry items: ${e.message}`);
     }
   }, []);
+
+  // Update ref to always point to the latest checkExpiringItems function
+  useEffect(() => {
+    checkExpiringItemsRef.current = checkExpiringItems;
+  }, [checkExpiringItems]);
 
   useEffect(() => {
     loadInventory();

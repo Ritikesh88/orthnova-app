@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { getDoctorById, getPatientById, listAppointments, listDoctors, listPrescriptions, updateAppointment } from '../../api';
-import { AppointmentRow, DoctorRow } from '../../types';
+import { DoctorRow } from '../../types';
 import { formatDateTime } from '../../utils/format';
 import { useAuth } from '../../context/AuthContext';
 
@@ -127,25 +127,31 @@ const PatientVisitHistory: React.FC = () => {
       }
 
       // Combine appointments and prescriptions into a single list
-      const appointmentVisits: VisitRow[] = await Promise.all(appointments.map(async a => {
-        const [p, d] = await Promise.all([
-          a.patient_id ? getPatientById(a.patient_id) : Promise.resolve(null),
-          getDoctorById(a.doctor_id)
-        ]);
-        return {
-          id: a.id,
-          type: 'appointment',
-          patientName: p?.name || a.guest_name || undefined,
-          patientContact: a.patient_id ? p?.contact ?? null : (a.guest_contact ?? null),
-          doctorName: d?.name,
-          status: a.status,
-          created_at: a.created_at,
-          appointment_datetime: a.appointment_datetime,
-          notes: a.notes || undefined,
-          patient_id: a.patient_id,
-          doctor_id: a.doctor_id
-        };
-      }));
+      const appointmentVisits: VisitRow[] = [];
+      for (const a of appointments) {
+        try {
+          const patientPromise = a.patient_id ? getPatientById(a.patient_id) : Promise.resolve(null);
+          const [p, d] = await Promise.all([
+            patientPromise,
+            getDoctorById(a.doctor_id)
+          ]);
+          appointmentVisits.push({
+            id: a.id,
+            type: 'appointment',
+            patientName: p?.name || a.guest_name || undefined,
+            patientContact: a.patient_id ? (p?.contact || null) : (a.guest_contact || null),
+            doctorName: d?.name,
+            status: a.status,
+            created_at: a.created_at,
+            appointment_datetime: a.appointment_datetime,
+            notes: a.notes || undefined,
+            patient_id: a.patient_id,
+            doctor_id: a.doctor_id
+          });
+        } catch (error) {
+          console.error('Error processing appointment:', error);
+        }
+      }
 
       const walkinVisits: VisitRow[] = await Promise.all(prescriptions.map(async p => {
         const [pat, doc] = await Promise.all([
@@ -174,7 +180,7 @@ const PatientVisitHistory: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, doctors, searchDate, searchText]);
 
   useEffect(() => {
     const loadDoctors = async () => {

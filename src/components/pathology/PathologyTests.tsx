@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { listPathologyTests, createPathologyTest, updatePathologyTest, deletePathologyTest } from '../../api';
 import { PathologyTestRow } from '../../types';
 
@@ -23,11 +23,7 @@ const PathologyTests: React.FC = () => {
     units: '',
   });
 
-  useEffect(() => {
-    loadTests();
-  }, [query]);
-
-  const loadTests = async () => {
+  const loadTests = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -38,7 +34,12 @@ const PathologyTests: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [query]);
+
+  useEffect(() => {
+    loadTests();
+  }, [loadTests]);
+
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
