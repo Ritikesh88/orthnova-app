@@ -19,7 +19,6 @@ const AppointmentsCalendar: React.FC = () => {
   const [selectedDoctorId, setSelectedDoctorId] = useState('');
   const [date, setDate] = useState(toDateInputValue(new Date()));
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -33,12 +32,11 @@ const AppointmentsCalendar: React.FC = () => {
   useEffect(() => {
     (async () => {
       if (!selectedDoctorId) return;
-      setLoading(true);
       try {
         const list = await listAppointments({ doctor_id: selectedDoctorId });
         setAppointments(list);
-      } finally {
-        setLoading(false);
+      } catch (error) {
+        console.error('Error loading appointments:', error);
       }
     })();
   }, [selectedDoctorId]);
