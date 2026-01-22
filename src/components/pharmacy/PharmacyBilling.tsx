@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { createMedicineStoreBill, getExpiringItemsWithinMonths, listDoctors, listInventoryItems, searchPatientsByContact } from '../../api';
 import { BillItemRow, DoctorRow, InventoryItemRow, PatientRow } from '../../types';
-import { formatCurrency } from '../../utils/format';
 import { generatePharmacyBillNumber } from '../../utils/idGenerators';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../common/Modal';
@@ -50,13 +49,7 @@ const PharmacyBillingPage: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [expiryAlerts, setExpiryAlerts] = useState<string[]>([]);
 
-  useEffect(() => {
-    loadInventory();
-    loadDoctors();
-    checkExpiringItems();
-  }, []);
-
-  const loadInventory = async () => {
+  const loadInventory = useCallback(async () => {
     try {
       const data = await listInventoryItems();
       setInventory(data);
@@ -64,9 +57,9 @@ const PharmacyBillingPage: React.FC = () => {
     } catch (e: any) {
       setMessage(e.message);
     }
-  };
+  }, []);
 
-  const loadDoctors = async () => {
+  const loadDoctors = useCallback(async () => {
     try {
       const doctors = await listDoctors();
       setAllDoctors(doctors);
@@ -75,7 +68,35 @@ const PharmacyBillingPage: React.FC = () => {
       console.error('Error loading doctors:', e);
       setMessage(`Error loading doctors: ${e.message}`);
     }
-  };
+  }, []);
+
+  const checkExpiringItems = useCallback(async (items?: InventoryItemRow[]) => {
+    try {
+      // Use the new API function to get items expiring within 4 months
+      const expiringItems = await getExpiringItemsWithinMonths(4);
+      
+      const alerts = expiringItems.map(item => {
+        const expiryDate = new Date(item.expiry_date!);
+        const daysToExpiry = Math.ceil((expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        return `${item.name} - expires in ${daysToExpiry} days`;
+      });
+      
+      setExpiryAlerts(alerts);
+      
+      if (alerts.length > 0) {
+        setMessage(`Warning: ${alerts.length} items are expiring within 4 months. ${alerts.slice(0, 2).join('; ')}` + (alerts.length > 2 ? '...' : ''));
+      }
+    } catch (e: any) {
+      console.error('Error checking expiry items:', e);
+      setMessage(`Error checking expiry items: ${e.message}`);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadInventory();
+    loadDoctors();
+    checkExpiringItems();
+  }, [loadInventory, loadDoctors, checkExpiringItems]);
 
   const handleDoctorSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -111,28 +132,6 @@ const PharmacyBillingPage: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
-  const checkExpiringItems = async (items?: InventoryItemRow[]) => {
-    try {
-      // Use the new API function to get items expiring within 4 months
-      const expiringItems = await getExpiringItemsWithinMonths(4);
-      
-      const alerts = expiringItems.map(item => {
-        const expiryDate = new Date(item.expiry_date!);
-        const daysToExpiry = Math.ceil((expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-        return `${item.name} - expires in ${daysToExpiry} days`;
-      });
-      
-      setExpiryAlerts(alerts);
-      
-      if (alerts.length > 0) {
-        setMessage(`Warning: ${alerts.length} items are expiring within 4 months. ${alerts.slice(0, 2).join('; ')}` + (alerts.length > 2 ? '...' : ''));
-      }
-    } catch (e: any) {
-      console.error('Error checking expiry items:', e);
-      setMessage(`Error checking expiry items: ${e.message}`);
-    }
-  };
 
   const toggleExpiryAlerts = () => {
     if (expiryAlerts.length > 0) {
@@ -215,8 +214,7 @@ const PharmacyBillingPage: React.FC = () => {
     [selected]
   );
   
-  // GST is removed, so gstTotal is always 0
-  const gstTotal = 0;
+
   
   const net = useMemo(() => {
     const discountAmount = (subtotal * discount) / 100;
@@ -411,22 +409,7 @@ const PharmacyBillingPage: React.FC = () => {
     setBillSaved(false); // Reset the saved state
   };
 
-  // Get available batches for an item
-  const getAvailableBatches = (itemId: string) => {
-    // In the current implementation, we only have the main inventory item
-    // In a real system, you would fetch from stock_purchase_items table
-    // to get different batches for the same medicine
-    const item = inventory.find(i => i.id === itemId);
-    if (!item) return [];
-      
-    // Return the main inventory item as a single batch
-    return [{
-      id: item.id,
-      batch_number: item.batch_number || 'N/A',
-      expiry_date: item.expiry_date,
-      available_stock: item.current_stock
-    }];
-  };
+  
     
   return (
     <div className="space-y-6">
@@ -571,7 +554,6 @@ const PharmacyBillingPage: React.FC = () => {
             <h3 className="font-medium mb-2">Selected Items</h3>
             <div className="space-y-2">
               {selected.map(s => {
-                const availableBatches = getAvailableBatches(s.item.id);
                 return (
                   <div key={s.item.id} className="border border-gray-200 p-3 rounded-md">
                     <div className="flex items-center justify-between mb-2">
@@ -599,7 +581,7 @@ const PharmacyBillingPage: React.FC = () => {
                         </button>
                       </div>
                     </div>
-                      
+                                  
                     {/* Batch and Expiry Information */}
                     <div className="grid grid-cols-2 gap-2 mb-2">
                       <div>

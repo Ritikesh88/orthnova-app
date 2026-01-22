@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { listAppointments, listDoctors, getPendingAppointments, listPatients, listPrescriptions } from '../../api';
 import { AppointmentRow, DoctorRow, PrescriptionRow } from '../../types';
-import { formatDate, formatDateTime } from '../../utils/format';
+import { formatDateTime } from '../../utils/format';
 
 const ReceptionistDashboard: React.FC = () => {
   const [todayAppointments, setTodayAppointments] = useState<AppointmentRow[]>([]);

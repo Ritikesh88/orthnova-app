@@ -145,7 +145,7 @@ const UserRegistration: React.FC = () => {
     
     try {
       // Create the user record with the existing API structure
-      const userData = await addUser({ 
+      await addUser({ 
         user_id: form.userId,
         password: form.password,
         role: form.role

@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { getDoctorById, getPatientById, listAppointments, listDoctors, listPrescriptions, updateAppointment } from '../../api';
-import { AppointmentRow, DoctorRow, PrescriptionRow } from '../../types';
+import { AppointmentRow, DoctorRow } from '../../types';
 import { formatDateTime } from '../../utils/format';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 
 interface VisitRow {
   id: string;
@@ -32,12 +31,6 @@ const PatientVisitHistory: React.FC = () => {
     const today = new Date();
     return today.toISOString().slice(0, 10);
   });
-
-  const [showActionModal, setShowActionModal] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentRow | null>(null);
-  const [actionType, setActionType] = useState('');
-
-  const navigate = useNavigate();
   
   const handleAppointmentAction = async (appointmentId: string, action: string) => {
     try {
@@ -78,7 +71,7 @@ const PatientVisitHistory: React.FC = () => {
     }
   };
 
-  const loadVisits = async () => {
+  const loadVisits = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -198,7 +191,7 @@ const PatientVisitHistory: React.FC = () => {
 
   useEffect(() => {
     loadVisits();
-  }, [user, searchDate, doctors]);
+  }, [loadVisits]);
 
   const filtered = useMemo(() => {
     const txt = searchText.trim().toLowerCase();

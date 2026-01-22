@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PatientRow } from '../../types';
 import { getPatientById, updatePatient } from '../../api';
 
@@ -21,11 +21,7 @@ const PatientEdit: React.FC<PatientEditProps> = ({ patientId, onPatientUpdated, 
     address: ''
   });
 
-  useEffect(() => {
-    loadPatient();
-  }, [patientId]);
-
-  const loadPatient = async () => {
+  const loadPatient = useCallback(async () => {
     try {
       setLoading(true);
       const patientData = await getPatientById(patientId);
@@ -44,7 +40,11 @@ const PatientEdit: React.FC<PatientEditProps> = ({ patientId, onPatientUpdated, 
     } finally {
       setLoading(false);
     }
-  };
+  }, [patientId]);
+
+  useEffect(() => {
+    loadPatient();
+  }, [loadPatient]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

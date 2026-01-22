@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { listPathologyReports, createPathologyReport, updatePathologyReport, deletePathologyReport, generatePathologyReport, listPathologyTestOrders, listPatients } from '../../api';
 import { PathologyReportRow, PathologyTestOrderRow, PatientRow } from '../../types';
 import { format } from 'date-fns';
@@ -27,13 +27,7 @@ const PathologyReports: React.FC = () => {
     notes: '',
   });
 
-  useEffect(() => {
-    loadReports();
-    loadOrders();
-    loadPatients();
-  }, []);
-
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -44,25 +38,31 @@ const PathologyReports: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     try {
       const data = await listPathologyTestOrders();
       setOrders(data);
     } catch (err: any) {
       setError(err.message);
     }
-  };
+  }, []);
 
-  const loadPatients = async () => {
+  const loadPatients = useCallback(async () => {
     try {
       const data = await listPatients();
       setPatients(data);
     } catch (err: any) {
       setError(err.message);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadReports();
+    loadOrders();
+    loadPatients();
+  }, [loadReports, loadOrders, loadPatients]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,8 +160,7 @@ const PathologyReports: React.FC = () => {
     }
   };
 
-  const order = orders.find(o => o.id === form.order_id);
-  const patient = patients.find(p => p.id === form.patient_id);
+
 
   return (
     <div className="space-y-6">

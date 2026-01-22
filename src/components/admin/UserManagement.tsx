@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { deleteUser, listUsers, updateUser, listDoctors, updateDoctor } from '../../api';
+import { deleteUser, listUsers, updateUser, listDoctors } from '../../api';
 import { UserRow, UserRole, DoctorRow } from '../../types';
 import UserEdit from './UserEdit';
 import Modal from '../common/Modal';
@@ -64,8 +64,6 @@ const UserManagement: React.FC = () => {
   }, [users, doctors]);
 
   useEffect(() => { refresh(); }, []);
-
-  const receptionistCount = useMemo(() => allUsersAndDoctors.filter(u => u.role === 'receptionist').length, [allUsersAndDoctors]);
 
   // Filter users based on search query
   const filteredUsers = useMemo(() => {
@@ -179,6 +177,8 @@ const UserManagement: React.FC = () => {
             <button className="btn btn-secondary whitespace-nowrap" onClick={refresh} disabled={loading}>Refresh</button>
           </div>
         </div>
+        {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
+        {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">{success}</div>}
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>

@@ -69,6 +69,9 @@ const StockDetails = () => {
             <button className="btn btn-secondary" onClick={refresh}>Refresh</button>
           </div>
         </div>
+        {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
+        {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">{success}</div>}
+        {loading && <div className="mb-4 p-3 bg-blue-100 text-blue-700 rounded">Loading...</div>}
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { listAppointments, listDoctors } from '../../api';
 import { AppointmentRow, DoctorRow } from '../../types';
-import { useAuth } from '../../context/AuthContext';
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -16,7 +15,6 @@ const START_HOUR = 8; // 08:00
 const END_HOUR = 20; // 20:00
 
 const AppointmentsCalendar: React.FC = () => {
-  const { user } = useAuth();
   const [doctors, setDoctors] = useState<DoctorRow[]>([]);
   const [selectedDoctorId, setSelectedDoctorId] = useState('');
   const [date, setDate] = useState(toDateInputValue(new Date()));

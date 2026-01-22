@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { createInventoryItem, listInventoryItems, adjustStock, listRecentStockLedgerEntries, updateStockLedgerEntry, updateInventoryItem, createInventoryItemWithStockTracking } from '../../api';
+import { listInventoryItems, listRecentStockLedgerEntries, updateStockLedgerEntry, updateInventoryItem, createInventoryItemWithStockTracking } from '../../api';
 import { InventoryItemRow, StockLedgerRow } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 
@@ -97,14 +97,7 @@ const InventoryUpdate = () => {
     } catch (e: any) { setError(e.message); }
   };
 
-  const onAdjust = async (id: string, delta: number, reason: 'purchase' | 'adjustment' | 'correction') => {
-    setError(null); setSuccess(null);
-    try {
-      await adjustStock(id, delta, reason, { created_by: user?.userId || null, notes: reason });
-      setSuccess('Stock updated');
-      await refresh();
-    } catch (e: any) { setError(e.message); }
-  };
+
   
   const onEditClick = (upload: StockLedgerWithInventory) => {
     setEditForm({

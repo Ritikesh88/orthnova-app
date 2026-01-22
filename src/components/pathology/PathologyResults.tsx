@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { listPathologyTestResults, createPathologyTestResult, updatePathologyTestResult, deletePathologyTestResult, listPathologyTestOrders, listPathologyTests } from '../../api';
 import { PathologyTestResultRow, PathologyTestOrderRow, PathologyTestRow } from '../../types';
 import { format } from 'date-fns';
@@ -25,13 +25,7 @@ const PathologyResults: React.FC = () => {
     notes: '',
   });
 
-  useEffect(() => {
-    loadResults();
-    loadOrders();
-    loadTests();
-  }, []);
-
-  const loadResults = async () => {
+  const loadResults = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -42,25 +36,31 @@ const PathologyResults: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     try {
       const data = await listPathologyTestOrders();
       setOrders(data);
     } catch (err: any) {
       setError(err.message);
     }
-  };
+  }, []);
 
-  const loadTests = async () => {
+  const loadTests = useCallback(async () => {
     try {
       const data = await listPathologyTests();
       setTests(data);
     } catch (err: any) {
       setError(err.message);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadResults();
+    loadOrders();
+    loadTests();
+  }, [loadResults, loadOrders, loadTests]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,8 +145,7 @@ const PathologyResults: React.FC = () => {
     setShowForm(false);
   };
 
-  const order = orders.find(o => o.id === form.order_id);
-  const test = tests.find(t => t.id === form.test_id);
+
 
   return (
     <div className="space-y-6">

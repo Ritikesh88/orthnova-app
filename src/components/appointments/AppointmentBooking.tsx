@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createAppointment, listAppointments, listDoctors, listServices, searchPatientsByContact, listDoctorAvailability } from '../../api';
-import { DoctorRow, PatientRow, ServiceRow, DoctorAvailabilityRow } from '../../types';
+import { createAppointment, listAppointments, listDoctors, searchPatientsByContact, listDoctorAvailability } from '../../api';
+import { DoctorRow, PatientRow, DoctorAvailabilityRow } from '../../types';
 import Modal from '../common/Modal';
 
 function formatTime(date: Date): string {
@@ -22,7 +22,6 @@ type BookingMode = 'registered' | 'guest';
 const AppointmentBooking: React.FC = () => {
   // Data
   const [doctors, setDoctors] = useState<DoctorRow[]>([]);
-  const [services, setServices] = useState<ServiceRow[]>([]);
 
   // Filters at top
   const [filterDate, setFilterDate] = useState(toDateInputValue(new Date()));
@@ -55,9 +54,7 @@ const AppointmentBooking: React.FC = () => {
   // Add doctor availability state
   const [doctorAvailability, setDoctorAvailability] = useState<DoctorAvailabilityRow[]>([]);
 
-  // Selected service (dropdown)
-  const [serviceQuery, setServiceQuery] = useState('');
-  const [selectedService, setSelectedService] = useState<ServiceRow | null>(null);
+
 
   const refreshDoctors = async () => {
     try {
@@ -70,8 +67,8 @@ const AppointmentBooking: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      const [d, s] = await Promise.all([listDoctors(), listServices()]);
-      setDoctors(d); setServices(s);
+      const d = await listDoctors();
+      setDoctors(d);
       setFilterDate(toDateInputValue(new Date()));
     })();
   }, []);
@@ -83,12 +80,7 @@ const AppointmentBooking: React.FC = () => {
     return doctors.filter(d => d.name.toLowerCase().includes(q));
   }, [filterDoctorQuery, doctors]);
 
-  // filter services for dropdown
-  const filteredServices = useMemo(() => {
-    const q = serviceQuery.trim().toLowerCase();
-    if (!q) return services;
-    return services.filter(s => s.service_name.toLowerCase().includes(q) || s.service_type.toLowerCase().includes(q));
-  }, [serviceQuery, services]);
+
 
   const onSearchPatient = async () => {
     setMessage(null);
@@ -275,7 +267,7 @@ const AppointmentBooking: React.FC = () => {
     });
     
     return set;
-  }, [appointments, doctor, date]);
+  }, [appointments, doctor]);
 
   const onPickSlot = (slotTime: string) => { setTimeValue(slotTime); };
 

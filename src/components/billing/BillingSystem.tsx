@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPatient, createAppointment, createBill, recordPayment, listDoctors, listServices, searchPatientsByContact, getDoctorById, getBillById } from '../../api';
 import { BillItemRow, DoctorRow, PatientRow, ServiceRow } from '../../types';
 import { formatCurrency, generateBillNumber } from '../../utils/format';
-import { calculateAge, generatePatientId } from '../../utils/idGenerators';
+import { generatePatientId } from '../../utils/idGenerators';
 import Modal from '../common/Modal';
 
 const MODES = ['Cash', 'UPI', 'Card'] as const;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserRow, UserRole, DoctorRow } from '../../types';
+import { UserRole, DoctorRow } from '../../types';
 import { updateUser, updateDoctor } from '../../api';
 
 interface UserEditProps {

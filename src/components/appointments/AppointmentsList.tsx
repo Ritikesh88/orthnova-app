@@ -20,10 +20,6 @@ const AppointmentsList: React.FC = () => {
     return today.toISOString().slice(0, 10);
   });
   
-  const [showActionModal, setShowActionModal] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentRow | null>(null);
-  const [actionType, setActionType] = useState('');
-  
   const handleAppointmentAction = async (appointmentId: string, action: string) => {
     try {
       let status: 'completed' | 'cancelled' | 'booked' | undefined;

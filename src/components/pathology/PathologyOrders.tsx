@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { listPathologyTestOrders, createPathologyTestOrder, updatePathologyTestOrder, deletePathologyTestOrder, listPathologyTests, listPatients } from '../../api';
 import { PathologyTestOrderRow, PathologyTestRow, PatientRow } from '../../types';
 import { format } from 'date-fns';
@@ -27,13 +27,7 @@ const PathologyOrders: React.FC = () => {
     notes: '',
   });
 
-  useEffect(() => {
-    loadOrders();
-    loadTests();
-    loadPatients();
-  }, [query]);
-
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -44,7 +38,7 @@ const PathologyOrders: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [query]);
 
   const loadTests = async () => {
     try {
@@ -63,6 +57,12 @@ const PathologyOrders: React.FC = () => {
       setError(err.message);
     }
   };
+
+  useEffect(() => {
+    loadOrders();
+    loadTests();
+    loadPatients();
+  }, [loadOrders]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,7 +160,6 @@ const PathologyOrders: React.FC = () => {
     setForm({ ...form, test_ids: form.test_ids.filter(id => id !== testId) });
   };
 
-  const patient = patients.find(p => p.id === form.patient_id);
   const selectedTests = tests.filter(t => form.test_ids.includes(t.id));
 
   return (

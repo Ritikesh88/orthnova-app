@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { createMedicineStoreBill, listInventoryItems, searchPatientsByContact } from '../../api';
 import { BillItemRow, InventoryItemRow, PatientRow } from '../../types';
-import { formatCurrency } from '../../utils/format';
+
 import { generatePharmacyBillNumber } from '../../utils/idGenerators';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../common/Modal';
@@ -40,18 +40,18 @@ const PharmacyBilling: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadInventory();
-  }, []);
-
-  const loadInventory = async () => {
+  const loadInventory = useCallback(async () => {
     try {
       const data = await listInventoryItems();
       setInventory(data);
     } catch (e: any) {
       setMessage(e.message);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadInventory();
+  }, [loadInventory]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
