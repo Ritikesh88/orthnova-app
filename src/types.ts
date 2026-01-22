@@ -82,6 +82,7 @@ export interface BillItemRow {
   quantity: number;
   price: number;
   total: number;
+  discount_percentage?: number | null; // Optional discount percentage
   batch_number?: string | null;
   expiry_date?: string | null;
 }
