@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getPathologyReportById, getPathologyTestOrderById, listPathologyTestResults } from '../api';
-import { PathologyReportRow, PathologyTestOrderRow, PathologyTestResultRow } from '../types';
+import { getPathologyReportById, listPathologyTestResults } from '../api';
+import { PathologyReportRow, PathologyTestResultRow } from '../types';
 import { format } from 'date-fns';
-import { CLINIC_ADDRESS_LINE_1, CLINIC_CONTACT, CLINIC_EMAIL, CLINIC_NAME, CLINIC_REG_NO, DOCTOR_NAME, DOCTOR_QUALIFICATION, DOCTOR_REG_NUMBER, DOCTOR_INFO_LINE, CLINIC_CONTACT_EMAIL_LINE, CLINIC_ADDRESS_FORMATTED } from '../config/clinic';
+import { CLINIC_CONTACT, CLINIC_EMAIL, CLINIC_NAME, DOCTOR_NAME, DOCTOR_INFO_LINE, CLINIC_ADDRESS_FORMATTED } from '../config/clinic';
 
 const PrintPathologyReport: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [report, setReport] = useState<PathologyReportRow | null>(null);
-  const [order, setOrder] = useState<PathologyTestOrderRow | null>(null);
   const [results, setResults] = useState<PathologyTestResultRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,10 +27,7 @@ const PrintPathologyReport: React.FC = () => {
         
         setReport(reportData);
         
-        const orderData = await getPathologyTestOrderById(reportData.order_id);
-        if (orderData) {
-          setOrder(orderData);
-        }
+
         
         const resultsData = await listPathologyTestResults(reportData.order_id);
         setResults(resultsData);
@@ -71,7 +67,6 @@ const PrintPathologyReport: React.FC = () => {
 
   // Extract patient and doctor information if available
   const patientId = report.patient_id;
-  const doctorId = report.doctor_id;
 
   return (
     <div className="p-8 max-w-4xl mx-auto bg-white">

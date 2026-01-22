@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getBillById, getDoctorById, getPatientById, listBillItems, listServices } from '../api';
 import { BillItemRow, BillRow, DoctorRow, PatientRow, ServiceRow } from '../types';
-import { CLINIC_ADDRESS_LINE_1, CLINIC_CONTACT, CLINIC_EMAIL, CLINIC_NAME, CLINIC_REG_NO, DOCTOR_NAME, DOCTOR_QUALIFICATION, DOCTOR_REG_NUMBER, DOCTOR_INFO_LINE, CLINIC_CONTACT_EMAIL_LINE, CLINIC_ADDRESS_FORMATTED } from '../config/clinic';
+import { CLINIC_CONTACT, CLINIC_EMAIL, CLINIC_NAME, DOCTOR_NAME, DOCTOR_INFO_LINE, CLINIC_ADDRESS_FORMATTED } from '../config/clinic';
 import { formatCurrency, formatDateTime } from '../utils/format';
 
 const PrintPharmacyBill: React.FC = () => {
