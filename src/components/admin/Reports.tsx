@@ -15,7 +15,7 @@ const Reports: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ReportTab>('sales');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [groupBy, setGroupBy] = useState<'day' | 'month'>('day');
+  const [groupBy, setGroupBy] = useState<'day' | 'month' | 'bill'>('day');
   const [paymentStatus, setPaymentStatus] = useState<'paid' | 'pending' | 'both'>('paid');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,6 +23,7 @@ const Reports: React.FC = () => {
   const [salesData, setSalesData] = useState<SalesSummary[]>([]);
   const [doctorData, setDoctorData] = useState<DoctorSalesReport[]>([]);
   const [serviceData, setServiceData] = useState<ServiceSalesReport[]>([]);
+  const [billData, setBillData] = useState<BillDetail[]>([]);
   const [visitTypeData, setVisitTypeData] = useState<{visit_type: 'walk-in' | 'appointment'; count: number}[]>([]);
 
   type Summary = {
@@ -92,10 +93,65 @@ const Reports: React.FC = () => {
               doctorBills = doctorBills.filter(bill => bill.status === paymentStatus);
             }
             
+            if (groupBy === 'bill') {
+              // For bill-level view, just set the individual bills
+              setBillData(doctorBills.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+              setSalesData([]); // Clear aggregated data
+            } else {
+              // Group bills by date/month as needed
+              const grouped: Record<string, SalesSummary> = {};
+              
+              doctorBills.forEach(bill => {
+                const date = new Date(bill.created_at);
+                let key: string;
+                
+                if (groupBy === 'month') {
+                  key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                } else {
+                  key = date.toISOString().split('T')[0];
+                }
+
+                if (!grouped[key]) {
+                  grouped[key] = {
+                    date: key,
+                    total_bills: 0,
+                    total_amount: 0,
+                    total_discount: 0,
+                    net_amount: 0,
+                  };
+                }
+
+                grouped[key].total_bills += 1;
+                grouped[key].total_amount += Number(bill.total_amount || 0);
+                grouped[key].total_discount += Number(bill.discount || 0);
+                grouped[key].net_amount += Number(bill.net_amount || 0);
+              });
+
+              setSalesData(Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date)));
+              setBillData([]); // Clear bill-level data
+            }
+          } else {
+            setSalesData([]);
+            setError('Doctor profile not found. Contact admin to set up your doctor profile.');
+          }
+        } else {
+          // For admin, we need to fetch all bills and filter by payment status
+          let allBills = await getBillsByDateRange(startDate, endDate);
+          
+          // Filter by payment status
+          if (paymentStatus !== 'both') {
+            allBills = allBills.filter(bill => bill.status === paymentStatus);
+          }
+          
+          if (groupBy === 'bill') {
+            // For bill-level view, just set the individual bills
+            setBillData(allBills.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+            setSalesData([]); // Clear aggregated data
+          } else {
             // Group bills by date/month as needed
             const grouped: Record<string, SalesSummary> = {};
             
-            doctorBills.forEach(bill => {
+            allBills.forEach(bill => {
               const date = new Date(bill.created_at);
               let key: string;
               
@@ -122,49 +178,8 @@ const Reports: React.FC = () => {
             });
 
             setSalesData(Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date)));
-          } else {
-            setSalesData([]);
-            setError('Doctor profile not found. Contact admin to set up your doctor profile.');
+            setBillData([]); // Clear bill-level data
           }
-        } else {
-          // For admin, we need to fetch all bills and filter by payment status
-          let allBills = await getBillsByDateRange(startDate, endDate);
-          
-          // Filter by payment status
-          if (paymentStatus !== 'both') {
-            allBills = allBills.filter(bill => bill.status === paymentStatus);
-          }
-          
-          // Group bills by date/month as needed
-          const grouped: Record<string, SalesSummary> = {};
-          
-          allBills.forEach(bill => {
-            const date = new Date(bill.created_at);
-            let key: string;
-            
-            if (groupBy === 'month') {
-              key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            } else {
-              key = date.toISOString().split('T')[0];
-            }
-
-            if (!grouped[key]) {
-              grouped[key] = {
-                date: key,
-                total_bills: 0,
-                total_amount: 0,
-                total_discount: 0,
-                net_amount: 0,
-              };
-            }
-
-            grouped[key].total_bills += 1;
-            grouped[key].total_amount += Number(bill.total_amount || 0);
-            grouped[key].total_discount += Number(bill.discount || 0);
-            grouped[key].net_amount += Number(bill.net_amount || 0);
-          });
-
-          setSalesData(Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date)));
         }
       } else if (activeTab === 'doctor') {
         if (user?.role === 'doctor' && user?.userId) {
@@ -534,16 +549,31 @@ const Reports: React.FC = () => {
     let sheetName = '';
 
     if (activeTab === 'sales') {
-      sheetName = 'Sales Summary';
-      data = salesData.map(row => ({
-        Date: groupBy === 'month' 
-          ? new Date(row.date + '-01').toLocaleDateString('en-IN', { year: 'numeric', month: 'long' })
-          : formatDate(row.date),
-        'Total Bills': row.total_bills,
-        'Total Amount': row.total_amount,
-        'Discount': row.total_discount,
-        'Net Amount': row.net_amount,
-      }));
+      if (groupBy === 'bill') {
+        sheetName = 'Bill Details';
+        data = billData.map(bill => ({
+          'Bill Number': bill.bill_number,
+          'Date': formatDateTime(bill.created_at),
+          'Patient': bill.patient_name || bill.guest_name || 'N/A',
+          'Doctor': bill.doctor_name || 'N/A',
+          'Total Amount': bill.total_amount,
+          'Discount': bill.discount,
+          'Net Amount': bill.net_amount,
+          'Status': bill.status,
+          'Payment Mode': bill.mode_of_payment,
+        }));
+      } else {
+        sheetName = 'Sales Summary';
+        data = salesData.map(row => ({
+          Date: groupBy === 'month' 
+            ? new Date(row.date + '-01').toLocaleDateString('en-IN', { year: 'numeric', month: 'long' })
+            : formatDate(row.date),
+          'Total Bills': row.total_bills,
+          'Total Amount': row.total_amount,
+          'Discount': row.total_discount,
+          'Net Amount': row.net_amount,
+        }));
+      }
     } else if (activeTab === 'doctor') {
       sheetName = 'Doctor Sales';
       data = doctorData.map(row => ({
@@ -707,17 +737,33 @@ const Reports: React.FC = () => {
     let data: any[][] = [];
 
     if (activeTab === 'sales') {
-      title = 'Sales Summary Report';
-      headers = [['Date', 'Bills', 'Total Amount', 'Discount', 'Net Amount']];
-      data = salesData.map(row => [
-        groupBy === 'month' 
-          ? new Date(row.date + '-01').toLocaleDateString('en-IN', { year: 'numeric', month: 'long' })
-          : formatDate(row.date),
-        row.total_bills.toString(),
-        formatCurrency(row.total_amount),
-        formatCurrency(row.total_discount),
-        formatCurrency(row.net_amount),
-      ]);
+      if (groupBy === 'bill') {
+        title = 'Bill Details Report';
+        headers = [['Bill Number', 'Date', 'Patient', 'Doctor', 'Total Amount', 'Discount', 'Net Amount', 'Status', 'Payment Mode']];
+        data = billData.map(bill => [
+          bill.bill_number,
+          formatDateTime(bill.created_at),
+          bill.patient_name || bill.guest_name || 'N/A',
+          bill.doctor_name || 'N/A',
+          formatCurrency(bill.total_amount),
+          formatCurrency(bill.discount),
+          formatCurrency(bill.net_amount),
+          bill.status,
+          bill.mode_of_payment,
+        ]);
+      } else {
+        title = 'Sales Summary Report';
+        headers = [['Date', 'Bills', 'Total Amount', 'Discount', 'Net Amount']];
+        data = salesData.map(row => [
+          groupBy === 'month' 
+            ? new Date(row.date + '-01').toLocaleDateString('en-IN', { year: 'numeric', month: 'long' })
+            : formatDate(row.date),
+          row.total_bills.toString(),
+          formatCurrency(row.total_amount),
+          formatCurrency(row.total_discount),
+          formatCurrency(row.net_amount),
+        ]);
+      }
     } else if (activeTab === 'doctor') {
       title = 'Doctor Sales Report';
       headers = [['Doctor Name', 'Bills', 'Total Amount', 'Discount', 'Net Amount']];
@@ -1225,6 +1271,7 @@ const Reports: React.FC = () => {
               >
                 <option value="day">Daily</option>
                 <option value="month">Monthly</option>
+                <option value="bill">Bill Level</option>
               </select>
             </div>
           )}
@@ -1396,6 +1443,75 @@ const Reports: React.FC = () => {
         {loading ? (
           <div className="text-center py-8">
             <p className="text-gray-500">Loading report data...</p>
+          </div>
+        ) : activeTab === 'sales' && billData.length > 0 && groupBy === 'bill' ? (
+          <div className="overflow-x-auto">
+            {/* Export Buttons for Bill Level */}
+            <div className="mb-4 flex gap-2 justify-end">
+              <button
+                onClick={exportToExcel}
+                className="btn btn-secondary px-4 py-2 text-sm flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export to Excel
+              </button>
+              <button
+                onClick={exportToPDF}
+                className="btn btn-secondary px-4 py-2 text-sm flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                Export to PDF
+              </button>
+            </div>
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-500 border-b">
+                  <th className="py-2 pr-4">Bill Number</th>
+                  <th className="py-2 pr-4">Date</th>
+                  <th className="py-2 pr-4">Patient</th>
+                  <th className="py-2 pr-4">Doctor</th>
+                  <th className="py-2 pr-4 text-right">Total Amount</th>
+                  <th className="py-2 pr-4 text-right">Discount</th>
+                  <th className="py-2 pr-4 text-right">Net Amount</th>
+                  <th className="py-2 pr-4">Status</th>
+                  <th className="py-2 pr-4">Payment Mode</th>
+                </tr>
+              </thead>
+              <tbody>
+                {billData.map((bill) => (
+                  <tr key={bill.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-2 pr-4 font-medium">
+                      <button
+                        onClick={() => handleViewBill(bill.id)}
+                        className="text-brand-600 hover:text-brand-800 hover:underline cursor-pointer"
+                      >
+                        {bill.bill_number}
+                      </button>
+                    </td>
+                    <td className="py-2 pr-4">{formatDateTime(bill.created_at)}</td>
+                    <td className="py-2 pr-4">{bill.patient_name || bill.guest_name || 'N/A'}</td>
+                    <td className="py-2 pr-4">{bill.doctor_name || 'N/A'}</td>
+                    <td className="py-2 pr-4 text-right">{formatCurrency(bill.total_amount)}</td>
+                    <td className="py-2 pr-4 text-right text-red-600">{formatCurrency(bill.discount)}</td>
+                    <td className="py-2 pr-4 text-right font-semibold">{formatCurrency(bill.net_amount)}</td>
+                    <td className="py-2 pr-4">
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        bill.status === 'paid' ? 'bg-green-100 text-green-800' :
+                        bill.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {bill.status}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-4">{bill.mode_of_payment}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : activeTab === 'sales' && salesData.length > 0 ? (
           <div className="overflow-x-auto">
