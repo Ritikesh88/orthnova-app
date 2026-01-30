@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrthoNova Receptionist Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+        }
+        .btn {
+            border-radius: 12px;
+            padding: 8px 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background-color: #00C2A4;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #00a890;
+        }
+        .btn-secondary {
+            background-color: #f3f4f6;
+            color: #4b5563;
+        }
+        .btn-secondary:hover {
+            background-color: #e5e7eb;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-6xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 mb-2">OrthoNova Poly Clinic</h1>
+                <p class="text-xl text-gray-600">Receptionist Dashboard Demo</p>
+            </div>
+
+            <!-- Demo Description -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-900">Interactive UI Mockup</h2>
+                <p class="text-gray-700 mb-4">
+                    This is a design-only, non-destructive UI mockup for the OrthoNova clinic management system receptionist workflow. 
+                    The interface demonstrates the following features:
+                </p>
+                <ul class="list-disc pl-6 space-y-2 text-gray-700">
+                    <li>Receptionist Dashboard with Today's Overview</li>
+                    <li>Patient Registration Screen</li>
+                    <li>Prescription Generation with Patient Search</li>
+                    <li>Vitals Section with Placeholders</li>
+                    <li>Diagnosis, Medicines, and Advice Sections</li>
+                    <li>Clinic Billing Interface</li>
+                    <li>Print Preview Functionality</li>
+                </ul>
+                <p class="text-gray-700 mt-4">
+                    <strong>Note:</strong> This is a visual demonstration only. All interactions are simulated for UX validation purposes.
+                </p>
+            </div>
+
+            <!-- Screenshots/Visual Representation -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-900">Dashboard View</h3>
+                    <div class="space-y-4">
+                        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs opacity-90 font-medium">Total Visits</p>
+                                    <p class="text-2xl font-bold mt-1">24</p>
+                                </div>
+                                <div class="bg-white bg-opacity-20 rounded-full p-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs opacity-90 font-medium">Appointments</p>
+                                    <p class="text-2xl font-bold mt-1">18</p>
+                                </div>
+                                <div class="bg-white bg-opacity-20 rounded-full p-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-gray-900">Prescription Form</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Patient Contact</label>
+                            <div class="flex gap-2">
+                                <input type="text" placeholder="Enter contact number" class="flex-1 rounded-xl border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                                <button class="px-4 py-2 bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors">
+                                    Search
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Doctor</label>
+                            <input type="text" placeholder="Search doctor by name" class="w-full rounded-xl border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <h3 class="text-xl font-semibold mb-4 text-gray-900">Features Demonstrated</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 p-4 rounded-xl">
+                        <h4 class="font-medium text-gray-900 mb-2">Patient Search</h4>
+                        <p class="text-sm text-gray-600">Search patients by phone number with auto-complete dropdown</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl">
+                        <h4 class="font-medium text-gray-900 mb-2">Doctor Selection</h4>
+                        <p class="text-sm text-gray-600">Dropdown selection for choosing the treating doctor</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl">
+                        <h4 class="font-medium text-gray-900 mb-2">Vitals Section</h4>
+                        <p class="text-sm text-gray-600">Fields for BP, Weight, and additional vital signs</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl">
+                        <h4 class="font-medium text-gray-900 mb-2">Prescription Fields</h4>
+                        <p class="text-sm text-gray-600">Sections for diagnosis, medicines, and patient advice</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl">
+                        <h4 class="font-medium text-gray-900 mb-2">Print Preview</h4>
+                        <p class="text-sm text-gray-600">Simulated print layout for medical prescriptions</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl">
+                        <h4 class="font-medium text-gray-900 mb-2">Clinic Billing</h4>
+                        <p class="text-sm text-gray-600">Service selection and billing summary interface</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 text-center text-gray-600">
+                <p>This demo showcases the receptionist workflow for the OrthoNova clinic management system.</p>
+                <p class="text-sm mt-2">Design follows the brand guidelines with #00C2A4 as primary color and rounded corners (16–20px).</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

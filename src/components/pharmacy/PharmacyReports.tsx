@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSalesSummary, getBillsByDate, getBillsByMonth, getBillsByDateRange, SalesSummary, BillDetail, getLowStockItems, getExpiringItems, LowStockItem } from '../../api';
+import { getBillsByDate, getBillsByMonth, getBillsByDateRange, SalesSummary, BillDetail, getLowStockItems, getExpiringItems, LowStockItem } from '../../api';
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/format';
 import * as XLSX from 'xlsx'; // Using type assertion for utils to avoid TypeScript issues
 import jsPDF from 'jspdf';
@@ -13,6 +13,7 @@ const PharmacyReports: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [groupBy, setGroupBy] = useState<'day' | 'month'>('day');
+  const [paymentStatus, setPaymentStatus] = useState<'paid' | 'pending' | 'both'>('paid');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,8 +50,44 @@ const PharmacyReports: React.FC = () => {
 
     try {
       if (activeTab === 'sales') {
-        const data = await getSalesSummary(startDate, endDate, groupBy);
-        setSalesData(data);
+        // Get all bills and filter by payment status
+        let allBills = await getBillsByDateRange(startDate, endDate);
+        
+        // Filter by payment status
+        if (paymentStatus !== 'both') {
+          allBills = allBills.filter(bill => bill.status === paymentStatus);
+        }
+        
+        // Group bills by date/month as needed
+        const grouped: Record<string, SalesSummary> = {};
+        
+        allBills.forEach(bill => {
+          const date = new Date(bill.created_at);
+          let key: string;
+          
+          if (groupBy === 'month') {
+            key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          } else {
+            key = date.toISOString().split('T')[0];
+          }
+
+          if (!grouped[key]) {
+            grouped[key] = {
+              date: key,
+              total_bills: 0,
+              total_amount: 0,
+              total_discount: 0,
+              net_amount: 0,
+            };
+          }
+
+          grouped[key].total_bills += 1;
+          grouped[key].total_amount += Number(bill.total_amount || 0);
+          grouped[key].total_discount += Number(bill.discount || 0);
+          grouped[key].net_amount += Number(bill.net_amount || 0);
+        });
+
+        setSalesData(Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date)));
       } else if (activeTab === 'inventory') {
         // Fetch inventory data
         const lowStockData = await getLowStockItems();
@@ -558,6 +595,18 @@ const PharmacyReports: React.FC = () => {
               </select>
             </div>
           )}
+          <div>
+            <label className="block text-sm font-medium mb-1">Payment Status</label>
+            <select
+              className="w-full"
+              value={paymentStatus}
+              onChange={e => setPaymentStatus(e.target.value as 'paid' | 'pending' | 'both')}
+            >
+              <option value="paid">Paid</option>
+              <option value="pending">Pending</option>
+              <option value="both">Both</option>
+            </select>
+          </div>
           <div className="flex items-end">
             <button className="btn btn-primary w-full" onClick={fetchReports} disabled={loading}>
               {loading ? 'Loading...' : 'Generate Report'}
