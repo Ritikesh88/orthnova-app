@@ -304,6 +304,33 @@ export async function createInventoryItemWithStockTracking(
   const ledgerRes = await supabase.from('stock_ledger').insert(ledgerInsert as any).select('*').single();
   const ledger = await throwIfError<StockLedgerRow>(ledgerRes);
   
+  // Also log to inventory audit trail
+  try {
+    const auditLog = {
+      item_name: item.name,
+      category: item.category,
+      manufacturer: item.manufacturer,
+      sku: item.sku,
+      unit: item.unit,
+      sale_price: item.sale_price,
+      gst_rate: item.gst_rate,
+      quantity_added: row.opening_stock,
+      batch_number: item.batch_number,
+      expiry_date: item.expiry_date,
+      uploaded_by: actualUserId,
+      action_type: 'ADD_ITEM',
+      previous_stock: 0,
+      new_stock: row.opening_stock,
+      notes: 'New item added to inventory with initial stock',
+      reference_id: null
+    };
+    
+    await supabase.from('inventory_audit_trail').insert(auditLog);
+  } catch (auditError) {
+    console.warn('Failed to log to inventory audit trail:', auditError);
+    // Don't throw error as this is supplementary logging
+  }
+  
   return { item, ledger };
 }
 
@@ -333,6 +360,60 @@ export async function adjustStock(
   await throwIfError(itemRes as any);
   const latest = await supabase.from('inventory_items').select('*').eq('id', item_id).single();
   const item = await throwIfError<InventoryItemRow>(latest);
+  
+  // Also log to inventory audit trail
+  try {
+    // Get item details for audit logging
+    const itemDetails = await supabase.from('inventory_items').select('*').eq('id', item_id).single();
+    const itemData = await throwIfError<InventoryItemRow>(itemDetails);
+    
+    // Map reason to action_type
+    let action_type: string;
+    switch(reason) {
+      case 'purchase':
+        action_type = 'PURCHASE';
+        break;
+      case 'adjustment':
+        action_type = 'ADJUSTMENT';
+        break;
+      case 'correction':
+        action_type = 'CORRECTION';
+        break;
+      case 'dispense':
+        action_type = 'UPDATE_STOCK';
+        break;
+      case 'opening':
+        action_type = 'ADD_ITEM';
+        break;
+      default:
+        action_type = 'ADJUSTMENT';
+    }
+    
+    const auditLog = {
+      item_name: itemData.name,
+      category: itemData.category,
+      manufacturer: itemData.manufacturer,
+      sku: itemData.sku,
+      unit: itemData.unit,
+      sale_price: itemData.sale_price,
+      gst_rate: itemData.gst_rate,
+      quantity_added: Math.abs(change),
+      batch_number: itemData.batch_number,
+      expiry_date: itemData.expiry_date,
+      uploaded_by: opts?.created_by ?? null,
+      action_type,
+      previous_stock: itemData.current_stock - change,
+      new_stock: itemData.current_stock,
+      notes: opts?.notes ?? `Stock ${change > 0 ? 'increased' : 'decreased'} by ${Math.abs(change)}`,
+      reference_id: opts?.reference_bill_id ? opts.reference_bill_id : null
+    };
+    
+    await supabase.from('inventory_audit_trail').insert(auditLog);
+  } catch (auditError) {
+    console.warn('Failed to log to inventory audit trail:', auditError);
+    // Don't throw error as this is supplementary logging
+  }
+  
   return { item, ledger };
 }
 
@@ -381,6 +462,28 @@ export async function createMedicineStoreBill(
   return insertedBill;
 }
 
+export interface InventoryAuditTrailRow {
+  id: string;
+  item_name: string;
+  category: string;
+  manufacturer: string;
+  sku: string;
+  unit: string;
+  sale_price: number;
+  gst_rate: number;
+  quantity_added: number;
+  date_time: string;
+  batch_number: string | null;
+  expiry_date: string | null;
+  uploaded_by: string | null;
+  action_type: 'ADD_ITEM' | 'UPDATE_STOCK' | 'PURCHASE' | 'ADJUSTMENT' | 'CORRECTION';
+  previous_stock: number;
+  new_stock: number;
+  notes: string | null;
+  reference_id: string | null;
+  created_at: string;
+}
+
 export interface LowStockItem {
   id: string;
   name: string;
@@ -416,6 +519,42 @@ export async function getLowStockItems(): Promise<LowStockItem[]> {
     .sort((a, b) => a.current_stock - b.current_stock);
     
   return lowStockItems;
+}
+
+export async function getInventoryAuditTrail(
+  startDate?: string,
+  endDate?: string,
+  itemName?: string,
+  category?: string,
+  actionType?: string
+): Promise<InventoryAuditTrailRow[]> {
+  let query = supabase
+    .from('inventory_audit_trail')
+    .select('*')
+    .order('date_time', { ascending: false });
+
+  if (startDate) {
+    query = query.gte('date_time', startDate);
+  }
+  
+  if (endDate) {
+    query = query.lte('date_time', endDate);
+  }
+  
+  if (itemName) {
+    query = query.ilike('item_name', `%${itemName}%`);
+  }
+  
+  if (category) {
+    query = query.eq('category', category);
+  }
+  
+  if (actionType) {
+    query = query.eq('action_type', actionType);
+  }
+
+  const res = await query;
+  return throwIfError<InventoryAuditTrailRow[]>(res);
 }
 
 export async function getExpiringItems(days: number = 30): Promise<InventoryItemRow[]> {

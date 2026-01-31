@@ -30,6 +30,7 @@ import ReceptionistDashboard from './components/receptionist/ReceptionistDashboa
 import StockManagement from './components/admin/StockManagement';
 import InventoryUpdate from './components/admin/InventoryUpdate';
 import StockDetails from './components/admin/StockDetails';
+import InventoryAuditTrail from './components/admin/InventoryAuditTrail';
 
 // Pharmacy Components
 import PharmacyDashboard from './components/pharmacy/PharmacyDashboard';
@@ -80,6 +81,7 @@ const AppRoutes: React.FC = () => {
         <Route path="admin/inventory" element={<Navigate to="admin/inventory/update" replace />} />
         <Route path="admin/inventory/update" element={<ProtectedRoute allowedRoles={["admin", "store_manager"]}><InventoryUpdate /></ProtectedRoute>} />
         <Route path="admin/inventory/details" element={<ProtectedRoute allowedRoles={["admin", "store_manager"]}><StockDetails /></ProtectedRoute>} />
+        <Route path="admin/inventory/audit" element={<ProtectedRoute allowedRoles={["admin", "store_manager"]}><InventoryAuditTrail /></ProtectedRoute>} />
         <Route path="admin/stock-purchase" element={<ProtectedRoute allowedRoles={["admin", "store_manager"]}><StockPurchase /></ProtectedRoute>} />
                 <Route path="admin/stock-management" element={<ProtectedRoute allowedRoles={["admin"]}><StockManagement /></ProtectedRoute>} />
         
