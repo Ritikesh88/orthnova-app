@@ -1,6 +1,9 @@
 -- Create Inventory Audit Trail Table
 -- This table tracks all inventory updates with detailed information
 
+-- First, add updated_by column to inventory_items table if it doesn't exist
+ALTER TABLE inventory_items ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES users(id);
+
 CREATE TABLE IF NOT EXISTS inventory_audit_trail (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   item_name VARCHAR NOT NULL,
@@ -14,7 +17,7 @@ CREATE TABLE IF NOT EXISTS inventory_audit_trail (
   date_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   batch_number VARCHAR,
   expiry_date DATE,
-  uploaded_by VARCHAR REFERENCES users(id),
+  uploaded_by UUID REFERENCES users(id),
   action_type VARCHAR CHECK (action_type IN ('ADD_ITEM', 'UPDATE_STOCK', 'PURCHASE', 'ADJUSTMENT', 'CORRECTION')) NOT NULL,
   previous_stock INTEGER,
   new_stock INTEGER,
@@ -107,7 +110,7 @@ BEGIN
     ABS(v_new_stock - v_previous_stock),
     v_batch_number,
     v_expiry_date,
-    NEW.updated_by, -- Assuming inventory_items has updated_by field
+    NEW.updated_by, -- Use the updated_by field from inventory_items
     v_action_type,
     v_previous_stock,
     v_new_stock,
@@ -131,7 +134,7 @@ CREATE OR REPLACE FUNCTION manual_inventory_log(
   p_item_id UUID,
   p_quantity_added INTEGER,
   p_action_type VARCHAR,
-  p_uploaded_by VARCHAR,
+  p_uploaded_by UUID,
   p_notes TEXT DEFAULT NULL,
   p_reference_id UUID DEFAULT NULL
 )

@@ -261,10 +261,17 @@ export async function listInventoryItems(query?: string): Promise<InventoryItemR
   return throwIfError<InventoryItemRow[]>(res);
 }
 
-export async function createInventoryItem(row: Omit<InventoryItemRow, 'id' | 'created_at' | 'current_stock'>): Promise<InventoryItemRow> {
+export async function createInventoryItem(row: Omit<InventoryItemRow, 'id' | 'created_at' | 'current_stock'>, createdBy?: string): Promise<InventoryItemRow> {
+  // Convert user_id string to UUID if provided
+  let actualUserId: string | null = null;
+  if (createdBy) {
+    actualUserId = await getUserIdByUserId(createdBy);
+  }
+  
   const payload = { 
     ...row, 
     current_stock: row.opening_stock,
+    updated_by: actualUserId,
     // Ensure all required fields are present
     category: row.category || 'Other',
     manufacturer: row.manufacturer || 'Unknown',
@@ -282,7 +289,7 @@ export async function createInventoryItemWithStockTracking(
   createdBy?: string
 ): Promise<{ item: InventoryItemRow; ledger: StockLedgerRow }> {
   // First, create the inventory item
-  const item = await createInventoryItem(row);
+  const item = await createInventoryItem(row, createdBy);
   
   // Convert user_id string to UUID if provided
   let actualUserId: string | null = null;
@@ -334,8 +341,19 @@ export async function createInventoryItemWithStockTracking(
   return { item, ledger };
 }
 
-export async function updateInventoryItem(id: string, updates: Partial<Omit<InventoryItemRow, 'id' | 'created_at'>>): Promise<InventoryItemRow> {
-  const res = await supabase.from('inventory_items').update(updates).eq('id', id).select('*').single();
+export async function updateInventoryItem(id: string, updates: Partial<Omit<InventoryItemRow, 'id' | 'created_at'>>, updatedBy?: string): Promise<InventoryItemRow> {
+  // Convert user_id string to UUID if provided
+  let actualUserId: string | null = null;
+  if (updatedBy) {
+    actualUserId = await getUserIdByUserId(updatedBy);
+  }
+  
+  const updatePayload = {
+    ...updates,
+    updated_by: actualUserId
+  };
+  
+  const res = await supabase.from('inventory_items').update(updatePayload).eq('id', id).select('*').single();
   return throwIfError<InventoryItemRow>(res);
 }
 
@@ -356,6 +374,14 @@ export async function adjustStock(
   } as const;
   const ledgerRes = await supabase.from('stock_ledger').insert(ledgerInsert as any).select('*').single();
   const ledger = await throwIfError<StockLedgerRow>(ledgerRes);
+  // Update the item with updated_by information
+  if (opts?.created_by) {
+    const actualUserId = await getUserIdByUserId(opts.created_by);
+    if (actualUserId) {
+      await supabase.from('inventory_items').update({ updated_by: actualUserId }).eq('id', item_id);
+    }
+  }
+  
   const itemRes = await supabase.rpc('increment_inventory_stock', { p_item_id: item_id, p_delta: change });
   await throwIfError(itemRes as any);
   const latest = await supabase.from('inventory_items').select('*').eq('id', item_id).single();
