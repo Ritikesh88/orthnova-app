@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import LoginForm from './components/LoginForm';
 import PharmacyLoginForm from './components/pharmacy/PharmacyLoginForm';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -152,6 +153,7 @@ const App: React.FC = () => {
       <BrowserRouter>
         <AppRoutes />
       </BrowserRouter>
+      <SpeedInsights />
     </AuthProvider>
   );
 };
