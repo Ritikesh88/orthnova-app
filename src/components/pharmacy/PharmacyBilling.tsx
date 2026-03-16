@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { createMedicineStoreBill, getExpiringItemsWithinMonths, listDoctors, listInventoryItems, searchPatientsByContact } from '../../api';
+import { createMedicineStoreBill, updateBill, getExpiringItemsWithinMonths, listDoctors, listInventoryItems, searchPatientsByContact } from '../../api';
 import { BillItemRow, DoctorRow, InventoryItemRow, PatientRow } from '../../types';
 import { generatePharmacyBillNumber } from '../../utils/idGenerators';
 import { useAuth } from '../../context/AuthContext';
@@ -335,7 +335,7 @@ const PharmacyBillingPage: React.FC = () => {
       // Find the selected doctor by name
       const selectedDoctor = allDoctors.find(doctor => doctor.name === referredBy);
       
-      const billInsert = {
+      const billUpdates = {
         patient_id: isGuest ? null : patientId,
         doctor_id: selectedDoctor?.id || null, // Use doctor ID if a registered doctor is selected
         total_amount: subtotal,
@@ -349,31 +349,27 @@ const PharmacyBillingPage: React.FC = () => {
         guest_contact: isGuest ? guestContact.trim() : null,
         bill_type: 'pharmacy',
         is_medicine_store_bill: true,
-        created_at: new Date().toISOString(),
-      } as const;
+        referred_by: referredBy || null,
+      };
 
-      const itemsInsert: Array<Omit<BillItemRow, 'id'>> = selected.map(s => {
-        const itemTotal = Number(s.item.sale_price) * s.quantity;
-        
-        return {
-          bill_id: '',
-          inventory_item_id: s.item.id,
-          item_name: s.item.name,
-          quantity: s.quantity,
-          price: Number(s.item.sale_price),
-          total: itemTotal,
-          batch_number: s.item.batch_number || null,
-          expiry_date: s.item.expiry_date || null,
+      // Get the draft bill ID from localStorage
+      const draftBillId = localStorage.getItem('orthonova_draft_bill_id');
+      if (!draftBillId) {
+        setMessage('No draft bill found. Please save the bill first.');
+        setSubmitting(false);
+        return;
+      }
 
-        };
-      });
-
-      const inserted = await createMedicineStoreBill(billInsert as any, itemsInsert, user?.userId);
-      localStorage.setItem('orthonova_last_bill_id', inserted.id);
+      // Update the draft bill instead of creating a new one
+      const updatedBill = await updateBill(draftBillId, billUpdates as any);
+      
+      // Note: Bill items are already added during save, so we don't need to re-add them
+      // The createMedicineStoreBill function already handles this in the onSave handler
+      localStorage.setItem('orthonova_last_bill_id', updatedBill.id);
       setMessage('Medicine bill generated successfully');
       
       // Open print window
-      const url = `${window.location.origin}/print/pharmacy-bill/${inserted.id}`;
+      const url = `${window.location.origin}/print/pharmacy-bill/${updatedBill.id}`;
       const win = window.open(url, '_blank'); 
       if (win) win.focus();
       

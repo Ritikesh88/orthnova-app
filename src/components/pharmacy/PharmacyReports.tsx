@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { getBillsByDate, getBillsByMonth, getBillsByDateRange, SalesSummary, BillDetail, getLowStockItems, getExpiringItems, LowStockItem } from '../../api';
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/format';
 import * as XLSX from 'xlsx'; // Using type assertion for utils to avoid TypeScript issues
@@ -13,7 +13,6 @@ const PharmacyReports: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [groupBy, setGroupBy] = useState<'day' | 'month' | 'bill'>('day');
-  const [paymentStatus, setPaymentStatus] = useState<'paid' | 'pending' | 'both'>('paid');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,10 +53,6 @@ const PharmacyReports: React.FC = () => {
         // Get all bills and filter by payment status
         let allBills = await getBillsByDateRange(startDate, endDate);
         
-        // Filter by payment status
-        if (paymentStatus !== 'both') {
-          allBills = allBills.filter(bill => bill.status === paymentStatus);
-        }
         
         if (groupBy === 'bill') {
           // For bill-level view, just set the individual bills
@@ -505,7 +500,7 @@ const PharmacyReports: React.FC = () => {
                   onClick={() => setShowDeepDive(false)}
                   className="text-gray-500 hover:text-gray-700 text-2xl font-bold ml-2"
                 >
-                  ×
+                  Ã—
                 </button>
               </div>
             </div>
@@ -634,18 +629,6 @@ const PharmacyReports: React.FC = () => {
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium mb-1">Payment Status</label>
-            <select
-              className="w-full"
-              value={paymentStatus}
-              onChange={e => setPaymentStatus(e.target.value as 'paid' | 'pending' | 'both')}
-            >
-              <option value="paid">Paid</option>
-              <option value="pending">Pending</option>
-              <option value="both">Both</option>
-            </select>
-          </div>
-          <div className="flex items-end">
             <button className="btn btn-primary w-full" onClick={fetchReports} disabled={loading}>
               {loading ? 'Loading...' : 'Generate Report'}
             </button>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { createPatient, createAppointment, createBill, recordPayment, listDoctors, listServices, searchPatientsByContact, getDoctorById, getBillById } from '../../api';
+import { createPatient, createAppointment, createBill, updateBill, recordPayment, listDoctors, listServices, searchPatientsByContact, getDoctorById, getBillById } from '../../api';
 import { BillItemRow, DoctorRow, PatientRow, ServiceRow } from '../../types';
 import { formatCurrency, generateBillNumber } from '../../utils/format';
 import { generatePatientId } from '../../utils/idGenerators';
@@ -296,9 +296,9 @@ const BillingSystem: React.FC = () => {
         setAppointmentId(finalAppointmentId);
       }
 
-      // Step 3: Create bill
+      // Step 3: Update the draft bill with final details
       const bill_number = generateBillNumber();
-      const billPayload = {
+      const billUpdates = {
         patient_id: finalPatientId,
         doctor_id: doctorId,
         total_amount: total,
@@ -313,20 +313,24 @@ const BillingSystem: React.FC = () => {
         bill_type: 'services' as const,
       };
 
-      const itemsInsert: Array<Omit<BillItemRow, 'id'>> = items.map(it => ({
-        bill_id: '',
-        service_id: it.service.id,
-        quantity: it.quantity,
-        price: Number(it.service.price),
-        total: Number(it.service.price) * it.quantity,
-      }));
+      // Get the draft bill ID from localStorage
+      const draftBillId = localStorage.getItem('orthonova_draft_bill_id');
+      if (!draftBillId) {
+        setMessage('No draft bill found. Please save the bill first.');
+        setSubmitting(false);
+        return;
+      }
 
-      const inserted = await createBill(billPayload as any, itemsInsert);
+      // Update the draft bill instead of creating a new one
+      const updatedBill = await updateBill(draftBillId, billUpdates);
+      
+      // Note: Bill items are already added during save, so we don't need to re-add them
+      // The createBill function already handles this in the onSave handler
 
       // Step 4: Record payment if status is paid or partial
       if (status === 'paid' && net > 0) {
         await recordPayment(
-          inserted.id,
+          updatedBill.id,
           net,
           mode,
           (mode === 'UPI' || mode === 'Card') ? txnRef : null
@@ -335,19 +339,19 @@ const BillingSystem: React.FC = () => {
         // For partial payments, you could add a payment amount field
         // For now, we'll record it as paid to update the status
         await recordPayment(
-          inserted.id,
+          updatedBill.id,
           net * 0.5, // Example: 50% payment
           mode,
           (mode === 'UPI' || mode === 'Card') ? txnRef : null
         );
       }
 
-      localStorage.setItem('orthonova_last_bill_id', inserted.id);
+      localStorage.setItem('orthonova_last_bill_id', updatedBill.id);
       setMessage('Bill generated successfully');
       
       // Open print window - determine route based on bill type
-      const printRoute = inserted.bill_type === 'pharmacy' ? 'pharmacy-bill' : 'bill';
-      const printUrl = `${window.location.origin}/print/${printRoute}/${inserted.id}`;
+      const printRoute = updatedBill.bill_type === 'pharmacy' ? 'pharmacy-bill' : 'bill';
+      const printUrl = `${window.location.origin}/print/${printRoute}/${updatedBill.id}`;
       const win = window.open(printUrl, '_blank');
       if (win) {
         win.focus();

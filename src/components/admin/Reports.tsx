@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { getBillsByDate, getBillsByMonth, getBillsByDoctor, getBillsByDateRange, getBillById, listBillItems, getDoctorById, listPrescriptions, getServiceSalesReport, SalesSummary, DoctorSalesReport, ServiceSalesReport, BillDetail, listDoctors } from '../../api';
 import { BillRow, BillItemRow, DoctorRow, PrescriptionRow } from '../../types';
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/format';
@@ -16,7 +16,6 @@ const Reports: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [groupBy, setGroupBy] = useState<'day' | 'month' | 'bill'>('day');
-  const [paymentStatus, setPaymentStatus] = useState<'paid' | 'pending' | 'both'>('paid');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -88,10 +87,6 @@ const Reports: React.FC = () => {
             // Get bills specifically for this doctor and generate sales summary
             let doctorBills = await getBillsByDoctor(doctorMatch.id, startDate, endDate);
             
-            // Filter by payment status
-            if (paymentStatus !== 'both') {
-              doctorBills = doctorBills.filter(bill => bill.status === paymentStatus);
-            }
             
             if (groupBy === 'bill') {
               // For bill-level view, just set the individual bills
@@ -138,10 +133,6 @@ const Reports: React.FC = () => {
           // For admin, we need to fetch all bills and filter by payment status
           let allBills = await getBillsByDateRange(startDate, endDate);
           
-          // Filter by payment status
-          if (paymentStatus !== 'both') {
-            allBills = allBills.filter(bill => bill.status === paymentStatus);
-          }
           
           if (groupBy === 'bill') {
             // For bill-level view, just set the individual bills
@@ -213,10 +204,6 @@ const Reports: React.FC = () => {
           // For admin, get all bills and filter by payment status
           let allBills = await getBillsByDateRange(startDate, endDate);
           
-          // Filter by payment status
-          if (paymentStatus !== 'both') {
-            allBills = allBills.filter(bill => bill.status === paymentStatus);
-          }
           
           // Group by doctor
           const doctorMap: Record<string, DoctorSalesReport> = {};
@@ -511,6 +498,16 @@ const Reports: React.FC = () => {
 
   const getTotalSummary = () => {
     if (activeTab === 'sales') {
+      // When groupBy is 'bill', calculate from billData
+      if (groupBy === 'bill' && billData.length > 0) {
+        return {
+          total_bills: billData.length,
+          total_amount: billData.reduce((sum, d) => sum + Number(d.total_amount || 0), 0),
+          total_discount: billData.reduce((sum, d) => sum + Number(d.discount || 0), 0),
+          net_amount: billData.reduce((sum, d) => sum + Number(d.net_amount || 0), 0),
+        };
+      }
+      // Otherwise calculate from salesData
       return {
         total_bills: salesData.reduce((sum, d) => sum + d.total_bills, 0),
         total_amount: salesData.reduce((sum, d) => sum + d.total_amount, 0),
@@ -989,7 +986,7 @@ const Reports: React.FC = () => {
                 onClick={() => { setShowBillDetail(false); setSelectedBill(null); setBillItems([]); }}
                 className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
               >
-                ×
+                Ãƒâ€”
               </button>
             </div>
             <div className="p-6 overflow-auto flex-1">
@@ -1108,7 +1105,7 @@ const Reports: React.FC = () => {
                   onClick={() => setShowDeepDive(false)}
                   className="text-gray-500 hover:text-gray-700 text-2xl font-bold ml-2"
                 >
-                  ×
+                  Ãƒâ€”
                 </button>
               </div>
             </div>
@@ -1276,18 +1273,6 @@ const Reports: React.FC = () => {
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium mb-1">Payment Status</label>
-            <select
-              className="w-full"
-              value={paymentStatus}
-              onChange={e => setPaymentStatus(e.target.value as 'paid' | 'pending' | 'both')}
-            >
-              <option value="paid">Paid</option>
-              <option value="pending">Pending</option>
-              <option value="both">Both</option>
-            </select>
-          </div>
-          <div className="flex items-end">
             <button className="btn btn-primary w-full" onClick={fetchReports} disabled={loading}>
               {loading ? 'Loading...' : 'Generate Report'}
             </button>
@@ -1688,4 +1673,5 @@ const Reports: React.FC = () => {
 };
 
 export default Reports;
+
 

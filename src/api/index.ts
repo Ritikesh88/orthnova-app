@@ -223,6 +223,21 @@ export async function createBill(
   return insertedBill;
 }
 
+export async function updateBill(
+  id: string,
+  updates: Partial<Omit<BillRow, 'id' | 'created_at'>>
+): Promise<BillRow> {
+  const res = await supabase
+    .from('bills')
+    .update(updates)
+    .eq('id', id)
+    .select('*')
+    .single();
+  
+  if (res.error) throw new Error(res.error.message);
+  return throwIfError<BillRow>(res);
+}
+
 export async function getBillById(id: string): Promise<BillRow | null> {
   const res = await supabase.from('bills').select('*').eq('id', id).maybeSingle();
   if (res.error) throw new Error(res.error.message);
