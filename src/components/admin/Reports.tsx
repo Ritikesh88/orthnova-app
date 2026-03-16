@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getBillsByDate, getBillsByMonth, getBillsByDoctor, getBillsByDateRange, getBillById, listBillItems, getDoctorById, listPrescriptions, getServiceSalesReport, SalesSummary, DoctorSalesReport, ServiceSalesReport, BillDetail, listDoctors } from '../../api';
 import { BillRow, BillItemRow, DoctorRow, PrescriptionRow } from '../../types';
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/format';
@@ -986,7 +986,7 @@ const Reports: React.FC = () => {
                 onClick={() => { setShowBillDetail(false); setSelectedBill(null); setBillItems([]); }}
                 className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
               >
-                Ãƒâ€”
+                ×
               </button>
             </div>
             <div className="p-6 overflow-auto flex-1">
@@ -1105,7 +1105,7 @@ const Reports: React.FC = () => {
                   onClick={() => setShowDeepDive(false)}
                   className="text-gray-500 hover:text-gray-700 text-2xl font-bold ml-2"
                 >
-                  Ãƒâ€”
+                  ×
                 </button>
               </div>
             </div>

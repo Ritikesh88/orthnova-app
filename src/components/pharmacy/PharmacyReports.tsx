@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getBillsByDate, getBillsByMonth, getBillsByDateRange, SalesSummary, BillDetail, getLowStockItems, getExpiringItems, LowStockItem } from '../../api';
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/format';
 import * as XLSX from 'xlsx'; // Using type assertion for utils to avoid TypeScript issues
@@ -500,7 +500,7 @@ const PharmacyReports: React.FC = () => {
                   onClick={() => setShowDeepDive(false)}
                   className="text-gray-500 hover:text-gray-700 text-2xl font-bold ml-2"
                 >
-                  Ã—
+                  ×
                 </button>
               </div>
             </div>
