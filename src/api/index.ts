@@ -855,6 +855,7 @@ export async function getBillsByDate(date: string): Promise<BillDetail[]> {
     .select('id, bill_number, patient_id, guest_name, doctor_id, total_amount, discount, net_amount, created_at, status, mode_of_payment')
     .gte('created_at', startOfDay)
     .lte('created_at', endOfDay)
+    .not('bill_number', 'is', null) // Exclude draft bills
     .order('created_at', { ascending: false });
 
   if (res.error) throw new Error(res.error.message);
@@ -909,6 +910,7 @@ export async function getBillsByMonth(year: number, month: number): Promise<Bill
     .select('id, bill_number, patient_id, guest_name, doctor_id, total_amount, discount, net_amount, created_at, status, mode_of_payment')
     .gte('created_at', startDate)
     .lte('created_at', endDate)
+    .not('bill_number', 'is', null) // Exclude draft bills
     .order('created_at', { ascending: false });
 
   if (res.error) throw new Error(res.error.message);
@@ -960,6 +962,7 @@ export async function getBillsByDoctor(doctorId: string, startDate: string, endD
     .eq('doctor_id', doctorId)
     .gte('created_at', startDate)
     .lte('created_at', endDate)
+    .not('bill_number', 'is', null) // Exclude draft bills
     .order('created_at', { ascending: false });
 
   if (res.error) throw new Error(res.error.message);
@@ -1005,6 +1008,7 @@ export async function getBillsByDateRange(startDate: string, endDate: string): P
     .select('id, bill_number, patient_id, guest_name, doctor_id, total_amount, discount, net_amount, created_at, status, mode_of_payment')
     .gte('created_at', startOfDay)
     .lte('created_at', endOfDay)
+    .not('bill_number', 'is', null) // Exclude draft bills (bills without bill numbers)
     .order('created_at', { ascending: false });
 
   if (res.error) throw new Error(res.error.message);
