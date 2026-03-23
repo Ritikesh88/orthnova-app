@@ -29,7 +29,9 @@ const LoginForm: React.FC = () => {
         } else if (user.role === 'receptionist') {
           navigate('/clinic/receptionist/dashboard');
         } else if (user.role === 'doctor') {
-          navigate('/clinic/patients');
+          navigate('/clinic/prescriptions');
+        } else if (user.role === 'store_manager') {
+          navigate('/pharmacy');
         } else {
           // For any other role, go to home
           navigate('/');

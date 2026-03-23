@@ -78,7 +78,7 @@ const AppRoutes: React.FC = () => {
         <Route path="admin/doctor-availability" element={<ProtectedRoute allowedRoles={["admin", "doctor"]}><DoctorAvailability /></ProtectedRoute>} />
         <Route path="admin/services" element={<ProtectedRoute allowedRoles={["admin"]}><ServicesCatalog /></ProtectedRoute>} />
         <Route path="admin/reports" element={<ProtectedRoute allowedRoles={["admin", "doctor"]}><Reports /></ProtectedRoute>} />
-        <Route path="admin/inventory" element={<Navigate to="admin/inventory/update" replace />} />
+        <Route path="admin/inventory" element={<Navigate to="/clinic/admin/inventory/update" replace />} />
         <Route path="admin/inventory/update" element={<ProtectedRoute allowedRoles={["admin", "store_manager"]}><InventoryUpdate /></ProtectedRoute>} />
         <Route path="admin/inventory/details" element={<ProtectedRoute allowedRoles={["admin", "store_manager"]}><StockDetails /></ProtectedRoute>} />
         <Route path="admin/inventory/audit" element={<ProtectedRoute allowedRoles={["admin", "store_manager"]}><InventoryAuditTrail /></ProtectedRoute>} />

@@ -56,20 +56,28 @@ const Icon = {
 
 function usePageTitle(): string {
   const { pathname } = useLocation();
-  if (pathname === '/' || pathname === '') return 'Dashboard';
-  if (pathname.startsWith('/admin/users')) return 'User Management';
-  if (pathname.startsWith('/admin/user-registration')) return 'User Registration';
-  if (pathname.startsWith('/admin/doctor-availability')) return 'Doctor Availability';
-  if (pathname.startsWith('/patients/register')) return 'Patient Registration';
-  if (pathname.startsWith('/patients')) return 'Patients';
-  if (pathname.startsWith('/admin/services')) return 'Manage Service';
-  if (pathname.startsWith('/billing/history')) return 'Billing History';
-  if (pathname.startsWith('/billing')) return 'Billing';
-  if (pathname.startsWith('/admin/inventory')) return 'Inventory';
-  if (pathname.startsWith('/physician/dispense')) return 'Physician Dispense';
-  if (pathname.startsWith('/prescriptions')) return 'Generate Prescription';
-  if (pathname.startsWith('/appointments/book')) return 'Book Appointment';
-  if (pathname.startsWith('/appointments')) return 'Patient Visit History';
+  if (pathname === '/clinic' || pathname === '/clinic/') return 'Dashboard';
+  if (pathname.startsWith('/clinic/admin/dashboard')) return 'Admin Dashboard';
+  if (pathname.startsWith('/clinic/admin/users')) return 'User Management';
+  if (pathname.startsWith('/clinic/admin/user-registration')) return 'User Registration';
+  if (pathname.startsWith('/clinic/admin/doctor-availability')) return 'Doctor Availability';
+  if (pathname.startsWith('/clinic/admin/reports')) return 'Reports';
+  if (pathname.startsWith('/clinic/admin/services')) return 'Manage Service';
+  if (pathname.startsWith('/clinic/admin/inventory')) return 'Inventory';
+  if (pathname.startsWith('/clinic/admin/stock-purchase')) return 'Stock Purchase';
+  if (pathname.startsWith('/clinic/admin/stock-management')) return 'Stock Management';
+  if (pathname.startsWith('/clinic/patients/register')) return 'Patient Registration';
+  if (pathname.startsWith('/clinic/patients')) return 'Patients';
+  if (pathname.startsWith('/clinic/billing/pharmacy')) return 'Pharmacy Billing';
+  if (pathname.startsWith('/clinic/billing/history')) return 'Billing History';
+  if (pathname.startsWith('/clinic/billing')) return 'Billing';
+  if (pathname.startsWith('/clinic/prescriptions/list')) return 'Prescription History';
+  if (pathname.startsWith('/clinic/prescriptions')) return 'Generate Prescription';
+  if (pathname.startsWith('/clinic/appointments/book')) return 'Book Appointment';
+  if (pathname.startsWith('/clinic/appointments/appointment-list')) return 'Appointments List';
+  if (pathname.startsWith('/clinic/appointments/calendar')) return 'Appointments Calendar';
+  if (pathname.startsWith('/clinic/appointments')) return 'Patient Visit History';
+  if (pathname.startsWith('/clinic/receptionist/dashboard')) return "Today's Overview";
   if (pathname.startsWith('/pharmacy')) return 'Pharmacy';
   return 'ORTHONOVA POLYCLINIC';
 }
@@ -103,6 +111,7 @@ const DashboardLayout: React.FC = () => {
                             <div className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Inventory</div>
                             <NavLink to="/clinic/admin/inventory/update" className={navItemClass}><span>{Icon.inventory}</span><span>Stock Update</span></NavLink>
                             <NavLink to="/clinic/admin/inventory/details" className={navItemClass}><span>{Icon.inventory}</span><span>Existing Stock Details</span></NavLink>
+                            <NavLink to="/clinic/admin/inventory/audit" className={navItemClass}><span>{Icon.history}</span><span>Audit Trail</span></NavLink>
                           </div>
               <NavLink to="/pathology" className={navItemClass}><span>{Icon.pill}</span><span>Pathology Lab</span></NavLink>
             </>

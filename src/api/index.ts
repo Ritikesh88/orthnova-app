@@ -316,7 +316,7 @@ export async function createInventoryItemWithStockTracking(
   const ledgerInsert = {
     item_id: item.id,
     change: row.opening_stock, // Initial stock as a positive change
-    reason: 'initial_stock',
+    reason: 'opening',
     notes: 'Initial stock from inventory creation',
     reference_bill_id: null,
     created_by: actualUserId,
@@ -1524,7 +1524,7 @@ export async function listPathologyTests(query?: string): Promise<PathologyTestR
     // Using multiple OR conditions for better compatibility with RLS policies
     q = q.or(
       `test_name.ilike.${like},` +
-      `test_category.ilike.${like},` +
+      `category.ilike.${like},` +
       `test_code.ilike.${like}`
     );
   }
@@ -1560,8 +1560,7 @@ export async function listPathologyTestOrders(query?: string): Promise<Pathology
     const like = `%${query.trim()}%`;
     // Using multiple OR conditions for better compatibility with RLS policies
     q = q.or(
-      `id.ilike.${like},` +
-      `order_status.ilike.${like},` +
+      `report_status.ilike.${like},` +
       `priority.ilike.${like}`
     );
   }
