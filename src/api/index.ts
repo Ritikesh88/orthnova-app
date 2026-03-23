@@ -52,8 +52,25 @@ export async function updateUser(user_id: string, updates: Partial<Pick<UserRow,
 }
 
 export async function deleteUser(user_id: string): Promise<void> {
-  const res = await supabase.from('users').delete().eq('user_id', user_id);
-  await throwIfError(res as any);
+  const res = await supabase.from('users').delete().eq('user_id', user_id).select();
+  if (res.error) {
+    throw new Error(res.error.message || 'Failed to delete user');
+  }
+}
+
+export async function deleteDoctorRecord(doctor_id: string): Promise<void> {
+  // Delete related records first
+  await supabase.from('appointments').delete().eq('doctor_id', doctor_id);
+  await supabase.from('prescriptions').delete().eq('doctor_id', doctor_id);
+  await supabase.from('doctor_availability').delete().eq('doctor_id', doctor_id);
+  
+  const res = await supabase.from('doctors').delete().eq('id', doctor_id).select();
+  if (res.error) {
+    throw new Error(res.error.message || 'Failed to delete doctor');
+  }
+  if (!res.data || res.data.length === 0) {
+    throw new Error('Doctor record not found or could not be deleted.');
+  }
 }
 
 // Patients

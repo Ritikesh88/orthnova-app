@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { deleteUser, listUsers, updateUser, listDoctors } from '../../api';
+import { deleteUser, deleteDoctorRecord, listUsers, updateUser, listDoctors } from '../../api';
 import { UserRow, UserRole, DoctorRow } from '../../types';
 import UserEdit from './UserEdit';
 import Modal from '../common/Modal';
@@ -108,11 +108,23 @@ const UserManagement: React.FC = () => {
   };
 
   const onDelete = async (user_id: string) => {
-    if (!window.confirm('Delete this user?')) return;
+    // Check if this is a standalone doctor (user_id is a UUID from the doctors table)
+    const isStandaloneDoctor = doctors.some(d => d.id === user_id) && !users.some(u => u.user_id === user_id);
+    
+    const confirmMsg = isStandaloneDoctor
+      ? 'Delete this doctor record? This will also remove their appointments, prescriptions, and availability.'
+      : 'Delete this user?';
+    if (!window.confirm(confirmMsg)) return;
+    
     setError(null); setSuccess(null);
     try {
-      await deleteUser(user_id);
-      setSuccess('User deleted');
+      if (isStandaloneDoctor) {
+        await deleteDoctorRecord(user_id);
+        setSuccess('Doctor record deleted');
+      } else {
+        await deleteUser(user_id);
+        setSuccess('User deleted');
+      }
       await refresh();
     } catch (e: any) { setError(e.message); }
   };

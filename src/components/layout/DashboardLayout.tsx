@@ -105,6 +105,7 @@ const DashboardLayout: React.FC = () => {
               <NavLink to="/clinic/billing/history" className={navItemClass}><span>{Icon.history}</span><span>Billing History</span></NavLink>
               <NavLink to="/clinic/appointments" className={navItemClass} end><span>{Icon.appointment}</span><span>Appointment History</span></NavLink>
               <NavLink to="/clinic/admin/services" className={navItemClass}><span>{Icon.services}</span><span>Manage Service</span></NavLink>
+              <NavLink to="/clinic/prescriptions" className={navItemClass} end><span>{Icon.prescription}</span><span>Generate Prescription</span></NavLink>
               <NavLink to="/clinic/prescriptions/list" className={navItemClass}><span>{Icon.history}</span><span>Prescription History</span></NavLink>
               <NavLink to="/clinic/patients" className={navItemClass}><span>{Icon.patient}</span><span>Patients</span></NavLink>
               <div className="space-y-1">

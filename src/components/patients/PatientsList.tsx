@@ -35,7 +35,7 @@ const PatientsList: React.FC = () => {
 
   const selectForPrescription = (patientId: string) => {
     localStorage.setItem('orthonova_selected_patient_id', patientId);
-    navigate('/prescriptions');
+    navigate('/clinic/prescriptions');
   };
 
   return (
