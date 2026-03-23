@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { getDoctorById, getPatientById, listPrescriptions } from '../../api';
-import { PrescriptionRow } from '../../types';
+import { listPrescriptions, listPatients, listDoctors } from '../../api';
+import { PrescriptionRow, PatientRow, DoctorRow } from '../../types';
 import { formatDateTime } from '../../utils/format';
 import { useAuth } from '../../context/AuthContext';
 
@@ -15,51 +15,65 @@ const PrescriptionsList: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [searchDate, setSearchDate] = useState('');
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true); setError(null);
-      try {
-        let list = await listPrescriptions(searchText);
-        
-        // For doctor role, filter prescriptions to only show their own
-        if (user?.role === 'doctor' && user?.userId) {
-          // We need to find the doctor ID that matches the logged-in user
-          // First get all doctors to find the matching doctor
-          const { listDoctors } = await import('../../api');
-          const allDoctors = await listDoctors();
-          
-          const doctorMatch = allDoctors.find(doctor => 
-            doctor.name.toLowerCase().includes(user.userId.toLowerCase()) ||
-            user.userId.toLowerCase().includes(doctor.name.toLowerCase().split(' ')[0]?.toLowerCase() || '')
-          );
-          
-          if (doctorMatch) {
-            // Filter prescriptions to only show those created by this doctor
-            list = list.filter(prescription => prescription.doctor_id === doctorMatch.id);
-          } else {
-            // If no matching doctor found, show no prescriptions
-            list = [];
-          }
+  const fetchData = async () => {
+    setLoading(true); setError(null);
+    try {
+      // Fetch all data in parallel — 3 requests instead of N+1
+      const [prescriptions, patients, doctors] = await Promise.all([
+        listPrescriptions(searchText),
+        listPatients(),
+        listDoctors()
+      ]);
+
+      // Build lookup maps
+      const patientMap: Record<string, PatientRow> = {};
+      patients.forEach(p => { patientMap[p.id] = p; });
+
+      const doctorMap: Record<string, DoctorRow> = {};
+      doctors.forEach(d => { doctorMap[d.id] = d; });
+
+      let list = prescriptions;
+
+      // For doctor role, filter to their own prescriptions
+      if (user?.role === 'doctor' && user?.userId) {
+        const doctorMatch = doctors.find(d => {
+          const uid = user.userId.toLowerCase().replace(/[^a-z]/g, '');
+          const dname = d.name.toLowerCase().replace(/[^a-z]/g, '');
+          if (uid.length > 4 && dname.includes(uid)) return true;
+          if (dname.length > 4 && uid.includes(dname)) return true;
+          const nameWords = d.name.toLowerCase().split(/\s+/).filter(w => w.length > 3 && !['dr.', 'dr', 'mr.', 'mr', 'ms.', 'ms', 'mbbs', 'md'].includes(w));
+          if (nameWords.length > 0 && nameWords.every(w => uid.includes(w))) return true;
+          return false;
+        });
+        if (doctorMatch) {
+          list = list.filter(p => p.doctor_id === doctorMatch.id);
+        } else {
+          list = [];
         }
-        
-        const enriched: Enriched[] = await Promise.all(list.map(async r => {
-          const [p, d] = await Promise.all([getPatientById(r.patient_id), getDoctorById(r.doctor_id)]);
-          return { ...r, patientName: p?.name, doctorName: d?.name };
-        }));
-        setRows(enriched);
-      } catch (e: any) { setError(e.message); }
-      finally { setLoading(false); }
-    })();
-  }, [user, searchText]);
+      }
+
+      // Enrich with names from lookup maps — no extra API calls
+      const enriched: Enriched[] = list.map(r => ({
+        ...r,
+        patientName: patientMap[r.patient_id]?.name,
+        doctorName: doctorMap[r.doctor_id]?.name,
+      }));
+
+      setRows(enriched);
+    } catch (e: any) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchData(); }, [user, searchText]);
 
   const filtered = useMemo(() => {
     const txt = searchText.trim().toLowerCase();
     const date = searchDate;
     return rows.filter(r => {
-      const matchesText = !txt || [r.patientName, r.doctorName]
+      const matchesText = !txt || [r.patientName, r.doctorName, r.serial_number, r.diagnosis]
         .filter(Boolean)
         .some(v => String(v).toLowerCase().includes(txt));
-      const matchesDate = !date || (new Date(r.created_at).toISOString().slice(0,10) === date);
+      const matchesDate = !date || (new Date(r.created_at).toISOString().slice(0, 10) === date);
       return matchesText && matchesDate;
     });
   }, [rows, searchText, searchDate]);
@@ -85,7 +99,7 @@ const PrescriptionsList: React.FC = () => {
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Prescription History</h2>
-          <button className="btn btn-secondary" onClick={() => window.location.reload()} disabled={loading}>Refresh</button>
+          <button className="btn btn-secondary" onClick={fetchData} disabled={loading}>Refresh</button>
         </div>
         {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
         <div className="overflow-x-auto">
@@ -93,6 +107,7 @@ const PrescriptionsList: React.FC = () => {
             <thead>
               <tr className="text-left text-gray-500">
                 <th className="py-2 pr-4">Date/Time</th>
+                <th className="py-2 pr-4">Serial No.</th>
                 <th className="py-2 pr-4">Patient</th>
                 <th className="py-2 pr-4">Doctor</th>
                 <th className="py-2 pr-4">Visit Type</th>
@@ -103,6 +118,7 @@ const PrescriptionsList: React.FC = () => {
               {filtered.map(r => (
                 <tr key={r.id} className="border-t border-gray-100">
                   <td className="py-2 pr-4">{formatDateTime(r.created_at)}</td>
+                  <td className="py-2 pr-4 font-mono text-xs">{r.serial_number}</td>
                   <td className="py-2 pr-4">{r.patientName || r.patient_id}</td>
                   <td className="py-2 pr-4">{r.doctorName || r.doctor_id}</td>
                   <td className="py-2 pr-4">
@@ -118,7 +134,7 @@ const PrescriptionsList: React.FC = () => {
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td className="py-4 text-gray-500" colSpan={4}>{loading ? 'Loading...' : 'No prescriptions found.'}</td></tr>
+                <tr><td className="py-4 text-gray-500" colSpan={6}>{loading ? 'Loading...' : 'No prescriptions found.'}</td></tr>
               )}
             </tbody>
           </table>
