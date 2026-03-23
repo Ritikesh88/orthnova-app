@@ -1175,12 +1175,12 @@ export async function recordPayment(
 }
 
 // Stock Ledger functions
-export async function listStockLedgerEntries(itemId?: string, limit: number = 50): Promise<StockLedgerRow[]> {
+export async function listStockLedgerEntries(itemId?: string, limit: number = 200): Promise<StockLedgerRow[]> {
   let query = supabase
     .from('stock_ledger')
     .select(`
       *,
-      inventory_items(name, category, manufacturer, sku, unit, sale_price, gst_rate)
+      inventory_items(*)
     `)
     .order('created_at', { ascending: false });
   
@@ -1201,10 +1201,10 @@ export async function listRecentStockLedgerEntries(): Promise<StockLedgerRow[]> 
     .from('stock_ledger')
     .select(`
       *,
-      inventory_items(name, category, manufacturer, sku, unit, sale_price, gst_rate)
+      inventory_items(*)
     `)
     .order('created_at', { ascending: false })
-    .limit(50);
+    .limit(200);
   return throwIfError<StockLedgerRow[]>(res);
 }
 

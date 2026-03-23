@@ -6,6 +6,30 @@ import Modal from '../common/Modal';
 
 
 
+// Helper: find the doctor record for a given user
+function findDoctorForUser(user: UserRow, doctors: DoctorRow[]): DoctorRow | undefined {
+  if (user.role !== 'doctor') return undefined;
+  // 1. Check if user_id is directly a doctor UUID
+  const byId = doctors.find(d => d.id === user.user_id);
+  if (byId) return byId;
+  // 2. Check if user_id matches doctor_id field
+  const byDoctorId = doctors.find(d => d.doctor_id === user.user_id);
+  if (byDoctorId) return byDoctorId;
+  // 3. Fuzzy: check if the user_id (cleaned) appears inside the doctor name or vice versa
+  //    but skip very short tokens (<=2 chars) to avoid false positives like "dr"
+  const uid = user.user_id.toLowerCase().replace(/[^a-z]/g, '');
+  for (const d of doctors) {
+    const dname = d.name.toLowerCase().replace(/[^a-z]/g, '');
+    // Only match if the overlap is meaningful (>4 chars)
+    if (uid.length > 4 && dname.includes(uid)) return d;
+    if (dname.length > 4 && uid.includes(dname)) return d;
+    // Check each significant word of the doctor name (skip dr, mr, ms, etc.)
+    const nameWords = d.name.toLowerCase().split(/\s+/).filter(w => w.length > 3 && !['dr.', 'dr', 'mr.', 'mr', 'ms.', 'ms', 'mrs', 'mrs.', 'mbbs', 'md'].includes(w));
+    if (nameWords.length > 0 && nameWords.every(w => uid.includes(w))) return d;
+  }
+  return undefined;
+}
+
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [doctors, setDoctors] = useState<DoctorRow[]>([]);
@@ -40,23 +64,24 @@ const UserManagement: React.FC = () => {
     // Start with all users
     let combinedList = [...users];
     
-    // Add doctors that don't have user accounts
+    // Track which doctors are already linked to a user account
+    const linkedDoctorIds = new Set<string>();
+    users.forEach(user => {
+      const doc = findDoctorForUser(user, doctors);
+      if (doc) linkedDoctorIds.add(doc.id);
+    });
+    
+    // Add doctors that don't have user accounts as standalone entries
     doctors.forEach(doctor => {
-      // Check if this doctor has a user account
-      const hasUserAccount = users.some(user => {
-        const userName = user.user_id.toLowerCase();
-        const doctorName = doctor.name.toLowerCase();
-        return doctorName.includes(userName) || userName.includes(doctorName.split(' ')[0]);
-      });
-      
-      // If this doctor doesn't have a user account, add them as a "standalone doctor"
-      if (!hasUserAccount) {
+      if (!linkedDoctorIds.has(doctor.id)) {
         combinedList.push({
-          user_id: doctor.id, // Use doctor ID as user_id
-          role: 'doctor', // Default role
-          password: '', // Not applicable for standalone doctors
-          created_at: doctor.created_at // Use doctor's created_at
-        } as UserRow);
+          user_id: doctor.id, // Use doctor UUID as user_id
+          role: 'doctor' as UserRole,
+          password: '',
+          created_at: doctor.created_at,
+          id: doctor.id,
+          _isStandaloneDoctor: true, // marker flag
+        } as any);
       }
     });
     
@@ -71,12 +96,7 @@ const UserManagement: React.FC = () => {
 
     const query = searchQuery.toLowerCase().trim();
     return allUsersAndDoctors.filter(user => {
-      // Find the associated doctor if this user is a doctor
-      const doctor = user.role === 'doctor' ? doctors.find(d => {
-        const userName = user.user_id.toLowerCase();
-        const doctorName = d.name.toLowerCase();
-        return doctorName.includes(userName) || userName.includes(doctorName.split(' ')[0]);
-      }) : null;
+      const doctor = findDoctorForUser(user, doctors);
 
       // Check if user ID, role matches the query
       if (user.user_id.toLowerCase().includes(query) || user.role.toLowerCase().includes(query)) {
@@ -131,22 +151,7 @@ const UserManagement: React.FC = () => {
 
   // Handler for opening the edit modal
   const handleEditClick = (u: UserRow) => {
-    // Find the doctor record if this user is a doctor
-    let doctor: DoctorRow | undefined = undefined;
-    if (u.role === 'doctor') {
-      // First, try to match by name
-      doctor = doctors.find(d => {
-        const userName = u.user_id.toLowerCase();
-        const doctorName = d.name.toLowerCase();
-        return doctorName.includes(userName) || userName.includes(doctorName.split(' ')[0]);
-      });
-      
-      // If not found by name, check if this user_id is actually a doctor ID
-      if (!doctor) {
-        doctor = doctors.find(d => d.id === u.user_id);
-      }
-    }
-
+    const doctor = findDoctorForUser(u, doctors);
     setEditingUserId(u.user_id);
     setEditingUserRole(u.role);
     setEditingUserDoctor(doctor);
@@ -206,47 +211,35 @@ const UserManagement: React.FC = () => {
             </thead>
             <tbody>
               {filteredUsers.map(u => {
-                // Find the doctor record if this user is a doctor
-                let doctor: DoctorRow | undefined = undefined;
-                if (u.role === 'doctor') {
-                  // First, try to match by name
-                  doctor = doctors.find(d => {
-                    const userName = u.user_id.toLowerCase();
-                    const doctorName = d.name.toLowerCase();
-                    return doctorName.includes(userName) || userName.includes(doctorName.split(' ')[0]);
-                  });
-                  
-                  // If not found by name, check if this user_id is actually a doctor ID
-                  if (!doctor) {
-                    doctor = doctors.find(d => d.id === u.user_id);
-                  }
-                }
+                const doctor = findDoctorForUser(u, doctors);
+                const isStandalone = (u as any)._isStandaloneDoctor === true;
 
                 return (
                   <tr key={u.user_id} className="border-t border-gray-100">
                     {/* ID Column */}
                     <td className="py-2 pr-4">
-                      <span className="font-medium">{u.user_id}</span>
+                      <span className="font-medium">{isStandalone ? doctor?.doctor_id || u.user_id.slice(0, 8) + '...' : u.user_id}</span>
+                      {isStandalone && <span className="ml-1 text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">No Login</span>}
                     </td>
 
                     {/* Name Column */}
                     <td className="py-2 pr-4">
-                      <span className="font-medium">{(doctor && doctor.name) || (u.role === 'doctor' && u.user_id ? (doctors.find(d => d.id === u.user_id)?.name || '-') : '-')}</span>
+                      <span className="font-medium">{doctor?.name || '-'}</span>
                     </td>
 
                     {/* Contact Column */}
                     <td className="py-2 pr-4">
-                      <span className="font-medium">{(doctor && doctor.contact) || (u.role === 'doctor' && u.user_id ? (doctors.find(d => d.id === u.user_id)?.contact || '-') : '-')}</span>
+                      <span className="font-medium">{doctor?.contact || '-'}</span>
                     </td>
 
                     {/* Registration Column */}
                     <td className="py-2 pr-4">
-                      <span className="font-medium">{(doctor && doctor.registration_number) || (u.role === 'doctor' && u.user_id ? (doctors.find(d => d.id === u.user_id)?.registration_number || '-') : '-')}</span>
+                      <span className="font-medium">{doctor?.registration_number || '-'}</span>
                     </td>
 
                     {/* Consultation Fee Column */}
                     <td className="py-2 pr-4">
-                      <span className="font-medium">₹{(doctor && doctor.opd_fees) || (u.role === 'doctor' && u.user_id ? (doctors.find(d => d.id === u.user_id)?.opd_fees || '-') : '-')}</span>
+                      <span className="font-medium">{doctor?.opd_fees != null ? `₹${doctor.opd_fees}` : '₹-'}</span>
                     </td>
 
                     {/* Role Column */}
@@ -262,7 +255,9 @@ const UserManagement: React.FC = () => {
                       >
                         Edit
                       </button>
-                      <button className="btn btn-secondary px-3 py-1 text-xs" onClick={() => onChangePassword(u.user_id)}>Change Password</button>
+                      {!isStandalone && (
+                        <button className="btn btn-secondary px-3 py-1 text-xs" onClick={() => onChangePassword(u.user_id)}>Change Password</button>
+                      )}
                       <button className="btn bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 px-3 py-1 text-xs" onClick={() => onDelete(u.user_id)}>Delete</button>
                     </td>
                   </tr>
